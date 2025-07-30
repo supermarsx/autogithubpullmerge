@@ -11,6 +11,9 @@ public:
   /** Check whether verbose output is enabled. */
   bool verbose() const { return verbose_; }
 
+  /// Set verbose output mode.
+  void set_verbose(bool verbose) { verbose_ = verbose; }
+
   /// Load configuration from the file at `path`.
   static Config from_file(const std::string &path);
 
