@@ -1,6 +1,6 @@
-#include <iostream>
+#include "app.hpp"
 
 int main(int argc, char **argv) {
-  std::cout << "autogithubpullmerge: starting up" << std::endl;
-  return 0;
+  agpm::App app;
+  return app.run(argc, argv);
 }
