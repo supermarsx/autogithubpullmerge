@@ -4,8 +4,8 @@ find_package(nlohmann_json REQUIRED)
 find_package(CURL REQUIRED)
 find_package(SQLite3 REQUIRED)
 
-add_library(autogithubpullmerge_lib app.cpp cli.cpp config.cpp github_client.cpp
-                                  history.cpp)
+
+add_library(autogithubpullmerge_lib app.cpp cli.cpp config.cpp config_manager.cpp github_client.cpp history.cpp)
 
 target_include_directories(autogithubpullmerge_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 

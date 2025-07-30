@@ -10,6 +10,10 @@ add_executable(test_config test_config.cpp)
 target_link_libraries(test_config PRIVATE autogithubpullmerge_lib)
 add_test(NAME config_test COMMAND test_config)
 
+add_executable(test_config_manager test_config_manager.cpp)
+target_link_libraries(test_config_manager PRIVATE autogithubpullmerge_lib)
+add_test(NAME config_manager_test COMMAND test_config_manager)
+
 add_executable(test_github_client test_github_client.cpp)
 target_link_libraries(test_github_client PRIVATE autogithubpullmerge_lib)
 add_test(NAME github_client_test COMMAND test_github_client)
