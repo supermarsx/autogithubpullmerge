@@ -1,20 +1,19 @@
-#include "config.hpp"
+#include "config_manager.hpp"
 #include <fstream>
 #include <stdexcept>
-#include <string>
 
 #include <nlohmann/json.hpp>
 #include <yaml-cpp/yaml.h>
 
 namespace agpm {
 
-Config Config::from_file(const std::string &path) {
-  Config cfg;
+Config ConfigManager::load(const std::string &path) const {
   auto pos = path.find_last_of('.');
   if (pos == std::string::npos) {
     throw std::runtime_error("Unknown config file extension");
   }
   std::string ext = path.substr(pos + 1);
+  Config cfg;
   if (ext == "yaml" || ext == "yml") {
     YAML::Node node = YAML::LoadFile(path);
     if (node["verbose"]) {

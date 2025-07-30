@@ -3,7 +3,7 @@ find_package(yaml-cpp REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(CURL REQUIRED)
 
-add_library(autogithubpullmerge_lib app.cpp cli.cpp config.cpp github_client.cpp)
+add_library(autogithubpullmerge_lib app.cpp cli.cpp config.cpp config_manager.cpp github_client.cpp)
 
 target_include_directories(autogithubpullmerge_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
