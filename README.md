@@ -13,3 +13,12 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 ./scripts/install_linux.sh
 ./scripts/build_linux.sh
 ```
+
+## Generating Documentation
+
+The project uses Doxygen for API documentation. Run the following from the
+repository root to generate docs in `docs/build`:
+
+```bash
+doxygen docs/Doxyfile
+```

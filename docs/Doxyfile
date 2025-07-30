@@ -2,3 +2,5 @@ PROJECT_NAME = "autogithubpullmerge"
 OUTPUT_DIRECTORY = docs/build
 GENERATE_LATEX = NO
 EXTRACT_ALL = YES
+INPUT = ../include ../src
+RECURSIVE = YES

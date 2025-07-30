@@ -5,10 +5,18 @@
 
 namespace agpm {
 
+/** Parsed command line options. */
 struct CliOptions {
-  bool verbose = false;
+  bool verbose = false; ///< Enables verbose output
 };
 
+/**
+ * Parse command line arguments.
+ *
+ * @param argc Number of arguments
+ * @param argv Argument values
+ * @return Parsed options structure
+ */
 CliOptions parse_cli(int argc, char **argv);
 
 } // namespace agpm
