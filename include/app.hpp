@@ -2,6 +2,7 @@
 #define AUTOGITHUBPULLMERGE_APP_HPP
 
 #include "cli.hpp"
+#include "tui.hpp"
 
 namespace agpm {
 

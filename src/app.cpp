@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "cli.hpp"
+#include "tui.hpp"
 #include <iostream>
 
 namespace agpm {
@@ -10,6 +11,7 @@ int App::run(int argc, char **argv) {
     std::cout << "Verbose mode enabled" << std::endl;
   }
   std::cout << "Running agpm app" << std::endl;
+  render_pr_list();
   return 0;
 }
 

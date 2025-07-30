@@ -5,7 +5,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 ## Features
 - Cross-platform build using CMake
 - Linux, macOS and Windows install/build scripts
-- Placeholder TUI application in C++20
+- TUI built with the header-only [FTXUI](https://github.com/ArthurSonzogni/FTXUI) library
 - Unit tests using Catch2
 
 ## Building (Linux)
