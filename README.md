@@ -7,6 +7,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - Linux, macOS and Windows install/build scripts
 - Placeholder TUI application in C++20
 - Unit tests using Catch2
+- Logging powered by spdlog with configurable level and output file
 
 ## Building (Linux)
 ```bash

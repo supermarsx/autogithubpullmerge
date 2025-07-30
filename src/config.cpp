@@ -20,6 +20,12 @@ Config Config::from_file(const std::string &path) {
     if (node["verbose"]) {
       cfg.verbose_ = node["verbose"].as<bool>();
     }
+    if (node["log_level"]) {
+      cfg.log_level_ = node["log_level"].as<std::string>();
+    }
+    if (node["log_file"]) {
+      cfg.log_file_ = node["log_file"].as<std::string>();
+    }
   } else if (ext == "json") {
     std::ifstream f(path);
     if (!f) {
@@ -29,6 +35,12 @@ Config Config::from_file(const std::string &path) {
     f >> j;
     if (j.contains("verbose")) {
       cfg.verbose_ = j["verbose"].get<bool>();
+    }
+    if (j.contains("log_level")) {
+      cfg.log_level_ = j["log_level"].get<std::string>();
+    }
+    if (j.contains("log_file")) {
+      cfg.log_file_ = j["log_file"].get<std::string>();
     }
   } else {
     throw std::runtime_error("Unsupported config format");

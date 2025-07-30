@@ -1,15 +1,16 @@
 #include "app.hpp"
 #include "cli.hpp"
-#include <iostream>
+#include "log.hpp"
 
 namespace agpm {
 
 int App::run(int argc, char **argv) {
   options_ = parse_cli(argc, argv);
+  init_logger(level_from_string(options_.log_level), options_.log_file);
   if (options_.verbose) {
-    std::cout << "Verbose mode enabled" << std::endl;
+    logger()->info("Verbose mode enabled");
   }
-  std::cout << "Running agpm app" << std::endl;
+  logger()->info("Running agpm app");
   return 0;
 }
 

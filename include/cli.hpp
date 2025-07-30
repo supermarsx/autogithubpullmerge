@@ -7,6 +7,8 @@ namespace agpm {
 
 struct CliOptions {
   bool verbose = false;
+  std::string log_level = "info";
+  std::string log_file;
 };
 
 CliOptions parse_cli(int argc, char **argv);
