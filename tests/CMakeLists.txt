@@ -2,6 +2,18 @@ add_executable(test_main test_main.cpp)
 target_link_libraries(test_main PRIVATE autogithubpullmerge_lib)
 add_test(NAME main_test COMMAND test_main)
 
+add_executable(test_cli test_cli.cpp)
+target_link_libraries(test_cli PRIVATE autogithubpullmerge_lib)
+add_test(NAME cli_test COMMAND test_cli)
+
+add_executable(test_config test_config.cpp)
+target_link_libraries(test_config PRIVATE autogithubpullmerge_lib)
+add_test(NAME config_test COMMAND test_config)
+
 add_executable(test_github_client test_github_client.cpp)
 target_link_libraries(test_github_client PRIVATE autogithubpullmerge_lib)
 add_test(NAME github_client_test COMMAND test_github_client)
+
+add_executable(test_github_client_behavior test_github_client_behavior.cpp)
+target_link_libraries(test_github_client_behavior PRIVATE autogithubpullmerge_lib)
+add_test(NAME github_client_behavior_test COMMAND test_github_client_behavior)
