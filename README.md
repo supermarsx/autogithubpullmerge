@@ -1,4 +1,4 @@
-# autogithubpullmerge
+#autogithubpullmerge
 
 A cross-platform tool to manage and monitor GitHub pull requests from a terminal user interface.
 
@@ -7,6 +7,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - Linux, macOS and Windows install/build scripts
 - Placeholder TUI application in C++20
 - Unit tests using Catch2
+- SQLite-based history storage with CSV/JSON export
 
 ## Building (Linux)
 ```bash
