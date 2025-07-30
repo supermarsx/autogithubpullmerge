@@ -1,5 +1,7 @@
-add_executable(tests test_main.cpp)
+add_executable(test_main test_main.cpp)
+target_link_libraries(test_main PRIVATE autogithubpullmerge_lib)
+add_test(NAME main_test COMMAND test_main)
 
-target_link_libraries(tests PRIVATE autogithubpullmerge_lib)
-
-add_test(NAME main_test COMMAND tests)
+add_executable(test_github_client test_github_client.cpp)
+target_link_libraries(test_github_client PRIVATE autogithubpullmerge_lib)
+add_test(NAME github_client_test COMMAND test_github_client)
