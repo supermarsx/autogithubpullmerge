@@ -1,0 +1,13 @@
+# Build directories
+build/
+cmake-build-*/
+
+# Editor backups
+*~
+*.swp
+*.swo
+*.bak
+
+# OS-specific files
+.DS_Store
+Thumbs.db
