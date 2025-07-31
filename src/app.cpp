@@ -2,6 +2,7 @@
 #include "cli.hpp"
 #include "config.hpp"
 #include "log.hpp"
+#include "history.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <spdlog/spdlog.h>
@@ -20,6 +21,8 @@ int App::run(int argc, char **argv) {
   if (!options_.config_file.empty()) {
     config_ = Config::from_file(options_.config_file);
   }
+  PullRequestHistory history(options_.history_db);
+  (void)history;
   if (options_.verbose) {
     std::cout << "Verbose mode enabled" << std::endl;
   }
