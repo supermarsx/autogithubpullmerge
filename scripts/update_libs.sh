@@ -21,3 +21,4 @@ clone_or_update https://github.com/nlohmann/json.git json
 clone_or_update https://github.com/gabime/spdlog.git spdlog
 clone_or_update https://github.com/curl/curl.git curl
 clone_or_update https://github.com/sqlite/sqlite.git sqlite
+clone_or_update https://github.com/mirror/ncurses.git ncurses

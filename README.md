@@ -6,6 +6,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - Cross-platform build using CMake
 - Linux, macOS and Windows install/build scripts
 - Placeholder TUI application in C++20
+- Includes ncurses/pdcurses fetched with `scripts/update_libs.sh`
 - Unit tests using Catch2
 - SQLite-based history storage with CSV/JSON export
 - Configurable logging with `--log-level`
