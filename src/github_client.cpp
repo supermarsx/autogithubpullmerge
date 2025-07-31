@@ -1,7 +1,9 @@
 #include "github_client.hpp"
 #include "curl/curl.h"
 #include <algorithm>
+#include <chrono>
 #include <stdexcept>
+#include <thread>
 
 namespace agpm {
 
@@ -65,11 +67,15 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
 
 GitHubClient::GitHubClient(std::string token, std::unique_ptr<HttpClient> http,
                            std::vector<std::string> include_repos,
-                           std::vector<std::string> exclude_repos)
+                           std::vector<std::string> exclude_repos, int delay_ms)
     : token_(std::move(token)),
       http_(http ? std::move(http) : std::make_unique<CurlHttpClient>()),
       include_repos_(std::move(include_repos)),
-      exclude_repos_(std::move(exclude_repos)) {}
+      exclude_repos_(std::move(exclude_repos)), delay_ms_(delay_ms),
+      last_request_(std::chrono::steady_clock::now() -
+                    std::chrono::milliseconds(delay_ms)) {}
+
+void GitHubClient::set_delay_ms(int delay_ms) { delay_ms_ = delay_ms; }
 
 bool GitHubClient::repo_allowed(const std::string &repo) const {
   if (!include_repos_.empty() &&
@@ -90,6 +96,7 @@ GitHubClient::list_pull_requests(const std::string &owner,
   if (!repo_allowed(repo)) {
     return {};
   }
+  enforce_delay();
   std::string url =
       "https://api.github.com/repos/" + owner + "/" + repo + "/pulls";
   std::vector<std::string> headers = {"Authorization: token " + token_,
@@ -111,6 +118,7 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   if (!repo_allowed(repo)) {
     return false;
   }
+  enforce_delay();
   std::string url = "https://api.github.com/repos/" + owner + "/" + repo +
                     "/pulls/" + std::to_string(pr_number) + "/merge";
   std::vector<std::string> headers = {"Authorization: token " + token_,
@@ -118,6 +126,19 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   std::string resp = http_->put(url, "{}", headers);
   nlohmann::json j = nlohmann::json::parse(resp);
   return j.contains("merged") && j["merged"].get<bool>();
+}
+
+void GitHubClient::enforce_delay() {
+  if (delay_ms_ <= 0)
+    return;
+  auto now = std::chrono::steady_clock::now();
+  auto elapsed =
+      std::chrono::duration_cast<std::chrono::milliseconds>(now - last_request_)
+          .count();
+  if (elapsed < delay_ms_) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms_ - elapsed));
+  }
+  last_request_ = std::chrono::steady_clock::now();
 }
 
 } // namespace agpm

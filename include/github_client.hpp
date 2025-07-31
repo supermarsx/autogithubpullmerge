@@ -1,6 +1,7 @@
 #ifndef AUTOGITHUBPULLMERGE_GITHUB_CLIENT_HPP
 #define AUTOGITHUBPULLMERGE_GITHUB_CLIENT_HPP
 
+#include <chrono>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -64,7 +65,11 @@ public:
   explicit GitHubClient(std::string token,
                         std::unique_ptr<HttpClient> http = nullptr,
                         std::vector<std::string> include_repos = {},
-                        std::vector<std::string> exclude_repos = {});
+                        std::vector<std::string> exclude_repos = {},
+                        int delay_ms = 0);
+
+  /// Set minimum delay between HTTP requests in milliseconds.
+  void set_delay_ms(int delay_ms);
 
   /**
    * List pull requests for a repository.
@@ -93,7 +98,11 @@ private:
   std::vector<std::string> include_repos_;
   std::vector<std::string> exclude_repos_;
 
+  int delay_ms_;
+  std::chrono::steady_clock::time_point last_request_;
+
   bool repo_allowed(const std::string &repo) const;
+  void enforce_delay();
 };
 
 } // namespace agpm
