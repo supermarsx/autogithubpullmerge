@@ -7,7 +7,8 @@ namespace agpm {
 
 /** Parsed command line options. */
 struct CliOptions {
-  bool verbose = false; ///< Enables verbose output
+  bool verbose = false;    ///< Enables verbose output
+  std::string config_file; ///< Optional path to configuration file
 };
 
 /**
