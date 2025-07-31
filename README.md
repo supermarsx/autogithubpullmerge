@@ -1,4 +1,4 @@
-#autogithubpullmerge
+# autogithubpullmerge
 
 A cross-platform tool to manage and monitor GitHub pull requests from a terminal user interface.
 
