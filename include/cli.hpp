@@ -19,6 +19,8 @@ struct CliOptions {
   std::string api_key_url_user;           ///< Basic auth user
   std::string api_key_url_password;       ///< Basic auth password
   std::string api_key_file;               ///< File containing tokens
+  int poll_interval = 0;                  ///< Polling interval in seconds
+  int max_request_rate = 60;              ///< Max requests per minute
 };
 
 /**

@@ -53,3 +53,10 @@ API keys can be provided in several ways:
 - `--api-key-from-stream` to read tokens from standard input
 - `--api-key-url` to fetch tokens from a remote URL with optional basic auth
 - `--api-key-file` to load tokens from a JSON or YAML file
+
+## Polling Options
+
+- `--poll-interval` sets how often the application polls GitHub for updates in
+  seconds. A value of `0` disables polling.
+- `--max-request-rate` limits the maximum number of GitHub requests per minute
+  using a token bucket algorithm.

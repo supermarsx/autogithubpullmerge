@@ -3,9 +3,10 @@
 #include "config.hpp"
 #include "github_client.hpp"
 #include "log.hpp"
+#include "poller.hpp"
 #include "tui.hpp"
-#include <iostream>
 #include <cstdlib>
+#include <iostream>
 #include <spdlog/spdlog.h>
 
 namespace agpm {
@@ -36,6 +37,14 @@ int App::run(int argc, char **argv) {
       auto prs = client.list_pull_requests(owner, repo);
       Tui ui;
       ui.run(prs);
+      if (options_.poll_interval > 0) {
+        Poller poller([&] { client.list_pull_requests(owner, repo); },
+                      options_.poll_interval * 1000, options_.max_request_rate);
+        poller.start();
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(options_.poll_interval * 2000));
+        poller.stop();
+      }
     } else {
       spdlog::warn("TUI skipped: GITHUB_TOKEN/OWNER/REPO not set");
     }
