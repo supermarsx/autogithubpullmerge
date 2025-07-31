@@ -10,6 +10,9 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - SQLite-based history storage with CSV/JSON export
 - Configurable logging with `--log-level`
 - Cross-platform compile scripts using g++
+- CLI options for GitHub API keys (`--api-key`, `--api-key-from-stream`,
+  `--api-key-url`, `--api-key-url-user`, `--api-key-url-password`,
+  `--api-key-file`)
 
 ## Building (Linux)
 ```bash
@@ -41,3 +44,12 @@ doxygen docs/Doxyfile
 
 Use the `--log-level` option to control verbosity. Valid levels include
 `trace`, `debug`, `info`, `warn`, `error`, `critical` and `off`.
+
+## API Key Options
+
+API keys can be provided in several ways:
+
+- `--api-key` to specify a token directly (repeatable but not recommended)
+- `--api-key-from-stream` to read tokens from standard input
+- `--api-key-url` to fetch tokens from a remote URL with optional basic auth
+- `--api-key-file` to load tokens from a JSON or YAML file
