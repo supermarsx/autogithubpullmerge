@@ -24,7 +24,11 @@ else()
   find_package(spdlog REQUIRED)
 endif()
 
-find_package(CURL REQUIRED)
+if(EXISTS "${LIBS_DIR}/curl/CMakeLists.txt")
+  add_subdirectory(${LIBS_DIR}/curl EXTERNAL_CURL)
+else()
+  find_package(CURL REQUIRED)
+endif()
 find_package(SQLite3 REQUIRED)
 find_package(Curses REQUIRED)
 
