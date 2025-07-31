@@ -6,6 +6,10 @@ New-Item -ItemType Directory -Path $BuildDir -Force | Out-Null
 $srcFiles = Get-ChildItem -Path (Join-Path $RootDir "src") -Filter *.cpp -Recurse | ForEach-Object { $_.FullName }
 $include = Join-Path $RootDir "include"
 $libsDir = Join-Path $RootDir "libs"
+$sqliteVersion = Join-Path $libsDir "sqlite\VERSION"
+if (Test-Path $sqliteVersion) {
+    Rename-Item $sqliteVersion "VERSION.txt" -Force
+}
 $srcList = $srcFiles -join ' '
 $includeArgs = "-I`"$include`" -I`"$libsDir\CLI11\include`" -I`"$libsDir\json\include`" -I`"$libsDir\spdlog\include`" -I`"$libsDir\yaml-cpp\include`" -I`"$libsDir\libyaml\include`" -I`"$libsDir\ncurses\include`" -I`"$libsDir\curl\include`" -I`"$libsDir\sqlite`""
 $cmd = "g++ -std=c++20 -Wall -Wextra -O2 -static -static-libgcc -static-libstdc++ -DYAML_CPP_STATIC_DEFINE $includeArgs $srcList -lcurl -lsqlite3 -lyaml-cpp -lyaml -lncurses -o `"$BuildDir\autogithubpullmerge.exe`""
