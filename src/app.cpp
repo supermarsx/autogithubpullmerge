@@ -1,12 +1,21 @@
 #include "app.hpp"
 #include "cli.hpp"
 #include "config.hpp"
+#include "log.hpp"
 #include <iostream>
+#include <spdlog/spdlog.h>
 
 namespace agpm {
 
 int App::run(int argc, char **argv) {
   options_ = parse_cli(argc, argv);
+  spdlog::level::level_enum lvl = spdlog::level::info;
+  try {
+    lvl = spdlog::level::from_str(options_.log_level);
+  } catch (const spdlog::spdlog_ex &) {
+    // keep default
+  }
+  init_logger(lvl);
   if (!options_.config_file.empty()) {
     config_ = Config::from_file(options_.config_file);
   }

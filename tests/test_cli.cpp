@@ -17,5 +17,15 @@ int main() {
   char *argv3[] = {prog, config_flag, file};
   agpm::CliOptions opts3 = agpm::parse_cli(3, argv3);
   assert(opts3.config_file == "cfg.yaml");
+
+  char log_flag[] = "--log-level";
+  char debug_lvl[] = "debug";
+  char *argv4[] = {prog, log_flag, debug_lvl};
+  agpm::CliOptions opts4 = agpm::parse_cli(3, argv4);
+  assert(opts4.log_level == "debug");
+
+  char *argv5[] = {prog};
+  agpm::CliOptions opts5 = agpm::parse_cli(1, argv5);
+  assert(opts5.log_level == "info");
   return 0;
 }

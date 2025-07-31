@@ -8,6 +8,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - Placeholder TUI application in C++20
 - Unit tests using Catch2
 - SQLite-based history storage with CSV/JSON export
+- Configurable logging with `--log-level`
 
 ## Building (Linux)
 ```bash
@@ -23,3 +24,8 @@ repository root to generate docs in `docs/build`:
 ```bash
 doxygen docs/Doxyfile
 ```
+
+## Logging
+
+Use the `--log-level` option to control verbosity. Valid levels include
+`trace`, `debug`, `info`, `warn`, `error`, `critical` and `off`.
