@@ -18,4 +18,7 @@ CloneOrUpdate "https://github.com/nlohmann/json.git" "json"
 CloneOrUpdate "https://github.com/gabime/spdlog.git" "spdlog"
 CloneOrUpdate "https://github.com/curl/curl.git" "curl"
 CloneOrUpdate "https://github.com/sqlite/sqlite.git" "sqlite"
+if (Test-Path (Join-Path $LibsDir "sqlite\VERSION")) {
+    Rename-Item (Join-Path $LibsDir "sqlite\VERSION") "VERSION.txt"
+}
 CloneOrUpdate "https://github.com/mirror/ncurses.git" "ncurses"
