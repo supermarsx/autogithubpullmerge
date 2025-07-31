@@ -17,6 +17,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 ## Building (Linux)
 ```bash
 ./scripts/install_linux.sh
+./scripts/update_libs.sh
 ./scripts/build_linux.sh
 ```
 
@@ -30,6 +31,8 @@ provided scripts:
 ./scripts/compile_mac.sh     # macOS
 ./scripts/compile_win.ps1    # Windows
 ```
+Run `./scripts/update_libs.sh` (or `./scripts/update_libs.ps1` on Windows) beforehand to fetch the required libraries into
+the `libs` directory.
 
 ## Generating Documentation
 

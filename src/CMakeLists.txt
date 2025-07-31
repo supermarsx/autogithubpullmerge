@@ -1,9 +1,31 @@
-find_package(CLI11 CONFIG REQUIRED)
-find_package(yaml-cpp REQUIRED)
-find_package(nlohmann_json REQUIRED)
+set(LIBS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../libs)
+
+if(EXISTS "${LIBS_DIR}/CLI11/CMakeLists.txt")
+  add_subdirectory(${LIBS_DIR}/CLI11 EXTERNAL_CLI11)
+else()
+  find_package(CLI11 CONFIG REQUIRED)
+endif()
+
+if(EXISTS "${LIBS_DIR}/yaml-cpp/CMakeLists.txt")
+  add_subdirectory(${LIBS_DIR}/yaml-cpp EXTERNAL_YAMLCPP)
+else()
+  find_package(yaml-cpp REQUIRED)
+endif()
+
+if(EXISTS "${LIBS_DIR}/json/CMakeLists.txt")
+  add_subdirectory(${LIBS_DIR}/json EXTERNAL_JSON)
+else()
+  find_package(nlohmann_json REQUIRED)
+endif()
+
+if(EXISTS "${LIBS_DIR}/spdlog/CMakeLists.txt")
+  add_subdirectory(${LIBS_DIR}/spdlog EXTERNAL_SPDLOG)
+else()
+  find_package(spdlog REQUIRED)
+endif()
+
 find_package(CURL REQUIRED)
 find_package(SQLite3 REQUIRED)
-find_package(spdlog REQUIRED)
 find_package(Curses REQUIRED)
 
 add_library(autogithubpullmerge_lib
