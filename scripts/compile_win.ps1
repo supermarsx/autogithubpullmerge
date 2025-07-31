@@ -6,6 +6,11 @@ New-Item -ItemType Directory -Path $BuildDir -Force | Out-Null
 $srcFiles = Get-ChildItem -Path (Join-Path $RootDir "src") -Filter *.cpp -Recurse | ForEach-Object { $_.FullName }
 $include = Join-Path $RootDir "include"
 $libsDir = Join-Path $RootDir "libs"
+$jsonLib = Join-Path $libsDir "json"
+if (-not (Test-Path $jsonLib)) {
+    Write-Host "Third-party libraries not found. Fetching with update_libs.ps1 ..."
+    & (Join-Path $ScriptDir "update_libs.ps1")
+}
 $srcList = $srcFiles -join ' '
 $includeArgs = "-I`"$include`" -I`"$libsDir\CLI11\include`" -I`"$libsDir\json\include`" -I`"$libsDir\spdlog\include`" -I`"$libsDir\yaml-cpp\include`" -I`"$libsDir\libyaml\include`" -I`"$libsDir\ncurses\include`" -I`"$libsDir\curl\include`" -I`"$libsDir\sqlite`""
 
