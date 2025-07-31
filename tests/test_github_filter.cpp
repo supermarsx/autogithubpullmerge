@@ -1,0 +1,61 @@
+#include "github_client.hpp"
+#include <cassert>
+#include <string>
+
+using namespace agpm;
+
+class SpyHttpClient : public HttpClient {
+public:
+  std::string last_url;
+  std::string last_method;
+  std::string response;
+
+  std::string get(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)headers;
+    last_url = url;
+    last_method = "GET";
+    return response;
+  }
+
+  std::string put(const std::string &url, const std::string &data,
+                  const std::vector<std::string> &headers) override {
+    (void)data;
+    (void)headers;
+    last_url = url;
+    last_method = "PUT";
+    return response;
+  }
+};
+
+int main() {
+  auto http = std::make_unique<SpyHttpClient>();
+  http->response = "[{\"number\":1,\"title\":\"Test\"}]";
+  SpyHttpClient *raw1 = http.get();
+  GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()),
+                      {"allowed"}, {"skip"});
+
+  // not allowed by include filter
+  auto prs = client.list_pull_requests("owner", "other");
+  assert(prs.empty());
+  assert(raw1->last_method.empty());
+
+  // allowed repository
+  auto http2 = std::make_unique<SpyHttpClient>();
+  http2->response = "[{\"number\":2,\"title\":\"Good\"}]";
+  GitHubClient client2("tok", std::unique_ptr<HttpClient>(http2.release()),
+                       {"good"}, {});
+  auto prs2 = client2.list_pull_requests("owner", "good");
+  assert(prs2.size() == 1);
+
+  // excluded repository
+  auto http3 = std::make_unique<SpyHttpClient>();
+  SpyHttpClient *raw3 = http3.get();
+  GitHubClient client3("tok", std::unique_ptr<HttpClient>(http3.release()), {},
+                       {"bad"});
+  bool merged = client3.merge_pull_request("owner", "bad", 1);
+  assert(!merged);
+  assert(raw3->last_method.empty());
+
+  return 0;
+}

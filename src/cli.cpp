@@ -14,6 +14,14 @@ CliOptions parse_cli(int argc, char **argv) {
          "Set logging level (trace, debug, info, warn, error, critical, off)")
       ->type_name("LEVEL")
       ->default_val("info");
+  app.add_option("--include", options.include_repos,
+                 "Repository to include; repeatable")
+      ->type_name("REPO")
+      ->expected(-1);
+  app.add_option("--exclude", options.exclude_repos,
+                 "Repository to exclude; repeatable")
+      ->type_name("REPO")
+      ->expected(-1);
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {

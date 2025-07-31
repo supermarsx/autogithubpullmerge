@@ -62,7 +62,9 @@ public:
    * @param http Optional HTTP client implementation
    */
   explicit GitHubClient(std::string token,
-                        std::unique_ptr<HttpClient> http = nullptr);
+                        std::unique_ptr<HttpClient> http = nullptr,
+                        std::vector<std::string> include_repos = {},
+                        std::vector<std::string> exclude_repos = {});
 
   /**
    * List pull requests for a repository.
@@ -88,6 +90,10 @@ public:
 private:
   std::string token_;
   std::unique_ptr<HttpClient> http_;
+  std::vector<std::string> include_repos_;
+  std::vector<std::string> exclude_repos_;
+
+  bool repo_allowed(const std::string &repo) const;
 };
 
 } // namespace agpm

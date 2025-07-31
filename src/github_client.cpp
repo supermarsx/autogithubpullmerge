@@ -1,4 +1,5 @@
 #include "github_client.hpp"
+#include <algorithm>
 #include <curl/curl.h>
 #include <stdexcept>
 
@@ -62,13 +63,33 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   return response;
 }
 
-GitHubClient::GitHubClient(std::string token, std::unique_ptr<HttpClient> http)
+GitHubClient::GitHubClient(std::string token, std::unique_ptr<HttpClient> http,
+                           std::vector<std::string> include_repos,
+                           std::vector<std::string> exclude_repos)
     : token_(std::move(token)),
-      http_(http ? std::move(http) : std::make_unique<CurlHttpClient>()) {}
+      http_(http ? std::move(http) : std::make_unique<CurlHttpClient>()),
+      include_repos_(std::move(include_repos)),
+      exclude_repos_(std::move(exclude_repos)) {}
+
+bool GitHubClient::repo_allowed(const std::string &repo) const {
+  if (!include_repos_.empty() &&
+      std::find(include_repos_.begin(), include_repos_.end(), repo) ==
+          include_repos_.end()) {
+    return false;
+  }
+  if (std::find(exclude_repos_.begin(), exclude_repos_.end(), repo) !=
+      exclude_repos_.end()) {
+    return false;
+  }
+  return true;
+}
 
 std::vector<PullRequest>
 GitHubClient::list_pull_requests(const std::string &owner,
                                  const std::string &repo) {
+  if (!repo_allowed(repo)) {
+    return {};
+  }
   std::string url =
       "https://api.github.com/repos/" + owner + "/" + repo + "/pulls";
   std::vector<std::string> headers = {"Authorization: token " + token_,
@@ -87,6 +108,9 @@ GitHubClient::list_pull_requests(const std::string &owner,
 
 bool GitHubClient::merge_pull_request(const std::string &owner,
                                       const std::string &repo, int pr_number) {
+  if (!repo_allowed(repo)) {
+    return false;
+  }
   std::string url = "https://api.github.com/repos/" + owner + "/" + repo +
                     "/pulls/" + std::to_string(pr_number) + "/merge";
   std::vector<std::string> headers = {"Authorization: token " + token_,
