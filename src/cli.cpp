@@ -134,6 +134,14 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_option("--api-key-file", options.api_key_file,
                  "Path to JSON/YAML file with API key(s)")
       ->type_name("FILE");
+  app.add_option("--poll-interval", options.poll_interval,
+                 "Polling interval in seconds")
+      ->type_name("SECONDS")
+      ->default_val("0");
+  app.add_option("--max-request-rate", options.max_request_rate,
+                 "Maximum requests per minute")
+      ->type_name("RATE")
+      ->default_val("60");
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {

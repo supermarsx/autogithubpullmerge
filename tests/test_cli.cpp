@@ -72,5 +72,14 @@ int main() {
   agpm::CliOptions opts10 = agpm::parse_cli(2, argv10);
   assert(opts10.api_key_from_stream);
 
+  char interval_flag[] = "--poll-interval";
+  char rate_flag[] = "--max-request-rate";
+  char interval_val[] = "5";
+  char rate_val[] = "100";
+  char *argv11[] = {prog, interval_flag, interval_val, rate_flag, rate_val};
+  agpm::CliOptions opts11 = agpm::parse_cli(5, argv11);
+  assert(opts11.poll_interval == 5);
+  assert(opts11.max_request_rate == 100);
+
   return 0;
 }
