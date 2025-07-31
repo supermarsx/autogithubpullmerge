@@ -40,6 +40,17 @@ int main() {
   assert(log_app.run(static_cast<int>(args_log.size()), args_log.data()) == 0);
   assert(log_app.options().log_level == "warn");
 
+  agpm::App hist_app;
+  std::vector<char *> hist_args;
+  char prog4[] = "tests";
+  char db_flag[] = "--history-db";
+  char hist_file[] = "hist.db";
+  hist_args.push_back(prog4);
+  hist_args.push_back(db_flag);
+  hist_args.push_back(hist_file);
+  assert(hist_app.run(static_cast<int>(hist_args.size()), hist_args.data()) == 0);
+  assert(hist_app.options().history_db == "hist.db");
+
   {
     std::ofstream yaml("test_config.yaml");
     yaml << "verbose: true\n";

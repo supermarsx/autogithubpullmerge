@@ -81,5 +81,11 @@ int main() {
   assert(opts11.poll_interval == 5);
   assert(opts11.max_request_rate == 100);
 
+  char db_flag[] = "--history-db";
+  char path_db[] = "my.db";
+  char *argv12[] = {prog, db_flag, path_db};
+  agpm::CliOptions opts12 = agpm::parse_cli(3, argv12);
+  assert(opts12.history_db == "my.db");
+
   return 0;
 }

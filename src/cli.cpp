@@ -134,6 +134,10 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_option("--api-key-file", options.api_key_file,
                  "Path to JSON/YAML file with API key(s)")
       ->type_name("FILE");
+  app.add_option("--history-db", options.history_db,
+                 "Path to SQLite history database")
+      ->type_name("FILE")
+      ->default_val("history.db");
   app.add_option("--poll-interval", options.poll_interval,
                  "Polling interval in seconds")
       ->type_name("SECONDS")
