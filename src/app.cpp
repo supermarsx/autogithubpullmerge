@@ -1,10 +1,7 @@
 #include "app.hpp"
 #include "cli.hpp"
 #include "config.hpp"
-#include "github_client.hpp"
 #include "log.hpp"
-#include "poller.hpp"
-#include "tui.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <spdlog/spdlog.h>
@@ -28,27 +25,7 @@ int App::run(int argc, char **argv) {
   }
   std::cout << "Running agpm app" << std::endl;
 
-  if (argc == 1) {
-    const char *token = std::getenv("GITHUB_TOKEN");
-    const char *owner = std::getenv("GITHUB_OWNER");
-    const char *repo = std::getenv("GITHUB_REPO");
-    if (token && owner && repo) {
-      GitHubClient client(token);
-      auto prs = client.list_pull_requests(owner, repo);
-      Tui ui;
-      ui.run(prs);
-      if (options_.poll_interval > 0) {
-        Poller poller([&] { client.list_pull_requests(owner, repo); },
-                      options_.poll_interval * 1000, options_.max_request_rate);
-        poller.start();
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(options_.poll_interval * 2000));
-        poller.stop();
-      }
-    } else {
-      spdlog::warn("TUI skipped: GITHUB_TOKEN/OWNER/REPO not set");
-    }
-  }
+  // Application logic goes here
   return 0;
 }
 

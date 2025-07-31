@@ -7,6 +7,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - Linux, macOS and Windows install/build scripts
 - Placeholder TUI application in C++20
 - Includes ncurses/pdcurses fetched with `scripts/update_libs.sh`
+- Requires an ncurses development package (e.g. `libncurses-dev`) for the TUI
 - Unit tests using Catch2
 - SQLite-based history storage with CSV/JSON export
 - Configurable logging with `--log-level`
@@ -47,7 +48,7 @@ provided scripts:
 ./scripts/compile_win.ps1    # Windows
 ```
 Run the matching `install_*` script for your platform first to install system
-packages like **libcurl** and **sqlite3**. Then use `update_libs.sh` (or
+packages like **libcurl**, **sqlite3** and **ncurses**. Then use `update_libs.sh` (or
 `update_libs.ps1` on Windows) to populate the `libs` directory with clones of
 **CLI11**, **yaml-cpp**, **libyaml**, **nlohmann/json**, **spdlog**, **curl**,
 **sqlite** and **ncurses/pdcurses** before compiling. The Windows compile
