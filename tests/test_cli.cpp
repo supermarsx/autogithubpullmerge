@@ -11,5 +11,11 @@ int main() {
   char *argv2[] = {prog};
   agpm::CliOptions opts2 = agpm::parse_cli(1, argv2);
   assert(!opts2.verbose);
+
+  char config_flag[] = "--config";
+  char file[] = "cfg.yaml";
+  char *argv3[] = {prog, config_flag, file};
+  agpm::CliOptions opts3 = agpm::parse_cli(3, argv3);
+  assert(opts3.config_file == "cfg.yaml");
   return 0;
 }

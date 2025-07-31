@@ -2,6 +2,7 @@
 #define AUTOGITHUBPULLMERGE_APP_HPP
 
 #include "cli.hpp"
+#include "config.hpp"
 
 namespace agpm {
 
@@ -20,8 +21,12 @@ public:
   /** Retrieve the parsed command line options. */
   const CliOptions &options() const { return options_; }
 
+  /** Retrieve the loaded configuration. */
+  const Config &config() const { return config_; }
+
 private:
   CliOptions options_;
+  Config config_;
 };
 
 } // namespace agpm
