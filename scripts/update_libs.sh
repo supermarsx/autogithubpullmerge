@@ -21,4 +21,6 @@ clone_or_update https://github.com/nlohmann/json.git json
 clone_or_update https://github.com/gabime/spdlog.git spdlog
 clone_or_update https://github.com/curl/curl.git curl
 clone_or_update https://github.com/sqlite/sqlite.git sqlite
+# Rename VERSION file to avoid clashing with C++ <version> header
+[ -f "$LIBS_DIR/sqlite/VERSION" ] && mv "$LIBS_DIR/sqlite/VERSION" "$LIBS_DIR/sqlite/VERSION.txt"
 clone_or_update https://github.com/mirror/ncurses.git ncurses
