@@ -1,1 +1,1 @@
-choco install cmake git curl sqlite spdlog
+choco install cmake git curl sqlite spdlog pdcurses
