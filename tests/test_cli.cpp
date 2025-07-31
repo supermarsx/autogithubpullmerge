@@ -1,5 +1,6 @@
 #include "cli.hpp"
 #include <cassert>
+#include <fstream>
 
 int main() {
   char prog[] = "prog";
@@ -43,5 +44,33 @@ int main() {
   agpm::CliOptions opts7 = agpm::parse_cli(3, argv7);
   assert(opts7.exclude_repos.size() == 1);
   assert(opts7.exclude_repos[0] == "repoC");
+
+  char api_flag[] = "--api-key";
+  char key1[] = "abc";
+  char key2[] = "def";
+  char *argv8[] = {prog, api_flag, key1, api_flag, key2};
+  agpm::CliOptions opts8 = agpm::parse_cli(5, argv8);
+  assert(opts8.api_keys.size() == 2);
+  assert(opts8.api_keys[0] == "abc");
+  assert(opts8.api_keys[1] == "def");
+
+  {
+    std::ofstream f("tok.yaml");
+    f << "tokens:\n  - a\n  - b\n";
+    f.close();
+    char file_flag[] = "--api-key-file";
+    char path[] = "tok.yaml";
+    char *argv9[] = {prog, file_flag, path};
+    agpm::CliOptions opts9 = agpm::parse_cli(3, argv9);
+    assert(opts9.api_keys.size() == 2);
+    assert(opts9.api_keys[0] == "a");
+    assert(opts9.api_keys[1] == "b");
+  }
+
+  char stream_flag[] = "--api-key-from-stream";
+  char *argv10[] = {prog, stream_flag};
+  agpm::CliOptions opts10 = agpm::parse_cli(2, argv10);
+  assert(opts10.api_key_from_stream);
+
   return 0;
 }
