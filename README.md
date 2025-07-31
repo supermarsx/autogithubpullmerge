@@ -9,11 +9,23 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - Unit tests using Catch2
 - SQLite-based history storage with CSV/JSON export
 - Configurable logging with `--log-level`
+- Cross-platform compile scripts using g++
 
 ## Building (Linux)
 ```bash
 ./scripts/install_linux.sh
 ./scripts/build_linux.sh
+```
+
+## Compiling with g++
+
+On systems with g++ available, you can build the project without CMake using the
+provided scripts:
+
+```bash
+./scripts/compile_linux.sh   # Linux
+./scripts/compile_mac.sh     # macOS
+./scripts/compile_win.ps1    # Windows
 ```
 
 ## Generating Documentation
