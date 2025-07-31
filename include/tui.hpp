@@ -1,9 +1,7 @@
 #ifndef AUTOGITHUBPULLMERGE_TUI_HPP
 #define AUTOGITHUBPULLMERGE_TUI_HPP
 
-#include "github_client.hpp"
 #include <curses.h>
-#include <vector>
 
 namespace agpm {
 
@@ -12,15 +10,14 @@ namespace agpm {
  */
 class Tui {
 public:
-  /// Initialize curses.
-  Tui();
-  /// End curses on destruction.
-  ~Tui();
+  /// Initialize the ncurses library.
+  void init();
 
-  /** Run the UI displaying a list of pull requests.
-   * If the list is empty the UI initializes and exits immediately.
-   */
-  int run(const std::vector<PullRequest> &prs);
+  /// Display a placeholder window until a key is pressed.
+  void run();
+
+  /// Clean up ncurses state.
+  void cleanup();
 };
 
 } // namespace agpm
