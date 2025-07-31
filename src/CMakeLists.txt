@@ -50,5 +50,8 @@ target_link_libraries(autogithubpullmerge_lib PUBLIC CLI11::CLI11 yaml-cpp
                                               CURL::libcurl SQLite::SQLite3
                                               spdlog::spdlog ${CURSES_LIBRARIES})
 
+if(WIN32)
+  target_compile_definitions(autogithubpullmerge_lib PRIVATE YAML_CPP_STATIC_DEFINE)
+endif()
 add_executable(autogithubpullmerge main.cpp)
 target_link_libraries(autogithubpullmerge PRIVATE autogithubpullmerge_lib)
