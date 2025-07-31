@@ -13,5 +13,8 @@ function CloneOrUpdate($repo, $dir) {
 
 CloneOrUpdate "https://github.com/CLIUtils/CLI11.git" "CLI11"
 CloneOrUpdate "https://github.com/jbeder/yaml-cpp.git" "yaml-cpp"
+CloneOrUpdate "https://github.com/yaml/libyaml.git" "libyaml"
 CloneOrUpdate "https://github.com/nlohmann/json.git" "json"
 CloneOrUpdate "https://github.com/gabime/spdlog.git" "spdlog"
+CloneOrUpdate "https://github.com/curl/curl.git" "curl"
+CloneOrUpdate "https://github.com/sqlite/sqlite.git" "sqlite"

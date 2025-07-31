@@ -21,6 +21,20 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 ./scripts/build_linux.sh
 ```
 
+## Building (macOS)
+```bash
+./scripts/install_mac.sh
+./scripts/update_libs.sh
+./scripts/build_mac.sh
+```
+
+## Building (Windows)
+```powershell
+./scripts/install_win.ps1
+./scripts/update_libs.ps1
+./scripts/build_win.ps1
+```
+
 ## Compiling with g++
 
 On systems with g++ available, you can build the project without CMake using the
@@ -31,8 +45,11 @@ provided scripts:
 ./scripts/compile_mac.sh     # macOS
 ./scripts/compile_win.ps1    # Windows
 ```
-Run `./scripts/update_libs.sh` (or `./scripts/update_libs.ps1` on Windows) beforehand to fetch the required libraries into
-the `libs` directory.
+Run the matching `install_*` script for your platform first to install system
+packages like **libcurl** and **sqlite3**. Then use `update_libs.sh` (or
+`update_libs.ps1` on Windows) to populate the `libs` directory with clones of
+**CLI11**, **yaml-cpp**, **libyaml**, **nlohmann/json**, **spdlog**, **curl** and
+**sqlite** before compiling.
 
 ## Generating Documentation
 
