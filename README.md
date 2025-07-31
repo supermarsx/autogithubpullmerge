@@ -17,6 +17,19 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 ./scripts/build_linux.sh
 ```
 
+## Building (macOS)
+```bash
+./scripts/install_mac.sh
+./scripts/build_mac.sh
+```
+
+If Homebrew is installed in a custom location, set the `PKG_CONFIG` environment
+variable to the full path of `pkg-config` before running the build scripts:
+
+```bash
+export PKG_CONFIG=$(which pkg-config)
+```
+
 ## Compiling with g++
 
 On systems with g++ available, you can build the project without CMake using the

@@ -3,6 +3,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="${SCRIPT_DIR}/.."
 BUILD_DIR="${ROOT_DIR}/build_gpp"
+export PKG_CONFIG="$(which pkg-config)"
 mkdir -p "$BUILD_DIR"
 SRC_FILES=$(find "$ROOT_DIR/src" -name '*.cpp')
 

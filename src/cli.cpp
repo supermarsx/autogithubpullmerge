@@ -1,31 +1,24 @@
+
 #include "cli.hpp"
-#include <CLI/CLI.hpp>
+#include <string>
 
 namespace agpm {
 
 CliOptions parse_cli(int argc, char **argv) {
-  CLI::App app{"autogithubpullmerge command line"};
   CliOptions options;
-  app.add_flag("-v,--verbose", options.verbose, "Enable verbose output");
-  app.add_option("--config", options.config_file, "Path to configuration file")
-      ->type_name("FILE");
-  app.add_option(
-         "--log-level", options.log_level,
-         "Set logging level (trace, debug, info, warn, error, critical, off)")
-      ->type_name("LEVEL")
-      ->default_val("info");
-  app.add_option("--include", options.include_repos,
-                 "Repository to include; repeatable")
-      ->type_name("REPO")
-      ->expected(-1);
-  app.add_option("--exclude", options.exclude_repos,
-                 "Repository to exclude; repeatable")
-      ->type_name("REPO")
-      ->expected(-1);
-  try {
-    app.parse(argc, argv);
-  } catch (const CLI::ParseError &e) {
-    exit(app.exit(e));
+  for (int i = 1; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg == "-v" || arg == "--verbose") {
+      options.verbose = true;
+    } else if (arg == "--config" && i + 1 < argc) {
+      options.config_file = argv[++i];
+    } else if (arg == "--log-level" && i + 1 < argc) {
+      options.log_level = argv[++i];
+    } else if (arg == "--include" && i + 1 < argc) {
+      options.include_repos.push_back(argv[++i]);
+    } else if (arg == "--exclude" && i + 1 < argc) {
+      options.exclude_repos.push_back(argv[++i]);
+    }
   }
   return options;
 }
