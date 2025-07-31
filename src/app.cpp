@@ -1,8 +1,11 @@
 #include "app.hpp"
 #include "cli.hpp"
 #include "config.hpp"
+#include "github_client.hpp"
 #include "log.hpp"
+#include "tui.hpp"
 #include <iostream>
+#include <cstdlib>
 #include <spdlog/spdlog.h>
 
 namespace agpm {
@@ -23,6 +26,20 @@ int App::run(int argc, char **argv) {
     std::cout << "Verbose mode enabled" << std::endl;
   }
   std::cout << "Running agpm app" << std::endl;
+
+  if (argc == 1) {
+    const char *token = std::getenv("GITHUB_TOKEN");
+    const char *owner = std::getenv("GITHUB_OWNER");
+    const char *repo = std::getenv("GITHUB_REPO");
+    if (token && owner && repo) {
+      GitHubClient client(token);
+      auto prs = client.list_pull_requests(owner, repo);
+      Tui ui;
+      ui.run(prs);
+    } else {
+      spdlog::warn("TUI skipped: GITHUB_TOKEN/OWNER/REPO not set");
+    }
+  }
   return 0;
 }
 

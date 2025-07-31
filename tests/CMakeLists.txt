@@ -25,3 +25,7 @@ add_test(NAME github_client_behavior_test COMMAND test_github_client_behavior)
 add_executable(test_history test_history.cpp)
 target_link_libraries(test_history PRIVATE autogithubpullmerge_lib)
 add_test(NAME history_test COMMAND test_history)
+
+add_executable(test_tui test_tui.cpp)
+target_link_libraries(test_tui PRIVATE autogithubpullmerge_lib)
+add_test(NAME tui_test COMMAND test_tui)
