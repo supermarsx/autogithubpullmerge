@@ -6,8 +6,16 @@ find_package(SQLite3 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(Curses REQUIRED)
 
-
-add_library(autogithubpullmerge_lib app.cpp cli.cpp config.cpp config_manager.cpp github_client.cpp history.cpp log.cpp tui.cpp)
+add_library(autogithubpullmerge_lib
+            app.cpp
+            cli.cpp
+            config.cpp
+            config_manager.cpp
+            github_client.cpp
+            history.cpp
+            log.cpp
+            tui.cpp
+            poller.cpp)
 
 target_include_directories(autogithubpullmerge_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include ${CURSES_INCLUDE_DIR})
 

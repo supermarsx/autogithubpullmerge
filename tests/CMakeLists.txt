@@ -1,4 +1,5 @@
 add_executable(test_main test_main.cpp)
+
 target_link_libraries(test_main PRIVATE autogithubpullmerge_lib)
 add_test(NAME main_test COMMAND test_main)
 
@@ -33,3 +34,7 @@ add_test(NAME tui_test COMMAND test_tui)
 add_executable(test_github_filter test_github_filter.cpp)
 target_link_libraries(test_github_filter PRIVATE autogithubpullmerge_lib)
 add_test(NAME github_filter_test COMMAND test_github_filter)
+
+add_executable(test_poller test_poller.cpp)
+target_link_libraries(test_poller PRIVATE autogithubpullmerge_lib)
+add_test(NAME poller_test COMMAND test_poller)
