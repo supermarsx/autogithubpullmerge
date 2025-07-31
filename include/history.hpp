@@ -2,7 +2,14 @@
 #define AUTOGITHUBPULLMERGE_HISTORY_HPP
 
 #include <nlohmann/json.hpp>
+
+#if __has_include(<sqlite3.h>)
 #include <sqlite3.h>
+#elif __has_include("../libs/sqlite/sqlite3.h")
+#include "../libs/sqlite/sqlite3.h"
+#else
+#error "sqlite3.h not found"
+#endif
 #include <string>
 
 namespace agpm {

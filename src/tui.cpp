@@ -1,5 +1,16 @@
 #include "tui.hpp"
+
+#if __has_include(<curses.h>)
 #include <curses.h>
+#elif __has_include(<ncurses.h>)
+#include <ncurses.h>
+#elif __has_include(<ncurses/curses.h>)
+#include <ncurses/curses.h>
+#elif __has_include("../libs/ncurses/include/curses.h")
+#include "../libs/ncurses/include/curses.h"
+#else
+#error "curses.h not found"
+#endif
 
 namespace agpm {
 
