@@ -9,10 +9,15 @@ int main() {
   std::vector<char *> args;
   char prog[] = "tests";
   char verbose[] = "--verbose";
+  char level_flag[] = "--log-level";
+  char level_val[] = "warning";
   args.push_back(prog);
   args.push_back(verbose);
+  args.push_back(level_flag);
+  args.push_back(level_val);
   assert(app.run(static_cast<int>(args.size()), args.data()) == 0);
   assert(app.options().verbose);
+  assert(app.options().log_level == "warning");
 
   {
     std::ofstream yaml("test_config.yaml");
