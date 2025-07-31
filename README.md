@@ -60,3 +60,10 @@ API keys can be provided in several ways:
   seconds. A value of `0` disables polling.
 - `--max-request-rate` limits the maximum number of GitHub requests per minute
   using a token bucket algorithm.
+
+## Examples
+
+Example configuration files can be found in the `examples` directory:
+
+- `config.yaml`
+- `config.json`
