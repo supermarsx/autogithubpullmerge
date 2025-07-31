@@ -1,6 +1,6 @@
 #include "github_client.hpp"
+#include "curl/curl.h"
 #include <algorithm>
-#include <curl/curl.h>
 #include <stdexcept>
 
 namespace agpm {

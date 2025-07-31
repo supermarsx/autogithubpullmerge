@@ -1,6 +1,6 @@
 #include "cli.hpp"
+#include "curl/curl.h"
 #include <CLI/CLI.hpp>
-#include <curl/curl.h>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <sstream>
