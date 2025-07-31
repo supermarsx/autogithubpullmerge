@@ -1,5 +1,6 @@
 #include "history.hpp"
 #include <fstream>
+#include <sqlite3.h>
 #include <stdexcept>
 
 namespace agpm {

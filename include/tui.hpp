@@ -2,6 +2,7 @@
 #define AUTOGITHUBPULLMERGE_TUI_HPP
 
 #include "github_client.hpp"
+#include <curses.h>
 #include <vector>
 
 namespace agpm {
