@@ -29,6 +29,17 @@ int main() {
   assert(app_cfg.options().config_file == "run_config.yaml");
   assert(app_cfg.config().verbose());
 
+  agpm::App log_app;
+  std::vector<char *> args_log;
+  char prog3[] = "tests";
+  char log_flag[] = "--log-level";
+  char warn_lvl[] = "warn";
+  args_log.push_back(prog3);
+  args_log.push_back(log_flag);
+  args_log.push_back(warn_lvl);
+  assert(log_app.run(static_cast<int>(args_log.size()), args_log.data()) == 0);
+  assert(log_app.options().log_level == "warn");
+
   {
     std::ofstream yaml("test_config.yaml");
     yaml << "verbose: true\n";
