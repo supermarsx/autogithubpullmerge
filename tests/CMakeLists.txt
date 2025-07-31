@@ -38,3 +38,15 @@ add_test(NAME github_filter_test COMMAND test_github_filter)
 add_executable(test_poller test_poller.cpp)
 target_link_libraries(test_poller PRIVATE autogithubpullmerge_lib)
 add_test(NAME poller_test COMMAND test_poller)
+
+add_executable(test_cli_tokens test_cli_tokens.cpp)
+target_link_libraries(test_cli_tokens PRIVATE autogithubpullmerge_lib)
+add_test(NAME cli_tokens_test COMMAND test_cli_tokens)
+
+add_executable(test_config_loading test_config_loading.cpp)
+target_link_libraries(test_config_loading PRIVATE autogithubpullmerge_lib)
+add_test(NAME config_loading_test COMMAND test_config_loading)
+
+add_executable(test_github_client_headers test_github_client_headers.cpp)
+target_link_libraries(test_github_client_headers PRIVATE autogithubpullmerge_lib)
+add_test(NAME github_client_headers_test COMMAND test_github_client_headers)
