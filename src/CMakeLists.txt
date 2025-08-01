@@ -35,7 +35,8 @@ add_library(autogithubpullmerge_lib
             history.cpp
             log.cpp
             tui.cpp
-            poller.cpp)
+            poller.cpp
+            github_poller.cpp)
 
 target_include_directories(autogithubpullmerge_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include ${CURSES_INCLUDE_DIR})
 
