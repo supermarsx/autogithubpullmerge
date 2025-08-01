@@ -3,6 +3,7 @@
 
 #include "cli.hpp"
 #include "config.hpp"
+#include <vector>
 
 namespace agpm {
 
@@ -24,9 +25,21 @@ public:
   /** Retrieve the loaded configuration. */
   const Config &config() const { return config_; }
 
+  /// Repositories explicitly included via the CLI.
+  const std::vector<std::string> &include_repos() const {
+    return include_repos_;
+  }
+
+  /// Repositories explicitly excluded via the CLI.
+  const std::vector<std::string> &exclude_repos() const {
+    return exclude_repos_;
+  }
+
 private:
   CliOptions options_;
   Config config_;
+  std::vector<std::string> include_repos_;
+  std::vector<std::string> exclude_repos_;
 };
 
 } // namespace agpm

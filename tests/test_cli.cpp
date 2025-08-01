@@ -45,6 +45,14 @@ int main() {
   assert(opts7.exclude_repos.size() == 1);
   assert(opts7.exclude_repos[0] == "repoC");
 
+  char repo_d[] = "repoD";
+  char repo_e[] = "repoE";
+  char *argv7b[] = {prog, exclude_flag, repo_d, exclude_flag, repo_e};
+  agpm::CliOptions opts7b = agpm::parse_cli(5, argv7b);
+  assert(opts7b.exclude_repos.size() == 2);
+  assert(opts7b.exclude_repos[0] == "repoD");
+  assert(opts7b.exclude_repos[1] == "repoE");
+
   char api_flag[] = "--api-key";
   char key1[] = "abc";
   char key2[] = "def";
