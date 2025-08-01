@@ -17,7 +17,7 @@ INCLUDE_FLAGS=(
     "-I${LIBS_DIR}/spdlog/include"
     "-I${LIBS_DIR}/yaml-cpp/include"
     "-I${LIBS_DIR}/libyaml/include"
-    "-I${LIBS_DIR}/ncurses/include"
+    "-I${LIBS_DIR}/pdcurses"
     "-I${LIBS_DIR}/curl/include"
 )
 

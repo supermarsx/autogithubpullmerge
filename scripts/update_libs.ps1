@@ -17,8 +17,20 @@ CloneOrUpdate "https://github.com/yaml/libyaml.git" "libyaml"
 CloneOrUpdate "https://github.com/nlohmann/json.git" "json"
 CloneOrUpdate "https://github.com/gabime/spdlog.git" "spdlog"
 CloneOrUpdate "https://github.com/curl/curl.git" "curl"
-CloneOrUpdate "https://github.com/sqlite/sqlite.git" "sqlite"
-if (Test-Path (Join-Path $LibsDir "sqlite\VERSION")) {
-    Rename-Item (Join-Path $LibsDir "sqlite\VERSION") "VERSION.txt"
+
+# Download SQLite amalgamation containing sqlite3.c and sqlite3.h
+$sqliteVer = "3430000"
+$sqliteYear = "2023"
+$sqliteZip = "sqlite-amalgamation-$sqliteVer.zip"
+$sqliteDir = Join-Path $LibsDir "sqlite"
+New-Item -ItemType Directory -Path $sqliteDir -Force | Out-Null
+if (-not (Test-Path (Join-Path $sqliteDir "sqlite3.h"))) {
+    $zipPath = Join-Path $sqliteDir $sqliteZip
+    Invoke-WebRequest -Uri "https://sqlite.org/$sqliteYear/$sqliteZip" -OutFile $zipPath
+    Expand-Archive -Path $zipPath -DestinationPath $sqliteDir -Force
+    Move-Item -Path (Join-Path $sqliteDir "sqlite-amalgamation-$sqliteVer\*") -Destination $sqliteDir
+    Remove-Item -Recurse -Force (Join-Path $sqliteDir "sqlite-amalgamation-$sqliteVer")
+    Remove-Item $zipPath
 }
-CloneOrUpdate "https://github.com/mirror/ncurses.git" "ncurses"
+
+CloneOrUpdate "https://github.com/wmcbrine/PDCurses.git" "pdcurses"

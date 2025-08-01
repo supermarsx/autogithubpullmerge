@@ -20,7 +20,19 @@ clone_or_update https://github.com/yaml/libyaml.git libyaml
 clone_or_update https://github.com/nlohmann/json.git json
 clone_or_update https://github.com/gabime/spdlog.git spdlog
 clone_or_update https://github.com/curl/curl.git curl
-clone_or_update https://github.com/sqlite/sqlite.git sqlite
-# Rename VERSION file to avoid clashing with C++ <version> header
-[ -f "$LIBS_DIR/sqlite/VERSION" ] && mv "$LIBS_DIR/sqlite/VERSION" "$LIBS_DIR/sqlite/VERSION.txt"
-clone_or_update https://github.com/mirror/ncurses.git ncurses
+
+# Download SQLite amalgamation containing sqlite3.c and sqlite3.h
+SQLITE_VER=3430000
+SQLITE_YEAR=2023
+SQLITE_ZIP="sqlite-amalgamation-${SQLITE_VER}.zip"
+SQLITE_DIR="$LIBS_DIR/sqlite"
+mkdir -p "$SQLITE_DIR"
+if [ ! -f "$SQLITE_DIR/sqlite3.h" ]; then
+    curl -L "https://sqlite.org/${SQLITE_YEAR}/${SQLITE_ZIP}" -o "$SQLITE_DIR/${SQLITE_ZIP}"
+    unzip -oq "$SQLITE_DIR/${SQLITE_ZIP}" -d "$SQLITE_DIR"
+    mv "$SQLITE_DIR/sqlite-amalgamation-${SQLITE_VER}"/* "$SQLITE_DIR"
+    rmdir "$SQLITE_DIR/sqlite-amalgamation-${SQLITE_VER}"
+    rm "$SQLITE_DIR/${SQLITE_ZIP}"
+fi
+
+clone_or_update https://github.com/wmcbrine/PDCurses.git pdcurses
