@@ -39,6 +39,10 @@ add_executable(test_poller test_poller.cpp)
 target_link_libraries(test_poller PRIVATE autogithubpullmerge_lib)
 add_test(NAME poller_test COMMAND test_poller)
 
+add_executable(test_pr_since test_pr_since.cpp)
+target_link_libraries(test_pr_since PRIVATE autogithubpullmerge_lib)
+add_test(NAME pr_since_test COMMAND test_pr_since)
+
 add_executable(test_cli_tokens test_cli_tokens.cpp)
 target_link_libraries(test_cli_tokens PRIVATE autogithubpullmerge_lib)
 add_test(NAME cli_tokens_test COMMAND test_cli_tokens)
