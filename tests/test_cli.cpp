@@ -110,5 +110,15 @@ int main() {
   agpm::CliOptions opts15 = agpm::parse_cli(2, argv15);
   assert(opts15.poll_stray_only);
 
+  char limit_flag[] = "--pr-limit";
+  char limit_val[] = "25";
+  char *argv16[] = {prog, limit_flag, limit_val};
+  agpm::CliOptions opts16 = agpm::parse_cli(3, argv16);
+  assert(opts16.pr_limit == 25);
+
+  char *argv17[] = {prog};
+  agpm::CliOptions opts17 = agpm::parse_cli(1, argv17);
+  assert(opts17.pr_limit == 50);
+
   return 0;
 }

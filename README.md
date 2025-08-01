@@ -89,6 +89,7 @@ API keys can be provided in several ways:
 - `--max-request-rate` limits the maximum number of GitHub requests per minute
   using a token bucket algorithm. When polling is enabled a background worker
   thread periodically invokes the GitHub API.
+- `--pr-limit` limits how many pull requests to fetch when listing.
 - `--include-merged` lists merged pull requests in addition to open ones.
 - `--poll-prs` polls only pull requests.
 - `--poll-stray-branches` polls only stray branches.

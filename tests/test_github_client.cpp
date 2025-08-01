@@ -46,6 +46,14 @@ int main() {
   client_inc.list_pull_requests("owner", "repo", true);
   assert(raw_inc->last_url.find("state=all") != std::string::npos);
 
+  auto mock_limit = std::make_unique<MockHttpClient>();
+  mock_limit->response = "[]";
+  MockHttpClient *raw_limit = mock_limit.get();
+  GitHubClient client_limit("token",
+                            std::unique_ptr<HttpClient>(mock_limit.release()));
+  client_limit.list_pull_requests("owner", "repo", false, 10);
+  assert(raw_limit->last_url.find("per_page=10") != std::string::npos);
+
   // Test merging pull requests
   auto mock2 = std::make_unique<MockHttpClient>();
   mock2->response = "{\"merged\":true}";

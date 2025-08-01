@@ -80,7 +80,8 @@ public:
    */
   std::vector<PullRequest> list_pull_requests(const std::string &owner,
                                               const std::string &repo,
-                                              bool include_merged = false);
+                                              bool include_merged = false,
+                                              int per_page = 50);
 
   /**
    * Merge a pull request.
