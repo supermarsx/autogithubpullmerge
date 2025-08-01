@@ -116,6 +116,8 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Repository to exclude; repeatable")
       ->type_name("REPO")
       ->expected(-1);
+  app.add_flag("--include-merged", options.include_merged,
+               "Include merged pull requests");
   app.add_option("--api-key", options.api_keys,
                  "Personal access token (repeatable, not recommended)")
       ->type_name("TOKEN")

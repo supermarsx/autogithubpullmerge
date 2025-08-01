@@ -79,7 +79,8 @@ public:
    * @return List of pull request summaries
    */
   std::vector<PullRequest> list_pull_requests(const std::string &owner,
-                                              const std::string &repo);
+                                              const std::string &repo,
+                                              bool include_merged = false);
 
   /**
    * Merge a pull request.

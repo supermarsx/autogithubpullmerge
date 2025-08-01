@@ -21,6 +21,7 @@ to build the project on supported platforms.
 - `--api-key-url`/`--api-key-url-user`/`--api-key-url-password` - fetch tokens
   from a remote URL with optional basic authentication.
 - `--api-key-file` - load tokens from a local YAML or JSON file.
+- `--include-merged` - show merged pull requests when listing.
 - `--poll-interval` - how often to poll GitHub (seconds, `0` disables).
 - `--max-request-rate` - limit GitHub requests per minute. When polling is
   enabled a worker thread fetches pull requests at the configured interval.
