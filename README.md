@@ -51,7 +51,7 @@ Run the matching `install_*` script for your platform first to install system
 packages like **libcurl**, **sqlite3** and **ncurses**. Then use `update_libs.sh` (or
 `update_libs.ps1` on Windows) to populate the `libs` directory with clones of
 **CLI11**, **yaml-cpp**, **libyaml**, **nlohmann/json**, **spdlog**, **curl**,
-**sqlite** and **ncurses/pdcurses** before compiling. The Windows compile
+the SQLite amalgamation and **PDCurses** before compiling. The Windows compile
 script links the application statically so the resulting binary has no runtime
 library dependencies.
 
