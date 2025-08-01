@@ -38,6 +38,14 @@ int main() {
   assert(prs[0].number == 1);
   assert(prs[0].title == "Test");
 
+  auto mock_include = std::make_unique<MockHttpClient>();
+  mock_include->response = "[]";
+  MockHttpClient *raw_inc = mock_include.get();
+  GitHubClient client_inc("token",
+                          std::unique_ptr<HttpClient>(mock_include.release()));
+  client_inc.list_pull_requests("owner", "repo", true);
+  assert(raw_inc->last_url.find("state=all") != std::string::npos);
+
   // Test merging pull requests
   auto mock2 = std::make_unique<MockHttpClient>();
   mock2->response = "{\"merged\":true}";

@@ -95,5 +95,10 @@ int main() {
   agpm::CliOptions opts12 = agpm::parse_cli(3, argv12);
   assert(opts12.history_db == "my.db");
 
+  char merged_flag[] = "--include-merged";
+  char *argv13[] = {prog, merged_flag};
+  agpm::CliOptions opts13 = agpm::parse_cli(2, argv13);
+  assert(opts13.include_merged);
+
   return 0;
 }

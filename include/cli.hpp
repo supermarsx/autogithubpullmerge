@@ -13,13 +13,14 @@ struct CliOptions {
   std::string log_level = "info"; ///< Logging verbosity level
   std::vector<std::string> include_repos; ///< Repositories to include
   std::vector<std::string> exclude_repos; ///< Repositories to exclude
+  bool include_merged = false;            ///< Include merged pull requests
   std::vector<std::string> api_keys;      ///< Personal access tokens
   bool api_key_from_stream = false;       ///< Read tokens from stdin
   std::string api_key_url;                ///< Remote URL with tokens
   std::string api_key_url_user;           ///< Basic auth user
   std::string api_key_url_password;       ///< Basic auth password
   std::string api_key_file;               ///< File containing tokens
-  std::string history_db = "history.db"; ///< SQLite history database path
+  std::string history_db = "history.db";  ///< SQLite history database path
   int poll_interval = 0;                  ///< Polling interval in seconds
   int max_request_rate = 60;              ///< Max requests per minute
 };

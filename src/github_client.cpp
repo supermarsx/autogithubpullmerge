@@ -29,7 +29,8 @@ std::string CurlHttpClient::get(const std::string &url,
   for (const auto &h : headers) {
     header_list = curl_slist_append(header_list, h.c_str());
   }
-  header_list = curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
+  header_list =
+      curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
   CURLcode res = curl_easy_perform(curl);
   curl_slist_free_all(header_list);
@@ -56,7 +57,8 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   for (const auto &h : headers) {
     header_list = curl_slist_append(header_list, h.c_str());
   }
-  header_list = curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
+  header_list =
+      curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
   CURLcode res = curl_easy_perform(curl);
   curl_slist_free_all(header_list);
@@ -94,13 +96,16 @@ bool GitHubClient::repo_allowed(const std::string &repo) const {
 
 std::vector<PullRequest>
 GitHubClient::list_pull_requests(const std::string &owner,
-                                 const std::string &repo) {
+                                 const std::string &repo, bool include_merged) {
   if (!repo_allowed(repo)) {
     return {};
   }
   enforce_delay();
   std::string url =
       "https://api.github.com/repos/" + owner + "/" + repo + "/pulls";
+  if (include_merged) {
+    url += "?state=all";
+  }
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
   std::string resp = http_->get(url, headers);
