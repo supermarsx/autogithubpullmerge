@@ -29,6 +29,7 @@ std::string CurlHttpClient::get(const std::string &url,
   for (const auto &h : headers) {
     header_list = curl_slist_append(header_list, h.c_str());
   }
+  header_list = curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
   CURLcode res = curl_easy_perform(curl);
   curl_slist_free_all(header_list);
@@ -55,6 +56,7 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   for (const auto &h : headers) {
     header_list = curl_slist_append(header_list, h.c_str());
   }
+  header_list = curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
   CURLcode res = curl_easy_perform(curl);
   curl_slist_free_all(header_list);

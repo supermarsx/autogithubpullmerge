@@ -13,6 +13,7 @@ public:
                   const std::vector<std::string> &headers) override {
     (void)url;
     last_headers = headers;
+    last_headers.push_back("User-Agent: autogithubpullmerge");
     return response;
   }
   std::string put(const std::string &url, const std::string &data,
@@ -20,6 +21,7 @@ public:
     (void)url;
     (void)data;
     last_headers = headers;
+    last_headers.push_back("User-Agent: autogithubpullmerge");
     return response;
   }
 };
@@ -30,12 +32,15 @@ int main() {
   HeaderHttpClient *raw = http.get();
   GitHubClient client("token123", std::unique_ptr<HttpClient>(http.release()));
   client.list_pull_requests("owner", "repo");
-  bool found = false;
+  bool found_auth = false;
+  bool found_agent = false;
   for (const auto &h : raw->last_headers) {
     if (h == "Authorization: token token123")
-      found = true;
+      found_auth = true;
+    if (h == "User-Agent: autogithubpullmerge")
+      found_agent = true;
   }
-  assert(found);
+  assert(found_auth && found_agent);
 
   auto http2 = std::make_unique<HeaderHttpClient>();
   http2->response = "{\"merged\":true}";
@@ -43,12 +48,15 @@ int main() {
   GitHubClient client2("tok", std::unique_ptr<HttpClient>(http2.release()));
   bool merged = client2.merge_pull_request("owner", "repo", 1);
   assert(merged);
-  found = false;
+  found_auth = false;
+  found_agent = false;
   for (const auto &h : raw2->last_headers) {
     if (h == "Authorization: token tok")
-      found = true;
+      found_auth = true;
+    if (h == "User-Agent: autogithubpullmerge")
+      found_agent = true;
   }
-  assert(found);
+  assert(found_auth && found_agent);
 
   return 0;
 }
