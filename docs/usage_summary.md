@@ -71,9 +71,9 @@ Run the appropriate install, update and build scripts for your platform:
 ```
 
 ```powershell
-./scripts/install_win.ps1    # Windows
-./scripts/update_libs.ps1
-./scripts/build_win.ps1
+./scripts/install_win.bat    # Windows
+./scripts/update_libs.bat
+./scripts/build_win.bat
 ```
 
 Alternatively use the `compile_*` scripts for a g++ build without CMake.

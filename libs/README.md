@@ -1,5 +1,5 @@
 This directory holds third-party dependencies used by autogithubpullmerge.
-Run `./scripts/update_libs.sh` or `./scripts/update_libs.ps1` to clone or update
+Run `./scripts/update_libs.sh` or `./scripts/update_libs.bat` to clone or update
 third-party projects such as **CLI11**, **yaml-cpp**, **libyaml**, **nlohmann/json**, 
 **spdlog**, **curl**, **sqlite** and **ncurses**. After cloning, the SQLite
 repository's `VERSION` file is renamed to `VERSION.txt` to prevent conflicts
