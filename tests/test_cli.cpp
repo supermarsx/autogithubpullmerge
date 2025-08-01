@@ -100,5 +100,15 @@ int main() {
   agpm::CliOptions opts13 = agpm::parse_cli(2, argv13);
   assert(opts13.include_merged);
 
+  char poll_prs_flag[] = "--poll-prs";
+  char *argv14[] = {prog, poll_prs_flag};
+  agpm::CliOptions opts14 = agpm::parse_cli(2, argv14);
+  assert(opts14.poll_prs_only);
+
+  char poll_stray_flag[] = "--poll-stray-branches";
+  char *argv15[] = {prog, poll_stray_flag};
+  agpm::CliOptions opts15 = agpm::parse_cli(2, argv15);
+  assert(opts15.poll_stray_only);
+
   return 0;
 }

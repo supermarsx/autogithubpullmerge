@@ -23,6 +23,8 @@ struct CliOptions {
   std::string history_db = "history.db";  ///< SQLite history database path
   int poll_interval = 0;                  ///< Polling interval in seconds
   int max_request_rate = 60;              ///< Max requests per minute
+  bool poll_prs_only = false;             ///< Only poll pull requests
+  bool poll_stray_only = false;           ///< Only poll stray branches
 };
 
 /**
