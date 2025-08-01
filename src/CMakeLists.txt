@@ -18,12 +18,6 @@ else()
   find_package(nlohmann_json REQUIRED)
 endif()
 
-if(EXISTS "${LIBS_DIR}/spdlog/CMakeLists.txt")
-  add_subdirectory(${LIBS_DIR}/spdlog EXTERNAL_SPDLOG)
-else()
-  find_package(spdlog REQUIRED)
-endif()
-
 if(EXISTS "${LIBS_DIR}/curl/CMakeLists.txt")
   add_subdirectory(${LIBS_DIR}/curl EXTERNAL_CURL)
 else()

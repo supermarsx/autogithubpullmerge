@@ -1,4 +1,4 @@
-# autogithubpullmerge
+#autogithubpullmerge
 
 A cross-platform tool to manage and monitor GitHub pull requests from a terminal user interface.
 
@@ -11,6 +11,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - Unit tests using Catch2
 - SQLite-based history storage with CSV/JSON export
 - Configurable logging with `--log-level`
+- Uses spdlog for colored console logging
 - Cross-platform compile scripts using g++
 - CLI options for GitHub API keys (`--api-key`, `--api-key-from-stream`,
   `--api-key-url`, `--api-key-url-user`, `--api-key-url-password`,
@@ -66,8 +67,11 @@ doxygen docs/Doxyfile
 
 ## Logging
 
-Use the `--log-level` option to control verbosity. Valid levels include
+Logging output uses the **spdlog** library with colorized messages by default.
+The `--log-level` option controls verbosity. Valid levels include
 `trace`, `debug`, `info`, `warn`, `error`, `critical` and `off`.
+Passing `--verbose` sets the logger to the `debug` level unless `--log-level`
+specifies another level.
 
 ## API Key Options
 

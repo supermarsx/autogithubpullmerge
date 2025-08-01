@@ -1,17 +1,17 @@
 #include "app.hpp"
 #include "cli.hpp"
 #include "config.hpp"
-#include "log.hpp"
 #include "history.hpp"
+#include "log.hpp"
 #include <cstdlib>
-#include <iostream>
 #include <spdlog/spdlog.h>
 
 namespace agpm {
 
 int App::run(int argc, char **argv) {
   options_ = parse_cli(argc, argv);
-  spdlog::level::level_enum lvl = spdlog::level::info;
+  spdlog::level::level_enum lvl =
+      options_.verbose ? spdlog::level::debug : spdlog::level::info;
   try {
     lvl = spdlog::level::from_str(options_.log_level);
   } catch (const spdlog::spdlog_ex &) {
@@ -24,9 +24,9 @@ int App::run(int argc, char **argv) {
   PullRequestHistory history(options_.history_db);
   (void)history;
   if (options_.verbose) {
-    std::cout << "Verbose mode enabled" << std::endl;
+    spdlog::debug("Verbose mode enabled");
   }
-  std::cout << "Running agpm app" << std::endl;
+  spdlog::info("Running agpm app");
 
   // Application logic goes here
   return 0;
