@@ -148,6 +148,9 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Maximum requests per minute")
       ->type_name("RATE")
       ->default_val("60");
+  app.add_flag("--poll-prs", options.poll_prs_only, "Only poll pull requests");
+  app.add_flag("--poll-stray-branches", options.poll_stray_only,
+               "Only poll stray branches");
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {
