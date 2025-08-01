@@ -96,15 +96,25 @@ bool GitHubClient::repo_allowed(const std::string &repo) const {
 
 std::vector<PullRequest>
 GitHubClient::list_pull_requests(const std::string &owner,
-                                 const std::string &repo, bool include_merged) {
+                                 const std::string &repo, bool include_merged,
+                                 int per_page) {
   if (!repo_allowed(repo)) {
     return {};
   }
   enforce_delay();
   std::string url =
       "https://api.github.com/repos/" + owner + "/" + repo + "/pulls";
+  std::string query;
   if (include_merged) {
-    url += "?state=all";
+    query += "state=all";
+  }
+  if (per_page > 0) {
+    if (!query.empty())
+      query += "&";
+    query += "per_page=" + std::to_string(per_page);
+  }
+  if (!query.empty()) {
+    url += "?" + query;
   }
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};

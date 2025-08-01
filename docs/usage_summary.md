@@ -27,6 +27,7 @@ to build the project on supported platforms.
 - `--poll-interval` - how often to poll GitHub (seconds, `0` disables).
 - `--max-request-rate` - limit GitHub requests per minute. When polling is
   enabled a worker thread fetches pull requests at the configured interval.
+- `--pr-limit` - limit how many pull requests to fetch when listing.
 
 ## Configuration File Examples
 

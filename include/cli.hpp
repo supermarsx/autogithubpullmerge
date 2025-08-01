@@ -25,6 +25,7 @@ struct CliOptions {
   int max_request_rate = 60;              ///< Max requests per minute
   bool poll_prs_only = false;             ///< Only poll pull requests
   bool poll_stray_only = false;           ///< Only poll stray branches
+  int pr_limit{50};                       ///< Number of pull requests to fetch
 };
 
 /**
