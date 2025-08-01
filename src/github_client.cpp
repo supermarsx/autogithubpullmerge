@@ -2,6 +2,9 @@
 #include "curl/curl.h"
 #include <algorithm>
 #include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 #include <thread>
 
@@ -97,7 +100,7 @@ bool GitHubClient::repo_allowed(const std::string &repo) const {
 std::vector<PullRequest>
 GitHubClient::list_pull_requests(const std::string &owner,
                                  const std::string &repo, bool include_merged,
-                                 int per_page) {
+                                 int per_page, std::chrono::seconds since) {
   if (!repo_allowed(repo)) {
     return {};
   }
@@ -121,7 +124,26 @@ GitHubClient::list_pull_requests(const std::string &owner,
   std::string resp = http_->get(url, headers);
   nlohmann::json j = nlohmann::json::parse(resp);
   std::vector<PullRequest> prs;
+  auto cutoff = std::chrono::system_clock::now() - since;
   for (const auto &item : j) {
+    std::string ts;
+    if (item.contains("created_at"))
+      ts = item["created_at"].get<std::string>();
+    std::tm tm{};
+    std::chrono::system_clock::time_point created =
+        std::chrono::system_clock::now();
+    if (!ts.empty()) {
+      std::istringstream ss(ts);
+      ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
+#ifdef _WIN32
+      std::time_t t = _mkgmtime(&tm);
+#else
+      std::time_t t = timegm(&tm);
+#endif
+      created = std::chrono::system_clock::from_time_t(t);
+    }
+    if (since.count() > 0 && created < cutoff)
+      continue;
     PullRequest pr;
     pr.number = item["number"].get<int>();
     pr.title = item["title"].get<std::string>();

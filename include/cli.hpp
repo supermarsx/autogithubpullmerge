@@ -1,6 +1,7 @@
 #ifndef AUTOGITHUBPULLMERGE_CLI_HPP
 #define AUTOGITHUBPULLMERGE_CLI_HPP
 
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -26,6 +27,7 @@ struct CliOptions {
   bool poll_prs_only = false;             ///< Only poll pull requests
   bool poll_stray_only = false;           ///< Only poll stray branches
   int pr_limit{50};                       ///< Number of pull requests to fetch
+  std::chrono::seconds pr_since{0}; ///< Only list pull requests newer than this
 };
 
 /**

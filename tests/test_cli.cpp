@@ -1,5 +1,6 @@
 #include "cli.hpp"
 #include <cassert>
+#include <chrono>
 #include <fstream>
 
 int main() {
@@ -119,6 +120,16 @@ int main() {
   char *argv17[] = {prog};
   agpm::CliOptions opts17 = agpm::parse_cli(1, argv17);
   assert(opts17.pr_limit == 50);
+
+  char since_flag[] = "--pr-since";
+  char since_val[] = "2h";
+  char *argv18[] = {prog, since_flag, since_val};
+  agpm::CliOptions opts18 = agpm::parse_cli(3, argv18);
+  assert(opts18.pr_since == std::chrono::hours(2));
+
+  char *argv19[] = {prog};
+  agpm::CliOptions opts19 = agpm::parse_cli(1, argv19);
+  assert(opts19.pr_since == std::chrono::seconds(0));
 
   return 0;
 }

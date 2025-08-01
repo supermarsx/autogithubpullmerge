@@ -28,6 +28,8 @@ to build the project on supported platforms.
 - `--max-request-rate` - limit GitHub requests per minute. When polling is
   enabled a worker thread fetches pull requests at the configured interval.
 - `--pr-limit` - limit how many pull requests to fetch when listing.
+- `--pr-since` - only list pull requests newer than the given duration
+  (e.g. `30m`, `2h`, `1d`).
 
 ## Configuration File Examples
 

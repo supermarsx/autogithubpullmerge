@@ -78,10 +78,10 @@ public:
    * @param repo Repository name
    * @return List of pull request summaries
    */
-  std::vector<PullRequest> list_pull_requests(const std::string &owner,
-                                              const std::string &repo,
-                                              bool include_merged = false,
-                                              int per_page = 50);
+  std::vector<PullRequest>
+  list_pull_requests(const std::string &owner, const std::string &repo,
+                     bool include_merged = false, int per_page = 50,
+                     std::chrono::seconds since = std::chrono::seconds{0});
 
   /**
    * Merge a pull request.

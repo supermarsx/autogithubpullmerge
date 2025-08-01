@@ -1,7 +1,10 @@
 #include "cli.hpp"
 #include "curl/curl.h"
 #include <CLI/CLI.hpp>
+#include <cctype>
+#include <chrono>
 #include <fstream>
+#include <iomanip>
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <stdexcept>
@@ -97,9 +100,37 @@ static std::vector<std::string> load_tokens_from_url(const std::string &url,
   return tokens;
 }
 
+static std::chrono::seconds parse_duration(const std::string &str) {
+  if (str.empty())
+    return std::chrono::seconds{0};
+  char unit = str.back();
+  std::string num = str;
+  if (!std::isdigit(static_cast<unsigned char>(unit))) {
+    num.pop_back();
+  } else {
+    unit = 's';
+  }
+  long value = std::stol(num);
+  switch (std::tolower(static_cast<unsigned char>(unit))) {
+  case 's':
+    return std::chrono::seconds{value};
+  case 'm':
+    return std::chrono::seconds{value * 60};
+  case 'h':
+    return std::chrono::seconds{value * 3600};
+  case 'd':
+    return std::chrono::seconds{value * 86400};
+  case 'w':
+    return std::chrono::seconds{value * 604800};
+  default:
+    throw std::runtime_error("Invalid duration suffix");
+  }
+}
+
 CliOptions parse_cli(int argc, char **argv) {
   CLI::App app{"autogithubpullmerge command line"};
   CliOptions options;
+  std::string pr_since_str{"0"};
   app.add_flag("-v,--verbose", options.verbose, "Enable verbose output");
   app.add_option("--config", options.config_file, "Path to configuration file")
       ->type_name("FILE");
@@ -152,6 +183,10 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Number of pull requests to fetch")
       ->type_name("N")
       ->default_val("50");
+  app.add_option("--pr-since", pr_since_str,
+                 "Only list pull requests newer than given duration")
+      ->type_name("DURATION")
+      ->default_val("0");
   app.add_flag("--poll-prs", options.poll_prs_only, "Only poll pull requests");
   app.add_flag("--poll-stray-branches", options.poll_stray_only,
                "Only poll stray branches");
@@ -172,6 +207,7 @@ CliOptions parse_cli(int argc, char **argv) {
     options.api_keys.insert(options.api_keys.end(), tokens.begin(),
                             tokens.end());
   }
+  options.pr_since = parse_duration(pr_since_str);
   return options;
 }
 
