@@ -87,7 +87,8 @@ API keys can be provided in several ways:
 - `--poll-interval` sets how often the application polls GitHub for updates in
   seconds. A value of `0` disables polling.
 - `--max-request-rate` limits the maximum number of GitHub requests per minute
-  using a token bucket algorithm.
+  using a token bucket algorithm. When polling is enabled a background worker
+  thread periodically invokes the GitHub API.
 
 ## Examples
 

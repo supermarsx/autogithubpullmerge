@@ -1,4 +1,4 @@
-# Usage Summary
+#Usage Summary
 
 This document highlights the main command line options, examples of
 configuration files, logging behaviour, available TUI features, and how
@@ -22,7 +22,8 @@ to build the project on supported platforms.
   from a remote URL with optional basic authentication.
 - `--api-key-file` - load tokens from a local YAML or JSON file.
 - `--poll-interval` - how often to poll GitHub (seconds, `0` disables).
-- `--max-request-rate` - limit GitHub requests per minute.
+- `--max-request-rate` - limit GitHub requests per minute. When polling is
+  enabled a worker thread fetches pull requests at the configured interval.
 
 ## Configuration File Examples
 
