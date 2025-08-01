@@ -14,5 +14,12 @@ endif()
 
 enable_testing()
 
+set(LIBS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs)
+if(EXISTS "${LIBS_DIR}/spdlog/CMakeLists.txt")
+  add_subdirectory(${LIBS_DIR}/spdlog EXTERNAL_SPDLOG_ROOT)
+else()
+  find_package(spdlog REQUIRED)
+endif()
+
 add_subdirectory(src)
 add_subdirectory(tests)
