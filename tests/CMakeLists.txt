@@ -68,3 +68,7 @@ add_test(NAME history_merge_test COMMAND test_history_merge)
 add_executable(test_github_poller test_github_poller.cpp)
 target_link_libraries(test_github_poller PRIVATE autogithubpullmerge_lib)
 add_test(NAME github_poller_test COMMAND test_github_poller)
+
+add_executable(test_branch_cleanup test_branch_cleanup.cpp)
+target_link_libraries(test_branch_cleanup PRIVATE autogithubpullmerge_lib)
+add_test(NAME branch_cleanup_test COMMAND test_branch_cleanup)

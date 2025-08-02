@@ -24,6 +24,13 @@ public:
     last_headers.push_back("User-Agent: autogithubpullmerge");
     return response;
   }
+  std::string del(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    last_headers = headers;
+    last_headers.push_back("User-Agent: autogithubpullmerge");
+    return response;
+  }
 };
 
 int main() {

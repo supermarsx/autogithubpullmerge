@@ -21,6 +21,12 @@ public:
     last_headers = headers;
     return "{\"merged\":true}";
   }
+  std::string del(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    last_headers = headers;
+    return "";
+  }
 };
 
 int main() {

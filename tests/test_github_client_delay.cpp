@@ -20,6 +20,12 @@ public:
     (void)headers;
     return "{\"merged\":true}";
   }
+  std::string del(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
+    return "";
+  }
 };
 
 int main() {

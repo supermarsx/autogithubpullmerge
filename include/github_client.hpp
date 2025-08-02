@@ -33,6 +33,16 @@ public:
    */
   virtual std::string put(const std::string &url, const std::string &data,
                           const std::vector<std::string> &headers) = 0;
+
+  /**
+   * Perform a HTTP DELETE request.
+   *
+   * @param url Request URL
+   * @param headers Additional request headers
+   * @return Response body
+   */
+  virtual std::string del(const std::string &url,
+                          const std::vector<std::string> &headers) = 0;
 };
 
 /** CURL-based HTTP client implementation. */
@@ -44,6 +54,10 @@ public:
 
   /// @copydoc HttpClient::put()
   std::string put(const std::string &url, const std::string &data,
+                  const std::vector<std::string> &headers) override;
+
+  /// @copydoc HttpClient::del()
+  std::string del(const std::string &url,
                   const std::vector<std::string> &headers) override;
 };
 
@@ -93,6 +107,13 @@ public:
    */
   bool merge_pull_request(const std::string &owner, const std::string &repo,
                           int pr_number);
+
+  /**
+   * Delete branches whose associated pull request was closed or merged and
+   * whose name begins with the given prefix.
+   */
+  void cleanup_branches(const std::string &owner, const std::string &repo,
+                        const std::string &prefix);
 
   /**
    * Close stray branches that have diverged from the default branch.
