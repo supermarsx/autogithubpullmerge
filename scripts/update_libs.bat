@@ -11,7 +11,20 @@ call :clone_or_update https://github.com/jbeder/yaml-cpp.git yaml-cpp
 call :clone_or_update https://github.com/yaml/libyaml.git libyaml
 call :clone_or_update https://github.com/nlohmann/json.git json
 call :clone_or_update https://github.com/gabime/spdlog.git spdlog
-call :clone_or_update https://github.com/curl/curl.git curl
+
+rem Fetch prebuilt curl for Windows to obtain libcurl.a
+set CURL_VER=8.8.0_2
+set CURL_ZIP=curl-%CURL_VER%-win64-mingw.zip
+set CURL_URL=https://curl.se/windows/dl-%CURL_VER%/%CURL_ZIP%
+set CURL_DIR=!LIBS_DIR!\curl
+if not exist "!CURL_DIR!" mkdir "!CURL_DIR!"
+if not exist "!CURL_DIR!\lib\libcurl.a" (
+    curl -L %CURL_URL% -o "!CURL_DIR!\%CURL_ZIP%" || goto :eof
+    powershell -Command "Expand-Archive -Path '!CURL_DIR!\%CURL_ZIP%' -DestinationPath '!CURL_DIR!' -Force" || goto :eof
+    move /y "!CURL_DIR!\curl-%CURL_VER%-win64-mingw\*" "!CURL_DIR!" >nul
+    rmdir /s /q "!CURL_DIR!\curl-%CURL_VER%-win64-mingw"
+    del "!CURL_DIR!\%CURL_ZIP%"
+)
 
 set SQLITE_VER=3430000
 set SQLITE_YEAR=2023
