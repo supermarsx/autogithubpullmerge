@@ -190,6 +190,8 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("--poll-prs", options.poll_prs_only, "Only poll pull requests");
   app.add_flag("--poll-stray-branches", options.poll_stray_only,
                "Only poll stray branches");
+  app.add_flag("--auto-reject-dirty", options.auto_reject_dirty,
+               "Close dirty stray branches automatically");
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {

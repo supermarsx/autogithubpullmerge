@@ -111,6 +111,11 @@ int main() {
   agpm::CliOptions opts15 = agpm::parse_cli(2, argv15);
   assert(opts15.poll_stray_only);
 
+  char auto_reject_flag[] = "--auto-reject-dirty";
+  char *argv16b[] = {prog, auto_reject_flag};
+  agpm::CliOptions opts16b = agpm::parse_cli(2, argv16b);
+  assert(opts16b.auto_reject_dirty);
+
   char limit_flag[] = "--pr-limit";
   char limit_val[] = "25";
   char *argv16[] = {prog, limit_flag, limit_val};

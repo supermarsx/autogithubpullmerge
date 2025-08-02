@@ -24,6 +24,7 @@ to build the project on supported platforms.
 - `--include-merged` - show merged pull requests when listing.
 - `--poll-prs` - only poll pull requests.
 - `--poll-stray-branches` - only poll stray branches.
+- `--auto-reject-dirty` - automatically close dirty stray branches.
 - `--poll-interval` - how often to poll GitHub (seconds, `0` disables).
 - `--max-request-rate` - limit GitHub requests per minute. When polling is
   enabled a worker thread fetches pull requests at the configured interval.

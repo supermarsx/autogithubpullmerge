@@ -22,7 +22,7 @@ public:
   GitHubPoller(GitHubClient &client,
                std::vector<std::pair<std::string, std::string>> repos,
                int interval_ms, int max_rate, bool poll_prs_only = false,
-               bool poll_stray_only = false);
+               bool poll_stray_only = false, bool auto_reject_dirty = false);
 
   /// Start polling in a background thread.
   void start();
@@ -37,6 +37,7 @@ private:
   Poller poller_;
   bool poll_prs_only_;
   bool poll_stray_only_;
+  bool auto_reject_dirty_;
 };
 
 } // namespace agpm
