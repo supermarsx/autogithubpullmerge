@@ -27,6 +27,7 @@ struct CliOptions {
   bool poll_prs_only = false;             ///< Only poll pull requests
   bool poll_stray_only = false;           ///< Only poll stray branches
   bool auto_reject_dirty = false;         ///< Auto close dirty branches
+  bool auto_merge{false};                 ///< Automatically merge pull requests
   std::string purge_prefix;               ///< Delete branches with this prefix
   int pr_limit{50};                       ///< Number of pull requests to fetch
   std::chrono::seconds pr_since{0}; ///< Only list pull requests newer than this

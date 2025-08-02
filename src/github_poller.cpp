@@ -6,12 +6,12 @@ GitHubPoller::GitHubPoller(
     GitHubClient &client,
     std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
     int max_rate, bool poll_prs_only, bool poll_stray_only,
-    bool auto_reject_dirty, std::string purge_prefix)
+    bool auto_reject_dirty, std::string purge_prefix, bool auto_merge)
     : client_(client), repos_(std::move(repos)),
       poller_([this] { poll(); }, interval_ms, max_rate),
       poll_prs_only_(poll_prs_only), poll_stray_only_(poll_stray_only),
       auto_reject_dirty_(auto_reject_dirty),
-      purge_prefix_(std::move(purge_prefix)) {}
+      purge_prefix_(std::move(purge_prefix)), auto_merge_(auto_merge) {}
 
 void GitHubPoller::start() { poller_.start(); }
 
@@ -20,7 +20,12 @@ void GitHubPoller::stop() { poller_.stop(); }
 void GitHubPoller::poll() {
   for (const auto &r : repos_) {
     if (!poll_stray_only_) {
-      client_.list_pull_requests(r.first, r.second);
+      auto prs = client_.list_pull_requests(r.first, r.second);
+      if (auto_merge_) {
+        for (const auto &pr : prs) {
+          client_.merge_pull_request(r.first, r.second, pr.number);
+        }
+      }
       if (!purge_prefix_.empty()) {
         client_.cleanup_branches(r.first, r.second, purge_prefix_);
       }

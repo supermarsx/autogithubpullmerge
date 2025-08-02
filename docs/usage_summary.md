@@ -25,6 +25,7 @@ to build the project on supported platforms.
 - `--poll-prs` - only poll pull requests.
 - `--poll-stray-branches` - only poll stray branches.
 - `--auto-reject-dirty` - automatically close dirty stray branches.
+- `--auto-merge` - merge pull requests automatically.
 - `--purge-branch-prefix` - delete branches with this prefix once their PR is
   closed or merged.
 - `--poll-interval` - how often to poll GitHub (seconds, `0` disables).
