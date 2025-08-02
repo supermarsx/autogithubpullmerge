@@ -142,5 +142,14 @@ int main() {
   agpm::CliOptions opts20 = agpm::parse_cli(3, argv20);
   assert(opts20.purge_prefix == "tmp/");
 
+  char auto_merge_flag[] = "--auto-merge";
+  char *argv21[] = {prog, auto_merge_flag};
+  agpm::CliOptions opts21 = agpm::parse_cli(2, argv21);
+  assert(opts21.auto_merge);
+
+  char *argv22[] = {prog};
+  agpm::CliOptions opts22 = agpm::parse_cli(1, argv22);
+  assert(!opts22.auto_merge);
+
   return 0;
 }

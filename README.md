@@ -98,6 +98,7 @@ API keys can be provided in several ways:
 - `--auto-reject-dirty` closes stray branches that have diverged.
 - `--purge-branch-prefix` deletes branches with this prefix after their pull
   request is closed or merged.
+- `--auto-merge` merges pull requests automatically.
 
 ## Examples
 
