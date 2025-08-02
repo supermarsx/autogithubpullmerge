@@ -92,7 +92,7 @@ API keys can be provided in several ways:
 - `--pr-limit` limits how many pull requests to fetch when listing.
 - `--pr-since` filters pull requests newer than the given duration
   (e.g. `30m`, `2h`, `1d`).
-- `--include-merged` lists merged pull requests in addition to open ones.
+- `--include-merged` lists merged pull requests in addition to open ones (off by default).
 - `--poll-prs` polls only pull requests.
 - `--poll-stray-branches` polls only stray branches.
 - `--auto-reject-dirty` closes stray branches that have diverged.

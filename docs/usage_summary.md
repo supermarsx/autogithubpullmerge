@@ -21,7 +21,7 @@ to build the project on supported platforms.
 - `--api-key-url`/`--api-key-url-user`/`--api-key-url-password` - fetch tokens
   from a remote URL with optional basic authentication.
 - `--api-key-file` - load tokens from a local YAML or JSON file.
-- `--include-merged` - show merged pull requests when listing.
+- `--include-merged` - show merged pull requests when listing (off by default).
 - `--poll-prs` - only poll pull requests.
 - `--poll-stray-branches` - only poll stray branches.
 - `--auto-reject-dirty` - automatically close dirty stray branches.
