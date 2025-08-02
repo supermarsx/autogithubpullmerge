@@ -72,6 +72,33 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   return response;
 }
 
+std::string CurlHttpClient::del(const std::string &url,
+                                const std::vector<std::string> &headers) {
+  CURL *curl = curl_easy_init();
+  if (!curl) {
+    throw std::runtime_error("Failed to init curl");
+  }
+  std::string response;
+  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  struct curl_slist *header_list = nullptr;
+  for (const auto &h : headers) {
+    header_list = curl_slist_append(header_list, h.c_str());
+  }
+  header_list =
+      curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
+  CURLcode res = curl_easy_perform(curl);
+  curl_slist_free_all(header_list);
+  curl_easy_cleanup(curl);
+  if (res != CURLE_OK) {
+    throw std::runtime_error("curl DELETE failed");
+  }
+  return response;
+}
+
 GitHubClient::GitHubClient(std::string token, std::unique_ptr<HttpClient> http,
                            std::vector<std::string> include_repos,
                            std::vector<std::string> exclude_repos, int delay_ms)
@@ -165,6 +192,35 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   std::string resp = http_->put(url, "{}", headers);
   nlohmann::json j = nlohmann::json::parse(resp);
   return j.contains("merged") && j["merged"].get<bool>();
+}
+
+void GitHubClient::cleanup_branches(const std::string &owner,
+                                    const std::string &repo,
+                                    const std::string &prefix) {
+  if (!repo_allowed(repo) || prefix.empty()) {
+    return;
+  }
+  enforce_delay();
+  std::string url = "https://api.github.com/repos/" + owner + "/" + repo +
+                    "/pulls?state=closed";
+  std::vector<std::string> headers = {"Authorization: token " + token_,
+                                      "Accept: application/vnd.github+json"};
+  std::string resp = http_->get(url, headers);
+  nlohmann::json j = nlohmann::json::parse(resp);
+  if (!j.is_array()) {
+    return;
+  }
+  for (const auto &item : j) {
+    if (item.contains("head") && item["head"].contains("ref")) {
+      std::string branch = item["head"]["ref"].get<std::string>();
+      if (branch.rfind(prefix, 0) == 0) {
+        enforce_delay();
+        std::string del_url = "https://api.github.com/repos/" + owner + "/" +
+                              repo + "/git/refs/heads/" + branch;
+        (void)http_->del(del_url, headers);
+      }
+    }
+  }
 }
 
 void GitHubClient::close_dirty_branches(const std::string &owner,

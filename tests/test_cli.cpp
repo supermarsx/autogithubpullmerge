@@ -136,5 +136,11 @@ int main() {
   agpm::CliOptions opts19 = agpm::parse_cli(1, argv19);
   assert(opts19.pr_since == std::chrono::seconds(0));
 
+  char purge_flag[] = "--purge-branch-prefix";
+  char purge_val[] = "tmp/";
+  char *argv20[] = {prog, purge_flag, purge_val};
+  agpm::CliOptions opts20 = agpm::parse_cli(3, argv20);
+  assert(opts20.purge_prefix == "tmp/");
+
   return 0;
 }

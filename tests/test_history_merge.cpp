@@ -22,11 +22,18 @@ public:
     (void)headers;
     return resp_put;
   }
+  std::string del(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
+    return "";
+  }
 };
 
 int main() {
   auto http = std::make_unique<DummyHttp>();
-  http->resp_get = "[{\"number\":1,\"title\":\"One\"},{\"number\":2,\"title\":\"Two\"}]";
+  http->resp_get =
+      "[{\"number\":1,\"title\":\"One\"},{\"number\":2,\"title\":\"Two\"}]";
   http->resp_put = "{\"merged\":true}";
   DummyHttp *raw = http.get();
   (void)raw;

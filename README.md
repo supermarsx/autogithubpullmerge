@@ -96,6 +96,8 @@ API keys can be provided in several ways:
 - `--poll-prs` polls only pull requests.
 - `--poll-stray-branches` polls only stray branches.
 - `--auto-reject-dirty` closes stray branches that have diverged.
+- `--purge-branch-prefix` deletes branches with this prefix after their pull
+  request is closed or merged.
 
 ## Examples
 

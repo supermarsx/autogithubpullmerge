@@ -22,6 +22,12 @@ public:
     (void)headers;
     return "{}";
   }
+  std::string del(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
+    return "";
+  }
 };
 
 int main() {

@@ -192,6 +192,9 @@ CliOptions parse_cli(int argc, char **argv) {
                "Only poll stray branches");
   app.add_flag("--auto-reject-dirty", options.auto_reject_dirty,
                "Close dirty stray branches automatically");
+  app.add_option("--purge-branch-prefix", options.purge_prefix,
+                 "Delete branches with this prefix after PR close")
+      ->type_name("PREFIX");
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {

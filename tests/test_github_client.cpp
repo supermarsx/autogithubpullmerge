@@ -26,6 +26,14 @@ public:
     last_method = "PUT";
     return response;
   }
+  std::string del(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
+    last_url = url;
+    last_method = "DELETE";
+    return response;
+  }
 };
 
 int main() {
