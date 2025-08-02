@@ -12,16 +12,27 @@ call :clone_or_update https://github.com/yaml/libyaml.git libyaml
 call :clone_or_update https://github.com/nlohmann/json.git json
 call :clone_or_update https://github.com/gabime/spdlog.git spdlog
 
+rem Build and install yaml-cpp into a local install directory
+set "YAMLCPP_SRC=!LIBS_DIR!\yaml-cpp"
+set "YAMLCPP_INSTALL=!YAMLCPP_SRC!\yaml-cpp_install"
+if not exist "!YAMLCPP_INSTALL!\lib\libyaml-cpp.a" (
+    cmake -S "!YAMLCPP_SRC!" -B "!YAMLCPP_SRC!\build" -DBUILD_SHARED_LIBS=OFF -DYAML_CPP_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX="!YAMLCPP_INSTALL!" || goto :eof
+    cmake --build "!YAMLCPP_SRC!\build" --config Release || goto :eof
+    cmake --install "!YAMLCPP_SRC!\build" || goto :eof
+)
+
 rem Fetch prebuilt curl for Windows to obtain libcurl.a
 set CURL_VER=8.15.0_4
 set CURL_ZIP=curl-%CURL_VER%-win64-mingw.zip
 set CURL_URL=https://curl.se/windows/dl-%CURL_VER%/%CURL_ZIP%
 set CURL_DIR=!LIBS_DIR!\curl
-if not exist "!CURL_DIR!" mkdir "!CURL_DIR!"
-if not exist "!CURL_DIR!\lib\libcurl.a" (
+set CURL_INSTALL=!CURL_DIR!\curl_install
+if not exist "!CURL_INSTALL!" mkdir "!CURL_INSTALL!"
+if not exist "!CURL_INSTALL!\lib\libcurl.a" (
     curl -L %CURL_URL% -o "!CURL_DIR!\%CURL_ZIP%" || goto :eof
     powershell -Command "Expand-Archive -Path '!CURL_DIR!\%CURL_ZIP%' -DestinationPath '!CURL_DIR!' -Force" || goto :eof
-    powershell -Command "Copy-Item -Path '!CURL_DIR!\curl-%CURL_VER%-win64-mingw\*' -Destination '!CURL_DIR!' -Recurse -Force" || goto :eof
+    powershell -Command "Copy-Item -Path '!CURL_DIR!\curl-%CURL_VER%-win64-mingw\include' -Destination '!CURL_INSTALL!' -Recurse -Force" || goto :eof
+    powershell -Command "Copy-Item -Path '!CURL_DIR!\curl-%CURL_VER%-win64-mingw\lib' -Destination '!CURL_INSTALL!' -Recurse -Force" || goto :eof
     rmdir /s /q "!CURL_DIR!\curl-%CURL_VER%-win64-mingw"
     del "!CURL_DIR!\%CURL_ZIP%"
 )
@@ -40,6 +51,19 @@ if not exist "!SQLITE_DIR!\sqlite3.h" (
 )
 
 call :clone_or_update https://github.com/wmcbrine/PDCurses.git pdcurses
+
+rem Build and install pdcurses static library
+set "PDC_SRC=!LIBS_DIR!\pdcurses"
+set "PDC_INSTALL=!PDC_SRC!\pdcurses_install"
+if not exist "!PDC_INSTALL!\lib\pdcurses.a" (
+    pushd "!PDC_SRC!\wincon" || goto :eof
+    nmake -f win32.mak || (popd & goto :eof)
+    popd
+    mkdir "!PDC_INSTALL!\include"
+    mkdir "!PDC_INSTALL!\lib"
+    copy "!PDC_SRC!\curses.h" "!PDC_INSTALL!\include\" >nul
+    copy "!PDC_SRC!\wincon\pdcurses.a" "!PDC_INSTALL!\lib\" >nul
+)
 
 endlocal
 exit /b 0
