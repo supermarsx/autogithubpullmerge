@@ -29,6 +29,7 @@ int main() {
   char *argv5[] = {prog};
   agpm::CliOptions opts5 = agpm::parse_cli(1, argv5);
   assert(opts5.log_level == "info");
+  assert(!opts5.include_merged);
 
   char include_flag[] = "--include";
   char repo_a[] = "repoA";

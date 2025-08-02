@@ -14,7 +14,7 @@ struct CliOptions {
   std::string log_level = "info"; ///< Logging verbosity level
   std::vector<std::string> include_repos; ///< Repositories to include
   std::vector<std::string> exclude_repos; ///< Repositories to exclude
-  bool include_merged = false;            ///< Include merged pull requests
+  bool include_merged{false};             ///< Include merged pull requests
   std::vector<std::string> api_keys;      ///< Personal access tokens
   bool api_key_from_stream = false;       ///< Read tokens from stdin
   std::string api_key_url;                ///< Remote URL with tokens
