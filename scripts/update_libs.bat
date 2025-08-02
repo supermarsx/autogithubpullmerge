@@ -21,7 +21,7 @@ if not exist "!CURL_DIR!" mkdir "!CURL_DIR!"
 if not exist "!CURL_DIR!\lib\libcurl.a" (
     curl -L %CURL_URL% -o "!CURL_DIR!\%CURL_ZIP%" || goto :eof
     powershell -Command "Expand-Archive -Path '!CURL_DIR!\%CURL_ZIP%' -DestinationPath '!CURL_DIR!' -Force" || goto :eof
-    move /y "!CURL_DIR!\curl-%CURL_VER%-win64-mingw\*" "!CURL_DIR!" >nul
+    powershell -Command "Copy-Item -Path '!CURL_DIR!\curl-%CURL_VER%-win64-mingw\*' -Destination '!CURL_DIR!' -Recurse -Force" || goto :eof
     rmdir /s /q "!CURL_DIR!\curl-%CURL_VER%-win64-mingw"
     del "!CURL_DIR!\%CURL_ZIP%"
 )
