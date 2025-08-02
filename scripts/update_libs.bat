@@ -13,7 +13,7 @@ call :clone_or_update https://github.com/nlohmann/json.git json
 call :clone_or_update https://github.com/gabime/spdlog.git spdlog
 
 rem Fetch prebuilt curl for Windows to obtain libcurl.a
-set CURL_VER=8.8.0_2
+set CURL_VER=8.15.0_4
 set CURL_ZIP=curl-%CURL_VER%-win64-mingw.zip
 set CURL_URL=https://curl.se/windows/dl-%CURL_VER%/%CURL_ZIP%
 set CURL_DIR=!LIBS_DIR!\curl
