@@ -94,6 +94,12 @@ public:
   bool merge_pull_request(const std::string &owner, const std::string &repo,
                           int pr_number);
 
+  /**
+   * Close stray branches that have diverged from the default branch.
+   * Placeholder implementation that will be replaced with real logic.
+   */
+  void close_dirty_branches(const std::string &owner, const std::string &repo);
+
 private:
   std::string token_;
   std::unique_ptr<HttpClient> http_;

@@ -26,6 +26,7 @@ struct CliOptions {
   int max_request_rate = 60;              ///< Max requests per minute
   bool poll_prs_only = false;             ///< Only poll pull requests
   bool poll_stray_only = false;           ///< Only poll stray branches
+  bool auto_reject_dirty = false;         ///< Auto close dirty branches
   int pr_limit{50};                       ///< Number of pull requests to fetch
   std::chrono::seconds pr_since{0}; ///< Only list pull requests newer than this
 };

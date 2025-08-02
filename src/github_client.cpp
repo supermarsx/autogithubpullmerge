@@ -167,6 +167,22 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   return j.contains("merged") && j["merged"].get<bool>();
 }
 
+void GitHubClient::close_dirty_branches(const std::string &owner,
+                                        const std::string &repo) {
+  if (!repo_allowed(repo)) {
+    return;
+  }
+  // Placeholder: real implementation would check branch status and close
+  // any branches with unmerged commits. Currently it just performs a GET to
+  // keep the interface exercised during tests.
+  enforce_delay();
+  std::string url =
+      "https://api.github.com/repos/" + owner + "/" + repo + "/branches";
+  std::vector<std::string> headers = {"Authorization: token " + token_,
+                                      "Accept: application/vnd.github+json"};
+  (void)http_->get(url, headers);
+}
+
 void GitHubClient::enforce_delay() {
   if (delay_ms_ <= 0)
     return;
