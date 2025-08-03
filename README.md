@@ -49,7 +49,7 @@ provided scripts:
 ./scripts/compile_win.bat    # Windows
 ```
 Run the matching `install_*` script for your platform first to install system
-packages like **libcurl**, **sqlite3** and **ncurses**. Then use `update_libs.sh` (or
+packages like **libcurl**, **libpsl**, **sqlite3** and **ncurses**. Then use `update_libs.sh` (or
 `update_libs.bat` on Windows) to populate the `libs` directory with clones of
 **CLI11**, **yaml-cpp**, **libyaml**, **nlohmann/json**, **spdlog**, a prebuilt
 **curl** package, the SQLite amalgamation and **PDCurses** before compiling. The Windows compile

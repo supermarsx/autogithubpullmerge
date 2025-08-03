@@ -13,7 +13,7 @@ fi
 
 mkdir -p "$BUILD_DIR"
 
-SRC_FILES=$(find "$ROOT_DIR/src" -name '*.cpp')
+mapfile -t SRC_FILES < <(find "$ROOT_DIR/src" -name '*.cpp')
 
 # Dependency locations following the *_install convention
 YAMLCPP_INC="${LIBS_DIR}/yaml-cpp/yaml-cpp_install/include"
@@ -43,10 +43,10 @@ INCLUDE_FLAGS=(
 )
 
 if command -v pkg-config >/dev/null; then
-	PKG_FLAGS=$(pkg-config --cflags --libs sqlite3 ncurses)
+	mapfile -t PKG_FLAGS < <(pkg-config --cflags --libs sqlite3 ncurses libpsl)
 else
 	echo "pkg-config not found, using fallback flags"
-	PKG_FLAGS="-lsqlite3 -lncurses"
+	PKG_FLAGS=(-lsqlite3 -lncurses -lpsl)
 fi
 
 [[ -f "${YAMLCPP_LIB}/libyaml-cpp.a" ]] || {
@@ -58,9 +58,8 @@ fi
 	exit 1
 }
 
-# shellcheck disable=SC2068
-g++ -std=c++20 -Wall -Wextra -O2 ${INCLUDE_FLAGS[@]} $SRC_FILES \
+g++ -std=c++20 -Wall -Wextra -O2 "${INCLUDE_FLAGS[@]}" "${SRC_FILES[@]}" \
 	-L"${YAMLCPP_LIB}" -lyaml-cpp \
 	-L"${CURL_LIB}" -lcurl \
-	$PKG_FLAGS -pthread \
+	"${PKG_FLAGS[@]}" -pthread \
 	-o "$BUILD_DIR/autogithubpullmerge"
