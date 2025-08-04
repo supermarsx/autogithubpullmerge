@@ -56,13 +56,21 @@ rem Build and install pdcurses static library
 set "PDC_SRC=!LIBS_DIR!\pdcurses"
 set "PDC_INSTALL=!PDC_SRC!\pdcurses_install"
 if not exist "!PDC_INSTALL!\lib\pdcurses.a" (
-    pushd "!PDC_SRC!\wincon" || goto :eof
-    nmake -f win32.mak || (popd & goto :eof)
-    popd
+    where nmake >nul 2>&1
+    if %ERRORLEVEL%==0 (
+        pushd "!PDC_SRC!\wincon" || goto :eof
+        nmake -f win32.mak || (popd & goto :eof)
+        set "PDC_LIB=!PDC_SRC!\wincon\pdcurses.a"
+        popd
+    ) else (
+        cmake -S "!PDC_SRC!" -B "!PDC_SRC!\build" -DBUILD_SHARED_LIBS=OFF -G "MinGW Makefiles" || goto :eof
+        cmake --build "!PDC_SRC!\build" --config Release || goto :eof
+        set "PDC_LIB=!PDC_SRC!\build\pdcurses.a"
+    )
     mkdir "!PDC_INSTALL!\include"
     mkdir "!PDC_INSTALL!\lib"
     copy "!PDC_SRC!\curses.h" "!PDC_INSTALL!\include\" >nul
-    copy "!PDC_SRC!\wincon\pdcurses.a" "!PDC_INSTALL!\lib\" >nul
+    copy "!PDC_LIB!" "!PDC_INSTALL!\lib\" >nul
 )
 
 endlocal
