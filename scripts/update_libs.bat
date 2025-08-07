@@ -57,18 +57,29 @@ set "PDC_SRC=!LIBS_DIR!\pdcurses"
 set "PDC_INSTALL=!PDC_SRC!\pdcurses_install"
 
 if not exist "!PDC_INSTALL!\lib\pdcurses.a" (
-    where nmake >nul 2>&1
-    if errorlevel 1 (
-        rem nmake not found, use CMake
-        cmake -S "!PDC_SRC!" -B "!PDC_SRC!\build" -DBUILD_SHARED_LIBS=OFF -G "MinGW Makefiles" || goto :eof
-        cmake --build "!PDC_SRC!\build" --config Release || goto :eof
-        set "PDC_LIB=!PDC_SRC!\build\pdcurses.a"
-    ) else (
-        rem nmake found, use wincon makefile
+    where mingw32-make >nul 2>&1
+    if not errorlevel 1 (
+        rem use mingw32-make if available
         pushd "!PDC_SRC!\wincon" || goto :eof
-        nmake -f win32.mak || (popd & goto :eof)
+        mingw32-make -f Makefile || (popd & goto :eof)
         set "PDC_LIB=!PDC_SRC!\wincon\pdcurses.a"
         popd
+    ) else (
+        where make >nul 2>&1
+        if not errorlevel 1 (
+            rem fallback to make
+            pushd "!PDC_SRC!\wincon" || goto :eof
+            make -f Makefile || (popd & goto :eof)
+            set "PDC_LIB=!PDC_SRC!\wincon\pdcurses.a"
+            popd
+        ) else (
+            rem last resort, try nmake with Visual C++ makefile
+            where nmake >nul 2>&1 || goto :eof
+            pushd "!PDC_SRC!\wincon" || goto :eof
+            nmake -f Makefile.vc || (popd & goto :eof)
+            set "PDC_LIB=!PDC_SRC!\wincon\pdcurses.lib"
+            popd
+        )
     )
     mkdir "!PDC_INSTALL!\include" 2>nul
     mkdir "!PDC_INSTALL!\lib" 2>nul
