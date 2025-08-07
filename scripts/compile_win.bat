@@ -31,7 +31,8 @@ set "LIBS_DIR=%ROOT_DIR%\libs"
 
 rem Dependency include and lib directories produced by their install steps
 set "YAMLCPP_INC=%LIBS_DIR%\yaml-cpp\yaml-cpp_install\include"
-set "YAMLCPP_LIB=%LIBS_DIR%\yaml-cpp\yaml-cpp_install\lib\libyaml-cpp.a"
+set "YAMLCPP_LIB_A=%LIBS_DIR%\yaml-cpp\yaml-cpp_install\lib\libyaml-cpp.a"
+set "YAMLCPP_LIB_LIB=%LIBS_DIR%\yaml-cpp\yaml-cpp_install\lib\yaml-cpp.lib"
 set "CURL_INC=%LIBS_DIR%\curl\curl_install\include"
 set "CURL_LIB=%LIBS_DIR%\curl\curl_install\lib\libcurl.a"
 set "PDCURSES_INC=%LIBS_DIR%\pdcurses\pdcurses_install\include"
@@ -61,6 +62,15 @@ if exist "%PDCURSES_LIB_A%" (
     exit /b 1
 )
 
+if exist "%YAMLCPP_LIB_A%" (
+    set "YAMLCPP_LIB=%YAMLCPP_LIB_A%"
+) else if exist "%YAMLCPP_LIB_LIB%" (
+    set "YAMLCPP_LIB=%YAMLCPP_LIB_LIB%"
+) else (
+    echo [ERROR] yaml-cpp library not found at %YAMLCPP_LIB_A% or %YAMLCPP_LIB_LIB%
+    exit /b 1
+)
+
 set INCLUDE_ARGS=^
   -I"%ROOT_DIR%\include" ^
   -I"%LIBS_DIR%\CLI11\include" ^
@@ -79,10 +89,6 @@ set LIB_ARGS="%CURL_LIB%" "%YAMLCPP_LIB%" "%PDCURSES_LIB%"
 
 if not exist "%CURL_LIB%" (
     echo [ERROR] libcurl.a not found at %CURL_LIB%
-    exit /b 1
-)
-if not exist "%YAMLCPP_LIB%" (
-    echo [ERROR] libyaml-cpp.a not found at %YAMLCPP_LIB%
     exit /b 1
 )
 if not exist "%PDCURSES_LIB%" (

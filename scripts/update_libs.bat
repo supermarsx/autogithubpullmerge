@@ -15,8 +15,16 @@ call :clone_or_update https://github.com/gabime/spdlog.git spdlog
 rem Build and install yaml-cpp into a local install directory
 set "YAMLCPP_SRC=!LIBS_DIR!\yaml-cpp"
 set "YAMLCPP_INSTALL=!YAMLCPP_SRC!\yaml-cpp_install"
-if not exist "!YAMLCPP_INSTALL!\lib\libyaml-cpp.a" (
-    cmake -S "!YAMLCPP_SRC!" -B "!YAMLCPP_SRC!\build" -DBUILD_SHARED_LIBS=OFF -DYAML_CPP_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX="!YAMLCPP_INSTALL!" || goto :eof
+set "YAMLCPP_LIB_A=!YAMLCPP_INSTALL!\lib\libyaml-cpp.a"
+set "YAMLCPP_LIB_LIB=!YAMLCPP_INSTALL!\lib\yaml-cpp.lib"
+if not exist "!YAMLCPP_LIB_A!" if not exist "!YAMLCPP_LIB_LIB!" (
+    where mingw32-make >nul 2>&1
+    if not errorlevel 1 (
+        set "YAMLCPP_GEN=MinGW Makefiles"
+    ) else (
+        set "YAMLCPP_GEN=NMake Makefiles"
+    )
+    cmake -S "!YAMLCPP_SRC!" -B "!YAMLCPP_SRC!\build" -G "!YAMLCPP_GEN!" -DBUILD_SHARED_LIBS=OFF -DYAML_CPP_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX="!YAMLCPP_INSTALL!" || goto :eof
     cmake --build "!YAMLCPP_SRC!\build" --config Release || goto :eof
     cmake --install "!YAMLCPP_SRC!\build" || goto :eof
 )
