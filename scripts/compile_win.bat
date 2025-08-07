@@ -35,7 +35,8 @@ set "YAMLCPP_LIB=%LIBS_DIR%\yaml-cpp\yaml-cpp_install\lib\libyaml-cpp.a"
 set "CURL_INC=%LIBS_DIR%\curl\curl_install\include"
 set "CURL_LIB=%LIBS_DIR%\curl\curl_install\lib\libcurl.a"
 set "PDCURSES_INC=%LIBS_DIR%\pdcurses\pdcurses_install\include"
-set "PDCURSES_LIB=%LIBS_DIR%\pdcurses\pdcurses_install\lib\pdcurses.a"
+set "PDCURSES_LIB_A=%LIBS_DIR%\pdcurses\pdcurses_install\lib\pdcurses.a"
+set "PDCURSES_LIB_LIB=%LIBS_DIR%\pdcurses\pdcurses_install\lib\pdcurses.lib"
 
 rem Verify headers exist for required dependencies
 if not exist "%YAMLCPP_INC%\yaml-cpp\yaml.h" (
@@ -48,6 +49,15 @@ if not exist "%CURL_INC%\curl\curl.h" (
 )
 if not exist "%PDCURSES_INC%\curses.h" (
     echo [ERROR] pdcurses headers not found at %PDCURSES_INC%
+    exit /b 1
+)
+
+if exist "%PDCURSES_LIB_A%" (
+    set "PDCURSES_LIB=%PDCURSES_LIB_A%"
+) else if exist "%PDCURSES_LIB_LIB%" (
+    set "PDCURSES_LIB=%PDCURSES_LIB_LIB%"
+) else (
+    echo [ERROR] pdcurses library not found at %PDCURSES_LIB_A% or %PDCURSES_LIB_LIB%
     exit /b 1
 )
 
@@ -76,7 +86,7 @@ if not exist "%YAMLCPP_LIB%" (
     exit /b 1
 )
 if not exist "%PDCURSES_LIB%" (
-    echo [ERROR] pdcurses.a not found at %PDCURSES_LIB%
+    echo [ERROR] pdcurses library not found at %PDCURSES_LIB%
     exit /b 1
 )
 

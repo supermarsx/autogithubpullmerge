@@ -1,2 +1,2 @@
 @echo off
-choco install cmake git curl sqlite spdlog pdcurses -y
+choco install cmake git curl sqlite spdlog mingw -y
