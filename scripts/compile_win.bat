@@ -20,8 +20,10 @@ set SRC_LIST=
 for /r "%ROOT_DIR%\src" %%F in (*.cpp) do (
     set SRC_LIST=!SRC_LIST! "%%F"
 )
+set SQLITE_OBJ=
 if exist "%ROOT_DIR%\libs\sqlite\sqlite3.c" (
-    set SRC_LIST=!SRC_LIST! "%ROOT_DIR%\libs\sqlite\sqlite3.c"
+    g++ -x c -O2 -I"%ROOT_DIR%\libs\sqlite" -c "%ROOT_DIR%\libs\sqlite\sqlite3.c" -o "%BUILD_DIR%\sqlite3.o" || exit /b 1
+    set SQLITE_OBJ="%BUILD_DIR%\sqlite3.o"
 )
 
 rem ---------------------------------------------------------------------------
@@ -99,7 +101,7 @@ if not exist "%PDCURSES_LIB%" (
 rem ---------------------------------------------------------------------------
 rem  Compile
 rem ---------------------------------------------------------------------------
-g++ -std=c++20 -Wall -Wextra -O2 -static -static-libgcc -static-libstdc++ -DYAML_CPP_STATIC_DEFINE %INCLUDE_ARGS% %SRC_LIST% %LIB_ARGS% -o "%BUILD_DIR%\autogithubpullmerge.exe"
+g++ -std=c++20 -Wall -Wextra -O2 -static -static-libgcc -static-libstdc++ -DYAML_CPP_STATIC_DEFINE %INCLUDE_ARGS% %SRC_LIST% %SQLITE_OBJ% %LIB_ARGS% -o "%BUILD_DIR%\autogithubpullmerge.exe"
 
 endlocal
 
