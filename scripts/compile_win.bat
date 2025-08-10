@@ -1,35 +1,64 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+echo -------------------
+echo Compile script
+echo -------------------
+
+
 rem ---------------------------------------------------------------------------
 rem  Determine project root
 rem ---------------------------------------------------------------------------
+echo.
+echo Determining project root
+
 for %%I in ("%~dp0..") do set "ROOT_DIR=%%~fI"
 cd /d "%ROOT_DIR%" || exit /b 1
+
+echo Root dir set to: %ROOT_DIR%
 
 rem ---------------------------------------------------------------------------
 rem  Prepare build directories
 rem ---------------------------------------------------------------------------
+echo.
+echo Getting build dir.
+
 set "BUILD_DIR=%ROOT_DIR%\build_gpp"
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
+
+echo Build dir set to: %BUILD_DIR%
 
 rem ---------------------------------------------------------------------------
 rem  Collect sources (add sqlite amalgamation manually)
 rem ---------------------------------------------------------------------------
+echo.
+echo Getting source list.
+
 set SRC_LIST=
 for /r "%ROOT_DIR%\src" %%F in (*.cpp) do (
     set SRC_LIST=!SRC_LIST! "%%F"
 )
+
+echo Source list set to: %SRC_LIST%
+
+echo.
+echo Doing SQLite amalgamation.
+
 set SQLITE_OBJ=
 if exist "%ROOT_DIR%\libs\sqlite\sqlite3.c" (
     g++ -x c -O2 -I"%ROOT_DIR%\libs\sqlite" -c "%ROOT_DIR%\libs\sqlite\sqlite3.c" -o "%BUILD_DIR%\sqlite3.o" || exit /b 1
     set SQLITE_OBJ="%BUILD_DIR%\sqlite3.o"
 )
 
+echo Amalgamation done.
+
 rem ---------------------------------------------------------------------------
 rem  Include directories
 rem ---------------------------------------------------------------------------
 set "LIBS_DIR=%ROOT_DIR%\libs"
+
+echo.
+echo Include dir set to: %LIBS_DIR%
 
 rem Dependency include and lib directories produced by their install steps
 set "YAMLCPP_INC=%LIBS_DIR%\yaml-cpp\yaml-cpp_install\include"
@@ -97,14 +126,44 @@ set INCLUDE_ARGS=^
   -I"%LIBS_DIR%\spdlog\include" ^
   -I"%YAMLCPP_INC%" ^
   -I"%PDCURSES_INC%" ^
-  -I"%CURL_INC%" ^
+  -I"%CURL_INC%" ^ 
   -I"%LIBS_DIR%\sqlite"
 
-rem ---------------------------------------------------------------------------
+echo Include args are: %INCLUDE_ARGS%
+
 rem ---------------------------------------------------------------------------
 rem  Library locations (expect static libs in these folders)
 rem ---------------------------------------------------------------------------
-set LIB_ARGS="%CURL_LIB%" "%YAMLCPP_LIB%" "%PDCURSES_LIB%" -lws2_32 -lwinmm -lbcrypt -lcrypt32 -lwldap32
+echo.
+echo Getting lib args.
+
+rem Auto-include all .a static libraries from CURL lib folder
+set "CURL_LIBS_DIR=%LIBS_DIR%\curl\curl_install\lib"
+
+set "CURL_ALL_LIBS="
+if exist "%CURL_LIBS_DIR%\libssl.a" (
+    set "CURL_ALL_LIBS=!CURL_ALL_LIBS! ""%CURL_LIBS_DIR%\libssl.a"""
+)
+if exist "%CURL_LIBS_DIR%\libcrypto.a" (
+    set "CURL_ALL_LIBS=!CURL_ALL_LIBS! ""%CURL_LIBS_DIR%\libcrypto.a"""
+)
+
+for %%L in ("%CURL_LIBS_DIR%\*.a") do (
+    set "CURL_ALL_LIBS=!CURL_ALL_LIBS! "%%L""
+)
+
+
+rem If you want to also add .lib (MSVC-style) for hybrid setups:
+rem for %%L in ("%CURL_LIBS_DIR%\*.lib") do (
+rem     set "CURL_ALL_LIBS=!CURL_ALL_LIBS! "%%L""
+rem )
+
+rem Now add CURL_ALL_LIBS to your LIB_ARGS
+set LIB_ARGS=%CURL_ALL_LIBS% "%YAMLCPP_LIB%" "%PDCURSES_LIB%" -lws2_32 -lwinmm -lbcrypt -lcrypt32 -lwldap32 -lssl -lcrypto
+
+echo Auto-included curl static libs: %CURL_ALL_LIBS%
+
+echo Lib args set to: %LIB_ARGS%
 
 if not exist "%CURL_LIB%" (
     echo [ERROR] curl library not found at %CURL_LIB%
@@ -115,15 +174,26 @@ if not exist "%PDCURSES_LIB%" (
     exit /b 1
 )
 
+
+
 set "LINK_FLAGS=-static -static-libgcc -static-libstdc++"
 if not "%CURL_LIB%"=="%CURL_LIB_A%" set "LINK_FLAGS="
 if not "%YAMLCPP_LIB%"=="%YAMLCPP_LIB_A%" set "LINK_FLAGS="
 if not "%PDCURSES_LIB%"=="%PDCURSES_LIB_A%" set "LINK_FLAGS="
 
+echo Link flags set to: %LINK_FLAGS%
+
 rem ---------------------------------------------------------------------------
 rem  Compile
 rem ---------------------------------------------------------------------------
+echo.
+echo Compilation going.
+echo.
+
 g++ -std=c++20 -Wall -Wextra -O2 %LINK_FLAGS% -DYAML_CPP_STATIC_DEFINE %CURL_STATIC_DEF% %INCLUDE_ARGS% %SRC_LIST% %SQLITE_OBJ% %LIB_ARGS% -o "%BUILD_DIR%\autogithubpullmerge.exe"
+
+echo.
+echo Compilation done.
 
 endlocal
 
