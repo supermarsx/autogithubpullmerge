@@ -11,7 +11,7 @@ if "%VCPKG_ROOT%"=="" (
     )
 )
 
-cmake --preset vcpkg || exit /b 1
+cmake --preset vcpkg --fresh || exit /b 1
 cmake --build --preset vcpkg --config Release || exit /b 1
 ctest --preset vcpkg || exit /b 1
 

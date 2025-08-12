@@ -20,21 +20,21 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 ## Building (Linux)
 ```bash
 ./scripts/install_linux.sh
-cmake --preset vcpkg
+cmake --preset vcpkg --fresh
 cmake --build --preset vcpkg
 ```
 
 ## Building (macOS)
 ```bash
 ./scripts/install_mac.sh
-cmake --preset vcpkg
+cmake --preset vcpkg --fresh
 cmake --build --preset vcpkg
 ```
 
 ## Building (Windows)
 ```powershell
 ./scripts/install_win.bat
-cmake --preset vcpkg
+cmake --preset vcpkg --fresh
 cmake --build --preset vcpkg --config Release
 ```
 
@@ -90,7 +90,7 @@ echo "export PATH=\"\$VCPKG_ROOT:\$PATH\"" >> ~/.zprofile
 After setting up vcpkg, configure and build with the `vcpkg` CMake preset:
 
 ```bash
-cmake --preset vcpkg
+cmake --preset vcpkg --fresh
 cmake --build --preset vcpkg
 ```
 
