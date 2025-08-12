@@ -69,6 +69,8 @@ set "CURL_INC=%LIBS_DIR%\curl\curl_install\include"
 set "CURL_LIB_A=%LIBS_DIR%\curl\curl_install\lib\libcurl.a"
 set "CURL_LIB_DLL_A=%LIBS_DIR%\curl\curl_install\lib\libcurl.dll.a"
 set "CURL_LIB_LIB=%LIBS_DIR%\curl\curl_install\lib\curl.lib"
+set "NGHTTP2_INC=%LIBS_DIR%\nghttp2\nghttp2_install\include"
+set "NGHTTP2_LIB_DIR=%LIBS_DIR%\nghttp2\nghttp2_install\lib"
 set "PDCURSES_INC=%LIBS_DIR%\pdcurses\pdcurses_install\include"
 set "PDCURSES_LIB_A=%LIBS_DIR%\pdcurses\pdcurses_install\lib\pdcurses.a"
 set "PDCURSES_LIB_LIB=%LIBS_DIR%\pdcurses\pdcurses_install\lib\pdcurses.lib"
@@ -80,6 +82,10 @@ if not exist "%YAMLCPP_INC%\yaml-cpp\yaml.h" (
 )
 if not exist "%CURL_INC%\curl\curl.h" (
     echo [ERROR] curl headers not found at %CURL_INC%
+    exit /b 1
+)
+if not exist "%NGHTTP2_INC%\nghttp2\nghttp2.h" (
+    echo [ERROR] nghttp2 headers not found at %NGHTTP2_INC%
     exit /b 1
 )
 if not exist "%PDCURSES_INC%\curses.h" (
@@ -118,6 +124,10 @@ if exist "%CURL_LIB_A%" (
     echo [ERROR] curl library not found at %CURL_LIB_A% or %CURL_LIB_DLL_A% or %CURL_LIB_LIB%
     exit /b 1
 )
+if not exist "%NGHTTP2_LIB_DIR%\libnghttp2.a" if not exist "%NGHTTP2_LIB_DIR%\libnghttp2.dll.a" if not exist "%NGHTTP2_LIB_DIR%\nghttp2.lib" (
+    echo [ERROR] nghttp2 library not found at %NGHTTP2_LIB_DIR%
+    exit /b 1
+)
 
 set INCLUDE_ARGS=^
   -I"%ROOT_DIR%\include" ^
@@ -126,7 +136,8 @@ set INCLUDE_ARGS=^
   -I"%LIBS_DIR%\spdlog\include" ^
   -I"%YAMLCPP_INC%" ^
   -I"%PDCURSES_INC%" ^
-  -I"%CURL_INC%" ^ 
+  -I"%CURL_INC%" ^
+  -I"%NGHTTP2_INC%" ^
   -I"%LIBS_DIR%\sqlite"
 
 echo Include args are: %INCLUDE_ARGS%
@@ -139,11 +150,13 @@ echo Getting lib args.
 
 rem Link against curl and its feature libraries statically
 set "CURL_LIBS_DIR=%LIBS_DIR%\curl\curl_install\lib"
+set "NGHTTP2_LIBS_DIR=%NGHTTP2_LIB_DIR%"
 
 set LIB_ARGS=^
   -L"%CURL_LIBS_DIR%" ^
+  -L"%NGHTTP2_LIBS_DIR%" ^
   -Wl,--start-group ^
-    -lcurl -lssh2 ^
+    -lcurl -lssh2 -lnghttp2 ^
     -lngtcp2_crypto_quictls -lngtcp2 -lnghttp3 ^
     -lssl -lcrypto ^
     -lbrotlidec -lbrotlicommon -lzstd -lz ^

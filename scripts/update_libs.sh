@@ -20,6 +20,7 @@ clone_or_update https://github.com/yaml/libyaml.git libyaml
 clone_or_update https://github.com/nlohmann/json.git json
 clone_or_update https://github.com/gabime/spdlog.git spdlog
 clone_or_update https://github.com/curl/curl.git curl
+clone_or_update https://github.com/nghttp2/nghttp2.git nghttp2
 
 # Build and install yaml-cpp into a local install directory
 YAMLCPP_SRC="$LIBS_DIR/yaml-cpp"
@@ -31,12 +32,25 @@ if [ ! -f "$YAMLCPP_INSTALL/lib/libyaml-cpp.a" ]; then
     cmake --install "$YAMLCPP_SRC/build"
 fi
 
+# Build and install nghttp2 into a local install directory
+NGHTTP2_SRC="$LIBS_DIR/nghttp2"
+NGHTTP2_INSTALL="$NGHTTP2_SRC/nghttp2_install"
+if [ ! -f "$NGHTTP2_INSTALL/lib/libnghttp2.a" ]; then
+    cmake -S "$NGHTTP2_SRC" -B "$NGHTTP2_SRC/build" -DBUILD_SHARED_LIBS=OFF \
+        -DENABLE_EXAMPLES=OFF -DENABLE_HPACK_TOOLS=OFF -DENABLE_ASIO_LIB=OFF \
+        -DCMAKE_INSTALL_PREFIX="$NGHTTP2_INSTALL"
+    cmake --build "$NGHTTP2_SRC/build" --config Release
+    cmake --install "$NGHTTP2_SRC/build"
+fi
+
 # Build and install curl into a local install directory
 CURL_SRC="$LIBS_DIR/curl"
 CURL_INSTALL="$CURL_SRC/curl_install"
 if [ ! -f "$CURL_INSTALL/lib/libcurl.a" ]; then
     cmake -S "$CURL_SRC" -B "$CURL_SRC/build" -DBUILD_SHARED_LIBS=OFF -DBUILD_CURL_EXE=OFF \
-        -DCMAKE_INSTALL_PREFIX="$CURL_INSTALL"
+        -DCMAKE_INSTALL_PREFIX="$CURL_INSTALL" \
+        -DNGHTTP2_INCLUDE_DIR="$NGHTTP2_INSTALL/include" \
+        -DNGHTTP2_LIBRARY="$NGHTTP2_INSTALL/lib/libnghttp2.a"
     cmake --build "$CURL_SRC/build" --config Release
     cmake --install "$CURL_SRC/build"
 fi
