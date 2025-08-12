@@ -6,5 +6,5 @@ if [[ -z "${VCPKG_ROOT}" ]]; then
     exit 1
 fi
 
-cmake --preset vcpkg
+cmake --preset vcpkg --fresh
 cmake --build --preset vcpkg
