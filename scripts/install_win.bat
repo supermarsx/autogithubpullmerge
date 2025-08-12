@@ -1,6 +1,6 @@
 @echo off
 
-choco install cmake git curl sqlite mingw -y
+choco install cmake git curl sqlite mingw ninja -y
 
 if "%VCPKG_ROOT%"=="" (
     set "VCPKG_ROOT=%~dp0..\vcpkg"
