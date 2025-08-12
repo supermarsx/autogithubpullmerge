@@ -111,12 +111,13 @@ if not exist "!SQLITE_DIR!" mkdir "!SQLITE_DIR!"
 echo Got sqlite amalgamation.
 
 echo.
-echo 
+echo Build and install pdcurses
 
 rem Build and install pdcurses static library
 set "PDC_SRC=!LIBS_DIR!\pdcurses"
 set "PDC_INSTALL=!PDC_SRC!\pdcurses_install"
 
+if not exist "!PDC_INSTALL!\lib\pdcurses.a" if not exist "!PDC_INSTALL!\lib\pdcurses.lib" (
     where mingw32-make >nul 2>&1
     if not errorlevel 1 (
         rem use mingw32-make if available
