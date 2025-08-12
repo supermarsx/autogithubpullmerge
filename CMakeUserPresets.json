@@ -1,0 +1,13 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "vcpkg-user",
+      "inherits": "vcpkg",
+      "description": "User preset defining VCPKG_ROOT",
+      "environment": {
+        "VCPKG_ROOT": "/path/to/vcpkg"
+      }
+    }
+  ]
+}
