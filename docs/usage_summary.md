@@ -66,23 +66,21 @@ press before exiting.
 
 ## Building
 
-Run the appropriate install and update scripts for your platform, then build
-with the `vcpkg` CMake preset:
+Run the appropriate install script for your platform to bootstrap vcpkg, then
+build with the `vcpkg` CMake preset:
 
 ```bash
 ./scripts/install_linux.sh   # Linux
 ./scripts/install_mac.sh     # macOS
-./scripts/update_libs.sh
 cmake --preset vcpkg
 cmake --build --preset vcpkg
 ```
 
 ```powershell
 ./scripts/install_win.bat    # Windows
-./scripts/update_libs.bat
 cmake --preset vcpkg
 cmake --build --preset vcpkg --config Release
 ```
 
 Edit `CMakeUserPresets.json` to provide `VCPKG_ROOT` via the `vcpkg-user`
-preset. Alternatively use the `compile_*` scripts for a g++ build without CMake.
+preset or export `VCPKG_ROOT` and add it to your `PATH`.

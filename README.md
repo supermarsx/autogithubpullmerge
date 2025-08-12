@@ -6,7 +6,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - Cross-platform build using CMake
 - Linux, macOS and Windows install/build scripts
 - Placeholder TUI application in C++20
-- Includes ncurses/pdcurses fetched with `scripts/update_libs.sh`
+- Dependencies managed with vcpkg
 - Requires an ncurses development package (e.g. `libncurses-dev`) for the TUI
 - Unit tests using Catch2
 - SQLite-based history storage with CSV/JSON export
@@ -20,7 +20,6 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 ## Building (Linux)
 ```bash
 ./scripts/install_linux.sh
-./scripts/update_libs.sh
 cmake --preset vcpkg
 cmake --build --preset vcpkg
 ```
@@ -28,7 +27,6 @@ cmake --build --preset vcpkg
 ## Building (macOS)
 ```bash
 ./scripts/install_mac.sh
-./scripts/update_libs.sh
 cmake --preset vcpkg
 cmake --build --preset vcpkg
 ```
@@ -36,36 +34,63 @@ cmake --build --preset vcpkg
 ## Building (Windows)
 ```powershell
 ./scripts/install_win.bat
-./scripts/update_libs.bat
 cmake --preset vcpkg
 cmake --build --preset vcpkg --config Release
 ```
 
-The Windows install script bootstraps [vcpkg](https://github.com/microsoft/vcpkg) and
-installs the required dependencies (`libev`, `c-ares`, `zlib`, `brotli`, `openssl`,
-`ngtcp2`, `nghttp3`, `jansson`, `libevent`, `libxml2`, `jemalloc`,
-`nghttp2[openssl,libevent,tools,http3]`).
-The `vcpkg` preset sets the `CMAKE_TOOLCHAIN_FILE` automatically so the build
-uses the vcpkg toolchain without requiring manual paths. Edit
-`CMakeUserPresets.json` to set `VCPKG_ROOT` via the `vcpkg-user` preset.
+The install scripts clone and bootstrap [vcpkg](https://github.com/microsoft/vcpkg)
+if `VCPKG_ROOT` is not set, then install all dependencies declared in
+`vcpkg.json`. The `vcpkg` preset sets the `CMAKE_TOOLCHAIN_FILE` automatically so
+the build uses the vcpkg toolchain without requiring manual paths. Edit
+`CMakeUserPresets.json` or export `VCPKG_ROOT` to point to your vcpkg
+installation. Adding `VCPKG_ROOT` to your `PATH` lets CMake locate the tool.
 
 ## Compiling with g++
 
-On systems with g++ available, you can build the project without CMake using the
-provided scripts:
+The `compile_*` scripts wrap the CMake preset for convenience:
 
 ```bash
 ./scripts/compile_linux.sh   # Linux
 ./scripts/compile_mac.sh     # macOS
 ./scripts/compile_win.bat    # Windows
 ```
-Run the matching `install_*` script for your platform first to install system
-packages like **libcurl**, **libpsl**, **sqlite3** and **ncurses**. Then use `update_libs.sh` (or
-`update_libs.bat` on Windows) to populate the `libs` directory with clones of
-**CLI11**, **yaml-cpp**, **libyaml**, **nlohmann/json**, **spdlog**, a prebuilt
-**curl** package, the SQLite amalgamation and **PDCurses** before compiling. The Windows compile
-script links the application statically so the resulting binary has no runtime
-library dependencies.
+Run the matching `install_*` script for your platform first to ensure vcpkg is
+bootstrapped and dependencies are installed.
+
+## vcpkg Manual Setup
+
+To install vcpkg manually without the helper scripts:
+
+### Windows
+```powershell
+git clone https://github.com/microsoft/vcpkg %USERPROFILE%\vcpkg
+%USERPROFILE%\vcpkg\bootstrap-vcpkg.bat
+setx VCPKG_ROOT "%USERPROFILE%\vcpkg" /M
+setx PATH "%PATH%;%VCPKG_ROOT%" /M
+```
+
+### Linux
+```bash
+git clone https://github.com/microsoft/vcpkg ~/vcpkg
+~/vcpkg/bootstrap-vcpkg.sh
+echo "export VCPKG_ROOT=\"$HOME/vcpkg\"" >> ~/.bashrc
+echo "export PATH=\"\$VCPKG_ROOT:\$PATH\"" >> ~/.bashrc
+```
+
+### macOS
+```bash
+git clone https://github.com/microsoft/vcpkg ~/vcpkg
+~/vcpkg/bootstrap-vcpkg.sh
+echo "export VCPKG_ROOT=\"$HOME/vcpkg\"" >> ~/.zprofile
+echo "export PATH=\"\$VCPKG_ROOT:\$PATH\"" >> ~/.zprofile
+```
+
+After setting up vcpkg, configure and build with the `vcpkg` CMake preset:
+
+```bash
+cmake --preset vcpkg
+cmake --build --preset vcpkg
+```
 
 ## Generating Documentation
 

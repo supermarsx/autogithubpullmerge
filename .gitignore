@@ -12,7 +12,4 @@ cmake-build-*/
 .DS_Store
 Thumbs.db
 build_gpp/
-libs/*
-!libs/README.md
-!libs/.gitignore
 *.log
