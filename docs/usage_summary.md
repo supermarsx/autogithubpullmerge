@@ -83,4 +83,6 @@ cmake --build --preset vcpkg --config Release
 ```
 
 Edit `CMakeUserPresets.json` to provide `VCPKG_ROOT` via the `vcpkg-user`
-preset or export `VCPKG_ROOT` and add it to your `PATH`.
+preset or export `VCPKG_ROOT` and add it to your `PATH`. The Windows install
+script also runs `vcpkg integrate install` and sets `VCPKG_DEFAULT_TRIPLET` to
+`x64-windows`.

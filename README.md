@@ -44,6 +44,8 @@ if `VCPKG_ROOT` is not set, then install all dependencies declared in
 the build uses the vcpkg toolchain without requiring manual paths. Edit
 `CMakeUserPresets.json` or export `VCPKG_ROOT` to point to your vcpkg
 installation. Adding `VCPKG_ROOT` to your `PATH` lets CMake locate the tool.
+On Windows, the install script also runs `vcpkg integrate install` and sets
+`VCPKG_DEFAULT_TRIPLET` to `x64-windows` so Visual Studio uses 64-bit libraries.
 
 ## Compiling with g++
 
@@ -65,6 +67,8 @@ To install vcpkg manually without the helper scripts:
 ```powershell
 git clone https://github.com/microsoft/vcpkg %USERPROFILE%\vcpkg
 %USERPROFILE%\vcpkg\bootstrap-vcpkg.bat
+%USERPROFILE%\vcpkg\vcpkg.exe integrate install
+setx VCPKG_DEFAULT_TRIPLET x64-windows /M
 setx VCPKG_ROOT "%USERPROFILE%\vcpkg" /M
 setx PATH "%PATH%;%VCPKG_ROOT%" /M
 ```
