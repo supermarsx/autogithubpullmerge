@@ -13,3 +13,8 @@ cmake-build-*/
 Thumbs.db
 build_gpp/
 *.log
+
+# Local presets
+CMakeUserPresets.json
+vcpkg/
+vcpkg_installed/

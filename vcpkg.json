@@ -2,13 +2,16 @@
   "name": "autogithubpullmerge",
   "version-string": "0.1.0",
   "dependencies": [
-    "fmt",
-    "spdlog",
-    "yaml-cpp",
-    "nlohmann-json",
-    "curl",
+    "c-ares",
     "cli11",
+    "curl",
+    "fmt",
+    "libev",
+    "ncurses",
+    "nlohmann-json",
+    "spdlog",
     "sqlite3",
-    "ncurses"
+    "yaml-cpp",
+    "zlib"
   ]
 }
