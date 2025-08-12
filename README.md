@@ -40,9 +40,12 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 
 The Windows install script bootstraps [vcpkg](https://github.com/microsoft/vcpkg) and
 installs the required dependencies (`libev`, `c-ares`, `zlib`, `brotli`, `openssl`,
-`ngtcp2`, `nghttp3`, `jansson`, `libevent`, `libxml2`, `jemalloc`).
-`build_win.bat` configures CMake with the vcpkg toolchain and disables systemd,
-which is not available on Windows.
+`ngtcp2`, `nghttp3`, `jansson`, `libevent`, `libxml2`, `jemalloc`,
+`nghttp2[openssl,libevent,tools,http3]`).
+`build_win.bat` invokes
+`cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake`
+followed by `cmake --build build --config Release` to compile the project without
+systemd, which is not available on Windows.
 
 ## Compiling with g++
 
