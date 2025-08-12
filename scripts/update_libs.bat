@@ -118,6 +118,7 @@ set "PDC_SRC=!LIBS_DIR!\pdcurses"
 set "PDC_INSTALL=!PDC_SRC!\pdcurses_install"
 
 if not exist "!PDC_INSTALL!\lib\pdcurses.a" if not exist "!PDC_INSTALL!\lib\pdcurses.lib" (
+    set "PDC_LIB="
     where mingw32-make >nul 2>&1
     if not errorlevel 1 (
         rem use mingw32-make if available
@@ -134,17 +135,29 @@ if not exist "!PDC_INSTALL!\lib\pdcurses.a" if not exist "!PDC_INSTALL!\lib\pdcu
             set "PDC_LIB=!PDC_SRC!\wincon\pdcurses.a"
             popd
         ) else (
-            rem last resort, try nmake with Visual C++ makefile
-            where nmake >nul 2>&1 || goto :eof
-            pushd "!PDC_SRC!\wincon" || goto :eof
-            nmake -f Makefile.vc || (popd & goto :eof)
-            set "PDC_LIB=!PDC_SRC!\wincon\pdcurses.lib"
-            popd
+            where nmake >nul 2>&1
+            if not errorlevel 1 (
+                rem last resort, try nmake with Visual C++ makefile
+                pushd "!PDC_SRC!\wincon" || goto :eof
+                nmake -f Makefile.vc || (popd & goto :eof)
+                set "PDC_LIB=!PDC_SRC!\wincon\pdcurses.lib"
+                popd
+            ) else (
+                rem no build tools available, download prebuilt package
+                set "PDC_VER=3.8"
+                set "PDC_ZIP=PDCurses-%PDC_VER%.zip"
+                set "PDC_URL=https://downloads.sourceforge.net/project/pdcurses/pdcurses/%PDC_VER%/%PDC_ZIP%"
+                curl -L %PDC_URL% -o "!PDC_SRC!\%PDC_ZIP%" || goto :eof
+                powershell -Command "Expand-Archive -Path '!PDC_SRC!\%PDC_ZIP%' -DestinationPath '!PDC_SRC!' -Force" || goto :eof
+                set "PDC_SRC=!PDC_SRC!\PDCurses-%PDC_VER%"
+                set "PDC_LIB=!PDC_SRC!\wincon\pdcurses.a"
+            )
         )
     )
     mkdir "!PDC_INSTALL!\include" 2>nul
     mkdir "!PDC_INSTALL!\lib" 2>nul
     copy "!PDC_SRC!\curses.h" "!PDC_INSTALL!\include\" >nul || goto :eof
+    if exist "!PDC_SRC!\panel.h" copy "!PDC_SRC!\panel.h" "!PDC_INSTALL!\include\" >nul || goto :eof
     copy "!PDC_LIB!" "!PDC_INSTALL!\lib\" >nul || goto :eof
 )
 
