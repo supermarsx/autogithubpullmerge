@@ -14,17 +14,17 @@
 namespace agpm {
 
 /**
- * Minimal ncurses-based text user interface.
+ * Minimal curses-based text user interface.
  */
 class Tui {
 public:
-  /// Initialize the ncurses library.
+  /// Initialize the curses library.
   void init();
 
   /// Display a placeholder window until a key is pressed.
   void run();
 
-  /// Clean up ncurses state.
+  /// Clean up curses state.
   void cleanup();
 };
 
