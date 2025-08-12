@@ -1,4 +1,24 @@
 cmake_minimum_required(VERSION 3.16)
+
+# Detect vcpkg toolchain on Windows if not provided
+if(WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  if(DEFINED ENV{VCPKG_ROOT})
+    set(CMAKE_TOOLCHAIN_FILE
+        "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file" FORCE)
+  elseif(EXISTS
+         "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake")
+    set(CMAKE_TOOLCHAIN_FILE
+        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file" FORCE)
+  else()
+    message(
+      FATAL_ERROR
+        "Vcpkg toolchain file not found. Set VCPKG_ROOT or install vcpkg under the project directory."
+    )
+  endif()
+endif()
+
 project(autogithubpullmerge LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
