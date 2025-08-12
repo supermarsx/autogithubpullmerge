@@ -38,6 +38,12 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 ./scripts/build_win.bat
 ```
 
+The Windows install script bootstraps [vcpkg](https://github.com/microsoft/vcpkg) and
+installs the required dependencies (`libev`, `c-ares`, `zlib`, `brotli`, `openssl`,
+`ngtcp2`, `nghttp3`, `jansson`, `libevent`, `libxml2`, `jemalloc`).
+`build_win.bat` configures CMake with the vcpkg toolchain and disables systemd,
+which is not available on Windows.
+
 ## Compiling with g++
 
 On systems with g++ available, you can build the project without CMake using the
