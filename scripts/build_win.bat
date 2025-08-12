@@ -2,8 +2,13 @@
 setlocal
 
 if "%VCPKG_ROOT%"=="" (
-    echo [ERROR] VCPKG_ROOT not set. Run install_win.bat first.
-    exit /b 1
+    set "SCRIPT_DIR=%~dp0"
+    if exist "%SCRIPT_DIR%..\vcpkg\vcpkg.exe" (
+        set "VCPKG_ROOT=%SCRIPT_DIR%..\vcpkg"
+    ) else (
+        echo [ERROR] VCPKG_ROOT not set and vcpkg not found. Run scripts\install_win.bat first.
+        exit /b 1
+    )
 )
 
 cmake --preset vcpkg || exit /b 1
