@@ -155,6 +155,10 @@ if [ ! -f "$NGTCP2_INSTALL/lib/libngtcp2.a" ]; then
     cmake --install "$NGTCP2_SRC/build"
 fi
 
+# Make locally installed libraries discoverable for subsequent builds
+export PKG_CONFIG_PATH="$ZLIB_INSTALL/lib/pkgconfig:$BROTLI_INSTALL/lib/pkgconfig:$CARES_INSTALL/lib/pkgconfig:$LIBEV_INSTALL/lib/pkgconfig:$JANSSON_INSTALL/lib/pkgconfig:$SYSTEMD_INSTALL/lib/pkgconfig:$LIBEVENT_INSTALL/lib/pkgconfig:$LIBXML2_INSTALL/lib/pkgconfig:$JEMALLOC_INSTALL/lib/pkgconfig:$NGHTTP3_INSTALL/lib/pkgconfig:$NGTCP2_INSTALL/lib/pkgconfig:${PKG_CONFIG_PATH}"
+export CMAKE_PREFIX_PATH="$OPENSSL_INSTALL;$ZLIB_INSTALL;$BROTLI_INSTALL;$CARES_INSTALL;$LIBEV_INSTALL;$JANSSON_INSTALL;$SYSTEMD_INSTALL;$LIBEVENT_INSTALL;$LIBXML2_INSTALL;$JEMALLOC_INSTALL;$NGHTTP3_INSTALL;$NGTCP2_INSTALL;$CMAKE_PREFIX_PATH"
+
 # Build and install nghttp2 into a local install directory
 NGHTTP2_SRC="$LIBS_DIR/nghttp2"
 NGHTTP2_INSTALL="$NGHTTP2_SRC/nghttp2_install"

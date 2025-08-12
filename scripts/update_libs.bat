@@ -148,7 +148,11 @@ set "PDC_INSTALL=!PDC_SRC!\pdcurses_install"
 )
 
 
-endlocal
+rem Make locally installed libraries discoverable for subsequent builds
+set "PKG_CONFIG_PATH=!YAMLCPP_INSTALL!\lib\pkgconfig;!NGHTTP2_INSTALL!\lib\pkgconfig;!CURL_INSTALL!\lib\pkgconfig;!PDC_INSTALL!\lib\pkgconfig;%PKG_CONFIG_PATH%"
+set "CMAKE_PREFIX_PATH=!YAMLCPP_INSTALL!;!NGHTTP2_INSTALL!;!CURL_INSTALL!;!PDC_INSTALL!;%CMAKE_PREFIX_PATH%"
+
+endlocal & set "PKG_CONFIG_PATH=%PKG_CONFIG_PATH%" & set "CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%"
 exit /b 0
 
 :clone_or_update
