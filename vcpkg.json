@@ -1,0 +1,14 @@
+{
+  "name": "autogithubpullmerge",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "fmt",
+    "spdlog",
+    "yaml-cpp",
+    "nlohmann-json",
+    "curl",
+    "cli11",
+    "sqlite3",
+    "ncurses"
+  ]
+}
