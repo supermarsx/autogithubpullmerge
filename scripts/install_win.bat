@@ -1,5 +1,4 @@
 @echo off
-setlocal
 
 choco install cmake git curl sqlite mingw -y
 
@@ -14,4 +13,6 @@ if not exist "%VCPKG_ROOT%\vcpkg.exe" (
 
 "%VCPKG_ROOT%\vcpkg.exe" install libev c-ares zlib brotli openssl ngtcp2 nghttp3 jansson libevent libxml2 jemalloc nghttp2[openssl,libevent,tools,http3] --triplet x64-windows || exit /b 1
 
-endlocal
+setx VCPKG_ROOT "%VCPKG_ROOT%" /M
+setx PATH "%PATH%;%VCPKG_ROOT%" /M
+echo Environment variables updated. Please restart your shell for changes to take effect.
