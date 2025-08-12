@@ -25,6 +25,18 @@ call :clone_or_update https://github.com/yaml/libyaml.git libyaml
 call :clone_or_update https://github.com/nlohmann/json.git json
 call :clone_or_update https://github.com/gabime/spdlog.git spdlog
 call :clone_or_update https://github.com/nghttp2/nghttp2.git nghttp2
+call :clone_or_update https://github.com/c-ares/c-ares.git c-ares
+call :clone_or_update https://github.com/madler/zlib.git zlib
+call :clone_or_update https://github.com/google/brotli.git brotli
+call :clone_or_update https://github.com/openssl/openssl.git openssl
+call :clone_or_update https://github.com/ngtcp2/ngtcp2.git ngtcp2
+call :clone_or_update https://github.com/ngtcp2/nghttp3.git nghttp3
+call :clone_or_update https://github.com/enki/libev.git libev
+call :clone_or_update https://github.com/akheron/jansson.git jansson
+call :clone_or_update https://github.com/libevent/libevent.git libevent
+call :clone_or_update https://github.com/GNOME/libxml2.git libxml2
+call :clone_or_update https://github.com/jemalloc/jemalloc.git jemalloc
+call :clone_or_update https://github.com/systemd/systemd.git systemd
 call :clone_or_update https://github.com/wmcbrine/PDCurses.git pdcurses
 
 echo Repos checked and done.
