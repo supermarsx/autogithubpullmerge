@@ -14,7 +14,7 @@ if %errorlevel%==0 (
         set "GEN=MinGW Makefiles"
         set "BUILD_CMD=cmake --build ."
     ) else (
-        where make >nul 2>&1
+        where cmake >nul 2>&1
         if %errorlevel%==0 (
             set "GEN=Unix Makefiles"
             set "BUILD_CMD=cmake --build ."
