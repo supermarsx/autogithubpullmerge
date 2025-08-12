@@ -137,31 +137,20 @@ rem ---------------------------------------------------------------------------
 echo.
 echo Getting lib args.
 
-rem Auto-include all .a static libraries from CURL lib folder
+rem Link against curl and its feature libraries statically
 set "CURL_LIBS_DIR=%LIBS_DIR%\curl\curl_install\lib"
 
-set "CURL_ALL_LIBS="
-if exist "%CURL_LIBS_DIR%\libssl.a" (
-    set "CURL_ALL_LIBS=!CURL_ALL_LIBS! ""%CURL_LIBS_DIR%\libssl.a"""
-)
-if exist "%CURL_LIBS_DIR%\libcrypto.a" (
-    set "CURL_ALL_LIBS=!CURL_ALL_LIBS! ""%CURL_LIBS_DIR%\libcrypto.a"""
-)
-
-for %%L in ("%CURL_LIBS_DIR%\*.a") do (
-    set "CURL_ALL_LIBS=!CURL_ALL_LIBS! "%%L""
-)
-
-
-rem If you want to also add .lib (MSVC-style) for hybrid setups:
-rem for %%L in ("%CURL_LIBS_DIR%\*.lib") do (
-rem     set "CURL_ALL_LIBS=!CURL_ALL_LIBS! "%%L""
-rem )
-
-rem Now add CURL_ALL_LIBS to your LIB_ARGS
-set LIB_ARGS=%CURL_ALL_LIBS% "%YAMLCPP_LIB%" "%PDCURSES_LIB%" -lws2_32 -lwinmm -lbcrypt -lcrypt32 -lwldap32 -lssl -lcrypto
-
-echo Auto-included curl static libs: %CURL_ALL_LIBS%
+set LIB_ARGS=^
+  -L"%CURL_LIBS_DIR%" ^
+  -Wl,--start-group ^
+    -lcurl -lssh2 ^
+    -lngtcp2_crypto_quictls -lngtcp2 -lnghttp3 ^
+    -lssl -lcrypto ^
+    -lbrotlidec -lbrotlicommon -lzstd -lz ^
+    -lidn2 -lunistring -lpsl -liconv ^
+  -Wl,--end-group ^
+  "%YAMLCPP_LIB%" "%PDCURSES_LIB%" ^
+  -lws2_32 -lsecur32 -lcrypt32 -lwldap32 -lbcrypt -ladvapi32 -luser32 -lnormaliz -liphlpapi
 
 echo Lib args set to: %LIB_ARGS%
 
