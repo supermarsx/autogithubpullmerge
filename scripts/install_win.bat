@@ -10,9 +10,12 @@ if "%VCPKG_ROOT%"=="" (
 if not exist "%VCPKG_ROOT%\vcpkg.exe" (
     call "%VCPKG_ROOT%\bootstrap-vcpkg.bat" || exit /b 1
 )
+"%VCPKG_ROOT%\vcpkg.exe" integrate install || exit /b 1
 
-"%VCPKG_ROOT%\vcpkg.exe" install libev c-ares zlib brotli openssl ngtcp2 nghttp3 jansson libevent libxml2 jemalloc nghttp2[openssl,libevent,tools,http3] --triplet x64-windows || exit /b 1
+if "%VCPKG_DEFAULT_TRIPLET%"=="" set "VCPKG_DEFAULT_TRIPLET=x64-windows"
+"%VCPKG_ROOT%\vcpkg.exe" install --triplet %VCPKG_DEFAULT_TRIPLET% || exit /b 1
 
 setx VCPKG_ROOT "%VCPKG_ROOT%" /M
+setx VCPKG_DEFAULT_TRIPLET "%VCPKG_DEFAULT_TRIPLET%" /M
 setx PATH "%PATH%;%VCPKG_ROOT%" /M
 echo Environment variables updated. Please restart your shell for changes to take effect.

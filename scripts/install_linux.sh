@@ -1,9 +1,31 @@
 #!/usr/bin/env bash
 set -e
-# Install packages required for building agpm including ncurses for the TUI
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Install essential build tools
 sudo apt-get update
-sudo apt-get install -y build-essential cmake git \
-    libcurl4-openssl-dev libpsl-dev libsqlite3-dev libspdlog-dev libncurses-dev \
-    libev-dev libc-ares-dev zlib1g-dev libbrotli-dev libssl-dev \
-    libngtcp2-dev libnghttp3-dev libsystemd-dev libjansson-dev \
-    libevent-dev libxml2-dev libjemalloc-dev
+sudo apt-get install -y build-essential cmake git curl
+
+# Clone vcpkg if VCPKG_ROOT is not set
+if [[ -z "${VCPKG_ROOT}" ]]; then
+	git clone https://github.com/microsoft/vcpkg "${SCRIPT_DIR}/../vcpkg"
+	export VCPKG_ROOT="${SCRIPT_DIR}/../vcpkg"
+fi
+
+# Bootstrap vcpkg if needed
+if [[ ! -f "${VCPKG_ROOT}/vcpkg" ]]; then
+	"${VCPKG_ROOT}/bootstrap-vcpkg.sh"
+fi
+
+# Install dependencies from vcpkg.json
+"${VCPKG_ROOT}/vcpkg" install
+
+# Persist environment variables
+PROFILE_FILE="$HOME/.bashrc"
+if ! grep -q "VCPKG_ROOT" "${PROFILE_FILE}"; then
+	echo "export VCPKG_ROOT=\"${VCPKG_ROOT}\"" >>"${PROFILE_FILE}"
+	echo "export PATH=\"\$VCPKG_ROOT:\$PATH\"" >>"${PROFILE_FILE}"
+fi
+
+echo "Environment variables updated. Please restart your shell for changes to take effect."

@@ -6,8 +6,6 @@
 #include <ncurses.h>
 #elif __has_include(<ncurses/curses.h>)
 #include <ncurses/curses.h>
-#elif __has_include("../libs/pdcurses/curses.h")
-#include "../libs/pdcurses/curses.h"
 #else
 #error "curses.h not found"
 #endif
