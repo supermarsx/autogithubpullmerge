@@ -60,9 +60,10 @@ Logging is controlled via `--log-level`. Valid levels are `trace`, `debug`,
 
 ## TUI Features
 
-A minimal ncurses-based TUI (`agpm::Tui`) is provided. It initializes ncurses,
-draws a simple window that displays "AGPM running" and waits for a key
-press before exiting.
+A minimal curses-based TUI (`agpm::Tui`) is provided. It uses ncurses on
+Linux and macOS and PDCurses on Windows. The interface initializes the
+library, draws a simple window that displays "AGPM running" and waits for a
+key press before exiting.
 
 ## Building
 
