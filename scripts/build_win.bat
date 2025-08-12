@@ -4,6 +4,12 @@ set "BUILD_DIR=build"
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 cd /d "%BUILD_DIR%"
 
+if "%VCPKG_ROOT%"=="" (
+    echo [ERROR] VCPKG_ROOT not set. Run install_win.bat first.
+    exit /b 1
+)
+set "VCPKG_TOOLCHAIN=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake"
+
 where nmake >nul 2>&1
 if %errorlevel%==0 (
     set "GEN=NMake Makefiles"
@@ -25,7 +31,7 @@ if %errorlevel%==0 (
     )
 )
 
-cmake .. -G "%GEN%" -DBUILD_SHARED_LIBS=OFF || exit /b 1
+cmake .. -G "%GEN%" -DBUILD_SHARED_LIBS=OFF -DCMAKE_TOOLCHAIN_FILE="%VCPKG_TOOLCHAIN%" -DVCPKG_TARGET_TRIPLET=x64-windows -DENABLE_SYSTEMD=OFF || exit /b 1
 %BUILD_CMD% || exit /b 1
 ctest || exit /b 1
 endlocal
