@@ -24,6 +24,7 @@ call :clone_or_update https://github.com/jbeder/yaml-cpp.git yaml-cpp
 call :clone_or_update https://github.com/yaml/libyaml.git libyaml
 call :clone_or_update https://github.com/nlohmann/json.git json
 call :clone_or_update https://github.com/gabime/spdlog.git spdlog
+call :clone_or_update https://github.com/nghttp2/nghttp2.git nghttp2
 call :clone_or_update https://github.com/wmcbrine/PDCurses.git pdcurses
 
 echo Repos checked and done.
@@ -43,6 +44,24 @@ cmake --build "!YAMLCPP_SRC!\build" --config Release || goto :eof
 cmake --install "!YAMLCPP_SRC!\build" || goto :eof
 
 echo Done yaml cpp.
+
+rem Build and install nghttp2 static library
+echo.
+echo Build and install nghttp2
+
+set "NGHTTP2_SRC=!LIBS_DIR!\nghttp2"
+set "NGHTTP2_INSTALL=!NGHTTP2_SRC!\nghttp2_install"
+set "NGHTTP2_LIB_A=!NGHTTP2_INSTALL!\lib\libnghttp2.a"
+set "NGHTTP2_LIB_LIB=!NGHTTP2_INSTALL!\lib\nghttp2.lib"
+
+del !NGHTTP2_SRC!\build\CMakeCache.txt 2>nul
+if not exist "!NGHTTP2_LIB_A!" if not exist "!NGHTTP2_LIB_LIB!" (
+    cmake -S "!NGHTTP2_SRC!" -B "!NGHTTP2_SRC!\build" -G "MinGW Makefiles" -DBUILD_SHARED_LIBS=OFF -DENABLE_EXAMPLES=OFF -DENABLE_HPACK_TOOLS=OFF -DENABLE_ASIO_LIB=OFF -DCMAKE_INSTALL_PREFIX="!NGHTTP2_INSTALL!"
+    cmake --build "!NGHTTP2_SRC!\build" --config Release || goto :eof
+    cmake --install "!NGHTTP2_SRC!\build" || goto :eof
+)
+
+echo Done nghttp2.
 
 rem Fetch prebuilt curl for Windows to obtain libcurl.a
 echo.
