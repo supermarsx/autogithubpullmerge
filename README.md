@@ -38,13 +38,13 @@ cmake --preset vcpkg
 cmake --build --preset vcpkg --config Release
 ```
 
+
 The install scripts clone and bootstrap [vcpkg](https://github.com/microsoft/vcpkg)
 if `VCPKG_ROOT` is not set, then install all dependencies declared in
-`vcpkg.json`. The `vcpkg` CMake preset points to the repository's bundled
-`vcpkg` directory, so the build uses the toolchain without extra flags. To use a
-different vcpkg installation, edit `CMakeUserPresets.json` or export
+`vcpkg.json`. The `vcpkg` CMake preset uses `VCPKG_ROOT` to locate the toolchain,
+so builds run without extra flags. To use a
+different vcpkg installation, create or edit `CMakeUserPresets.json` or export
 `VCPKG_ROOT` and add it to your `PATH`.
-
 ## Compiling with g++
 
 The `compile_*` scripts wrap the CMake preset for convenience:

@@ -82,6 +82,6 @@ cmake --preset vcpkg
 cmake --build --preset vcpkg --config Release
 ```
 
-The default preset uses the repository's `vcpkg` directory. To use a custom
-installation, edit `CMakeUserPresets.json` or export `VCPKG_ROOT` and add it to
+The default preset uses `VCPKG_ROOT` to locate vcpkg. To use a custom
+installation, create or edit `CMakeUserPresets.json` or export `VCPKG_ROOT` and add it to
 your `PATH`.
