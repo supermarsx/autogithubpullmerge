@@ -3,7 +3,13 @@ find_package(yaml-cpp REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(CURL REQUIRED)
 find_package(SQLite3 REQUIRED)
-find_package(Curses REQUIRED)
+if(WIN32)
+  find_package(unofficial-pdcurses CONFIG REQUIRED)
+  set(CURSES_LIBRARIES unofficial::pdcurses::pdcurses)
+  set(CURSES_INCLUDE_DIR "")
+else()
+  find_package(Curses REQUIRED)
+endif()
 
 add_library(
   autogithubpullmerge_lib
@@ -43,5 +49,6 @@ add_executable(autogithubpullmerge main.cpp)
 # dependencies are not always propagated reliably on some Windows builds.
 # Linking the required libraries here ensures the linker can resolve YAML and
 # libcurl symbols when building on Windows.
-target_link_libraries(autogithubpullmerge PRIVATE autogithubpullmerge_lib
-                                                  yaml-cpp::yaml-cpp CURL::libcurl)
+target_link_libraries(
+  autogithubpullmerge PRIVATE autogithubpullmerge_lib yaml-cpp::yaml-cpp
+                              CURL::libcurl)
