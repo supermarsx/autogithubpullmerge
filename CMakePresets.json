@@ -11,10 +11,7 @@
       "displayName": "vcpkg",
       "description": "Configure with vcpkg toolchain",
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/vcpkg",
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-      }
+      "binaryDir": "${sourceDir}/build/vcpkg"
     }
   ],
   "buildPresets": [

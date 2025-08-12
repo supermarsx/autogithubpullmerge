@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
-# Detect vcpkg toolchain on Windows if not provided
-if(WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+# Detect vcpkg toolchain if not provided
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
   if(DEFINED ENV{VCPKG_ROOT})
     set(CMAKE_TOOLCHAIN_FILE
         "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
