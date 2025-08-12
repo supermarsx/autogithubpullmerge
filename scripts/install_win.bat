@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-choco install cmake git curl sqlite spdlog mingw -y
+choco install cmake git curl sqlite mingw -y
 
 if "%VCPKG_ROOT%"=="" (
     git clone https://github.com/microsoft/vcpkg "%~dp0..\vcpkg" || exit /b 1

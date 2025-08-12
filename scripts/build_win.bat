@@ -23,7 +23,7 @@ if %errorlevel%==0 (
         where cmake >nul 2>&1
         if %errorlevel%==0 (
             set "GEN=Unix Makefiles"
-            set "BUILD_CMD=cmake --build ."
+            set "BUILD_CMD=make --build ../"
         ) else (
             echo [ERROR] No suitable build tool found. Install nmake, mingw32-make or make.
             exit /b 1
