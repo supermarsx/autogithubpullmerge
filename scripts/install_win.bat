@@ -3,8 +3,15 @@
 choco install cmake git curl sqlite mingw -y
 
 if "%VCPKG_ROOT%"=="" (
-    git clone https://github.com/microsoft/vcpkg "%~dp0..\vcpkg" || exit /b 1
     set "VCPKG_ROOT=%~dp0..\vcpkg"
+)
+
+if not exist "%VCPKG_ROOT%\.vcpkg-root" (
+    if exist "%VCPKG_ROOT%" (
+        echo Existing vcpkg directory found but it is not a valid vcpkg repository. Removing...
+        rmdir /s /q "%VCPKG_ROOT%" || exit /b 1
+    )
+    git clone https://github.com/microsoft/vcpkg "%VCPKG_ROOT%" || exit /b 1
 )
 
 if not exist "%VCPKG_ROOT%\vcpkg.exe" (
