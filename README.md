@@ -21,31 +21,33 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 ```bash
 ./scripts/install_linux.sh
 ./scripts/update_libs.sh
-./scripts/build_linux.sh
+cmake --preset vcpkg
+cmake --build --preset vcpkg
 ```
 
 ## Building (macOS)
 ```bash
 ./scripts/install_mac.sh
 ./scripts/update_libs.sh
-./scripts/build_mac.sh
+cmake --preset vcpkg
+cmake --build --preset vcpkg
 ```
 
 ## Building (Windows)
 ```powershell
 ./scripts/install_win.bat
 ./scripts/update_libs.bat
-./scripts/build_win.bat
+cmake --preset vcpkg
+cmake --build --preset vcpkg --config Release
 ```
 
 The Windows install script bootstraps [vcpkg](https://github.com/microsoft/vcpkg) and
 installs the required dependencies (`libev`, `c-ares`, `zlib`, `brotli`, `openssl`,
 `ngtcp2`, `nghttp3`, `jansson`, `libevent`, `libxml2`, `jemalloc`,
 `nghttp2[openssl,libevent,tools,http3]`).
-`build_win.bat` invokes
-`cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake`
-followed by `cmake --build build --config Release` to compile the project without
-systemd, which is not available on Windows.
+The `vcpkg` preset sets the `CMAKE_TOOLCHAIN_FILE` automatically so the build
+uses the vcpkg toolchain without requiring manual paths. Edit
+`CMakeUserPresets.json` to set `VCPKG_ROOT` via the `vcpkg-user` preset.
 
 ## Compiling with g++
 
