@@ -69,16 +69,16 @@ endlocal
 exit /b 0
 
 :init_vcvars
-set "VCVARS2022=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\vsdevcmd\ext\vcvars.bat"
-set "VCVARS2019=C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\vsdevcmd\ext\vcvars.bat"
+set "VCVARS2022=C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+set "VCVARS2019=C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
 if exist "%VCVARS2022%" (
-    echo     Initializing environment with VC Tools 2022...
+    echo     Initializing environment with VC Tools 2022 x64...
     call "%VCVARS2022%" || exit /b 1
 ) else if exist "%VCVARS2019%" (
-    echo     Initializing environment with VC Tools 2019...
+    echo     Initializing environment with VC Tools 2019 x64...
     call "%VCVARS2019%" || exit /b 1
 ) else (
-    echo     No vcvars script found in default locations.
+    echo     No vcvars64 script found in default locations.
 )
 exit /b 0
 
