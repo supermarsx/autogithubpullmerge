@@ -35,6 +35,27 @@ to build the project on supported platforms.
 - `--pr-since` - only list pull requests newer than the given duration
   (e.g. `30m`, `2h`, `1d`).
 
+## Stray Branch Management
+
+### Isolated Stray-Branch Purge Mode
+
+Use `--only-poll-stray` to scan repositories exclusively for stray branches.
+This isolated mode ignores pull requests and focuses solely on purging unused
+branches.
+
+### Integrated Branch Deletion
+
+Supply `--purge-prefix` to remove branches with a matching prefix after their
+pull request has been merged or closed. The cleanup is integrated into the
+normal pull request workflow so branches disappear once they are no longer
+needed.
+
+### Overriding Dirty Branches
+
+Branches that have diverged from their remote are considered dirty and are
+skipped by default. Pass `--reject-dirty` to close these branches
+automatically, overriding the protection for dirty branches.
+
 ## Configuration File Examples
 
 YAML:

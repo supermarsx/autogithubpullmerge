@@ -135,10 +135,11 @@ API keys can be provided in several ways:
   (e.g. `30m`, `2h`, `1d`).
 - `--include-merged` lists merged pull requests in addition to open ones (off by default).
 - `--only-poll-prs` polls only pull requests.
-- `--only-poll-stray` polls only stray branches.
-- `--reject-dirty` closes stray branches that have diverged.
+- `--only-poll-stray` enters an isolated stray-branch purge mode.
+- `--reject-dirty` overrides protection and closes stray branches that have
+  diverged.
 - `--purge-prefix` deletes branches with this prefix after their pull
-  request is closed or merged.
+  request is closed or merged, integrating cleanup into the merge workflow.
 - `--auto-merge` merges pull requests automatically.
 
 ## Examples
