@@ -12,29 +12,48 @@ to build the project on supported platforms.
 
 ## CLI Options
 
+### General
+
+- `-v/--verbose` - enable verbose output.
 - `--config` - path to a YAML or JSON configuration file.
 - `--log-level` - set verbosity (`trace`, `debug`, `info`, `warn`, `error`,
   `critical`, `off`).
+- `--history-db` - path to the SQLite history database.
+- `--yes` - assume "yes" to confirmation prompts.
+
+### Repository Filters
+
 - `--include`/`--exclude` - repeatable repository include/exclude filters.
+- `--include-merged` - show merged pull requests when listing (off by default).
+
+### Authentication
+
 - `--api-key` - specify a GitHub token on the command line.
 - `--api-key-from-stream` - read tokens from standard input.
 - `--api-key-url`/`--api-key-url-user`/`--api-key-url-password` - fetch tokens
   from a remote URL with optional basic authentication.
 - `--api-key-file` - load tokens from a local YAML or JSON file.
-- `--include-merged` - show merged pull requests when listing (off by default).
+
+### Polling
+
+- `--poll-interval` - how often to poll GitHub (seconds, `0` disables).
+- `--max-request-rate` - limit GitHub requests per minute.
+- `--pr-limit` - limit how many pull requests to fetch when listing.
+- `--pr-since` - only list pull requests newer than the given duration
+  (e.g. `30m`, `2h`, `1d`).
 - `--only-poll-prs` - only poll pull requests.
 - `--only-poll-stray` - only poll stray branches.
+
+### Actions
+
+The following options perform destructive actions and require confirmation
+(use `--yes` to skip the prompt):
+
 - `--reject-dirty` - automatically close dirty stray branches.
 - `--auto-merge` - merge pull requests automatically.
 - `--purge-prefix` - delete branches with this prefix once their PR is
   closed or merged.
 - `--purge-only` - skip pull request polling and only run branch cleanup.
-- `--poll-interval` - how often to poll GitHub (seconds, `0` disables).
-- `--max-request-rate` - limit GitHub requests per minute. When polling is
-  enabled a worker thread fetches pull requests at the configured interval.
-- `--pr-limit` - limit how many pull requests to fetch when listing.
-- `--pr-since` - only list pull requests newer than the given duration
-  (e.g. `30m`, `2h`, `1d`).
 
 ## Stray Branch Management
 

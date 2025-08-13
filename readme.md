@@ -150,9 +150,13 @@ API keys can be provided in several ways:
 - `--only-poll-stray` enters an isolated stray-branch purge mode.
 - `--reject-dirty` overrides protection and closes stray branches that have
   diverged.
+- `--yes` assumes "yes" to confirmation prompts.
 - `--purge-prefix` deletes branches with this prefix after their pull
   request is closed or merged, integrating cleanup into the merge workflow.
 - `--auto-merge` merges pull requests automatically.
+
+Destructive options (`--reject-dirty`, `--auto-merge`, `--purge-prefix`,
+`--purge-only`) prompt for confirmation unless `--yes` is supplied.
 
 ## Examples
 
