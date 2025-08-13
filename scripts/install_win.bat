@@ -4,11 +4,11 @@ echo ============================================================
 echo   AutoGitHubPullMerge Windows Dependency Installation
 echo ============================================================
 echo.
-echo This script assumes Visual Studio Build Tools are installed.
-echo Run future builds from an "x64 Native Tools Command Prompt for VS 2022".
+echo Ensure a MinGW toolchain is available in your PATH.
+echo Run future builds from a shell where g++ is accessible.
 echo.
 echo [1/5] Installing required packages...
-choco install cmake git curl sqlite ninja -y
+choco install cmake git curl sqlite ninja mingw -y
 
 echo [2/5] Determining vcpkg location...
 if "%VCPKG_ROOT%"=="" (
@@ -33,7 +33,7 @@ if not exist "%VCPKG_ROOT%\vcpkg.exe" (
 "%VCPKG_ROOT%\vcpkg.exe" integrate install || exit /b 1
 
 echo [5/5] Installing project dependencies...
-if "%VCPKG_DEFAULT_TRIPLET%"=="" set "VCPKG_DEFAULT_TRIPLET=x64-windows"
+if "%VCPKG_DEFAULT_TRIPLET%"=="" set "VCPKG_DEFAULT_TRIPLET=x64-mingw-static"
 "%VCPKG_ROOT%\vcpkg.exe" install --triplet %VCPKG_DEFAULT_TRIPLET% || exit /b 1
 
 echo Persisting environment variables...
