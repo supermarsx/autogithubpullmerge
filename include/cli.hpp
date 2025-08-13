@@ -29,7 +29,8 @@ struct CliOptions {
   bool reject_dirty = false;              ///< Auto close dirty branches
   bool auto_merge{false};                 ///< Automatically merge pull requests
   std::string purge_prefix;               ///< Delete branches with this prefix
-  int pr_limit{50};                       ///< Number of pull requests to fetch
+  bool purge_only = false; ///< Only purge branches, skip PR polling
+  int pr_limit{50};        ///< Number of pull requests to fetch
   std::chrono::seconds pr_since{
       0}; ///< Only list pull requests newer than this duration
 };
