@@ -4,11 +4,25 @@
 #include <chrono>
 #include <ctime>
 #include <iomanip>
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <thread>
 
 namespace agpm {
+
+CurlHandle::CurlHandle() {
+  static std::once_flag flag;
+  std::call_once(flag, []() { curl_global_init(CURL_GLOBAL_DEFAULT); });
+  handle_ = curl_easy_init();
+  if (!handle_) {
+    throw std::runtime_error("Failed to init curl");
+  }
+}
+
+CurlHandle::~CurlHandle() { curl_easy_cleanup(handle_); }
+
+CurlHttpClient::CurlHttpClient() = default;
 
 static size_t write_callback(void *contents, size_t size, size_t nmemb,
                              void *userp) {
@@ -20,10 +34,8 @@ static size_t write_callback(void *contents, size_t size, size_t nmemb,
 
 std::string CurlHttpClient::get(const std::string &url,
                                 const std::vector<std::string> &headers) {
-  CURL *curl = curl_easy_init();
-  if (!curl) {
-    throw std::runtime_error("Failed to init curl");
-  }
+  CURL *curl = curl_.get();
+  curl_easy_reset(curl);
   std::string response;
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
@@ -37,7 +49,6 @@ std::string CurlHttpClient::get(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
   CURLcode res = curl_easy_perform(curl);
   curl_slist_free_all(header_list);
-  curl_easy_cleanup(curl);
   if (res != CURLE_OK) {
     throw std::runtime_error("curl GET failed");
   }
@@ -46,10 +57,8 @@ std::string CurlHttpClient::get(const std::string &url,
 
 std::string CurlHttpClient::put(const std::string &url, const std::string &data,
                                 const std::vector<std::string> &headers) {
-  CURL *curl = curl_easy_init();
-  if (!curl) {
-    throw std::runtime_error("Failed to init curl");
-  }
+  CURL *curl = curl_.get();
+  curl_easy_reset(curl);
   std::string response;
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
@@ -65,7 +74,6 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
   CURLcode res = curl_easy_perform(curl);
   curl_slist_free_all(header_list);
-  curl_easy_cleanup(curl);
   if (res != CURLE_OK) {
     throw std::runtime_error("curl PUT failed");
   }
@@ -74,10 +82,8 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
 
 std::string CurlHttpClient::del(const std::string &url,
                                 const std::vector<std::string> &headers) {
-  CURL *curl = curl_easy_init();
-  if (!curl) {
-    throw std::runtime_error("Failed to init curl");
-  }
+  CURL *curl = curl_.get();
+  curl_easy_reset(curl);
   std::string response;
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
@@ -92,7 +98,6 @@ std::string CurlHttpClient::del(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
   CURLcode res = curl_easy_perform(curl);
   curl_slist_free_all(header_list);
-  curl_easy_cleanup(curl);
   if (res != CURLE_OK) {
     throw std::runtime_error("curl DELETE failed");
   }
