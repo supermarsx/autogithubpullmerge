@@ -53,7 +53,7 @@ rmdir /s /q build\vcpkg 2>nul
 
 echo [4/6] Configuring project with CMake...
 cmake -S . -B build\vcpkg -G "Ninja Multi-Config" ^
-  -DCMAKE_TOOLCHAIN_FILE=%CD%\vcpkg\scripts\buildsystems\vcpkg.cmake ^
+  -DCMAKE_TOOLCHAIN_FILE="%CD%\vcpkg\scripts\buildsystems\vcpkg.cmake" ^
   -DVCPKG_TARGET_TRIPLET=x64-windows-static ^
   -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl || exit /b 1
 
