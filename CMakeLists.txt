@@ -45,9 +45,11 @@ else()
   add_compile_options(-Wall -Wextra -Wpedantic -O2)
 endif()
 
-enable_testing()
+include(CTest)
 
 find_package(spdlog REQUIRED)
 
 add_subdirectory(src)
-add_subdirectory(tests)
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
