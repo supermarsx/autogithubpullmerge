@@ -3,8 +3,10 @@
 #include <CLI/CLI.hpp>
 #include <cctype>
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <stdexcept>
@@ -131,75 +133,101 @@ CliOptions parse_cli(int argc, char **argv) {
   CLI::App app{"autogithubpullmerge command line"};
   CliOptions options;
   std::string pr_since_str{"0"};
-  app.add_flag("-v,--verbose", options.verbose, "Enable verbose output");
+  app.add_flag("-v,--verbose", options.verbose, "Enable verbose output")
+      ->group("General");
   app.add_option("--config", options.config_file, "Path to configuration file")
-      ->type_name("FILE");
+      ->type_name("FILE")
+      ->group("General");
   app.add_option(
          "--log-level", options.log_level,
          "Set logging level (trace, debug, info, warn, error, critical, off)")
       ->type_name("LEVEL")
-      ->default_val("info");
+      ->default_val("info")
+      ->group("General");
+  app.add_flag("-y,--yes", options.assume_yes,
+               "Assume yes to confirmation prompts")
+      ->group("General");
   app.add_option("--include", options.include_repos,
                  "Repository to include; repeatable")
       ->type_name("REPO")
-      ->expected(-1);
+      ->expected(-1)
+      ->group("Repositories");
   app.add_option("--exclude", options.exclude_repos,
                  "Repository to exclude; repeatable")
       ->type_name("REPO")
-      ->expected(-1);
+      ->expected(-1)
+      ->group("Repositories");
   app.add_flag("--include-merged", options.include_merged,
-               "Include merged pull requests");
+               "Include merged pull requests")
+      ->group("Repositories");
   app.add_option("--api-key", options.api_keys,
                  "Personal access token (repeatable, not recommended)")
       ->type_name("TOKEN")
-      ->expected(-1);
+      ->expected(-1)
+      ->group("Authentication");
   app.add_flag("--api-key-from-stream", options.api_key_from_stream,
-               "Read API key(s) from stdin");
+               "Read API key(s) from stdin")
+      ->group("Authentication");
   app.add_option("--api-key-url", options.api_key_url,
                  "URL to fetch API key(s)")
-      ->type_name("URL");
+      ->type_name("URL")
+      ->group("Authentication");
   app.add_option("--api-key-url-user", options.api_key_url_user,
                  "Basic auth username")
-      ->type_name("USER");
+      ->type_name("USER")
+      ->group("Authentication");
   app.add_option("--api-key-url-password", options.api_key_url_password,
                  "Basic auth password")
-      ->type_name("PASS");
+      ->type_name("PASS")
+      ->group("Authentication");
   app.add_option("--api-key-file", options.api_key_file,
                  "Path to JSON/YAML file with API key(s)")
-      ->type_name("FILE");
+      ->type_name("FILE")
+      ->group("Authentication");
   app.add_option("--history-db", options.history_db,
                  "Path to SQLite history database")
       ->type_name("FILE")
-      ->default_val("history.db");
+      ->default_val("history.db")
+      ->group("General");
   app.add_option("--poll-interval", options.poll_interval,
                  "Polling interval in seconds")
       ->type_name("SECONDS")
-      ->default_val("0");
+      ->default_val("0")
+      ->group("Polling");
   app.add_option("--max-request-rate", options.max_request_rate,
                  "Maximum requests per minute")
       ->type_name("RATE")
-      ->default_val("60");
+      ->default_val("60")
+      ->group("Polling");
   app.add_option("--pr-limit", options.pr_limit,
                  "Number of pull requests to fetch")
       ->type_name("N")
-      ->default_val("50");
+      ->default_val("50")
+      ->group("Polling");
   app.add_option("--pr-since", pr_since_str,
                  "Only list pull requests newer than given duration")
       ->type_name("DURATION")
-      ->default_val("0");
+      ->default_val("0")
+      ->group("Polling");
   app.add_flag("--only-poll-prs", options.only_poll_prs,
-               "Only poll pull requests");
+               "Only poll pull requests")
+      ->group("Polling");
   app.add_flag("--only-poll-stray", options.only_poll_stray,
-               "Only poll stray branches");
+               "Only poll stray branches")
+      ->group("Polling");
   app.add_flag("--reject-dirty", options.reject_dirty,
-               "Close dirty stray branches automatically");
+               "Close dirty stray branches automatically")
+      ->group("Actions");
   app.add_flag("--auto-merge", options.auto_merge,
-               "Automatically merge pull requests");
+               "Automatically merge pull requests")
+      ->group("Actions");
   app.add_option("--purge-prefix", options.purge_prefix,
                  "Delete branches with this prefix after PR close")
-      ->type_name("PREFIX");
+      ->type_name("PREFIX")
+      ->group("Actions");
   app.add_flag("--purge-only", options.purge_only,
-               "Only purge branches and skip PR polling");
+               "Only purge branches and skip PR polling")
+      ->group("Actions");
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {
@@ -218,6 +246,17 @@ CliOptions parse_cli(int argc, char **argv) {
                             tokens.end());
   }
   options.pr_since = parse_duration(pr_since_str);
+  bool destructive = options.reject_dirty || options.auto_merge ||
+                     !options.purge_prefix.empty() || options.purge_only;
+  if (destructive && !options.assume_yes) {
+    std::cout << "Destructive options enabled. Continue? [y/N]: ";
+    std::string resp;
+    std::getline(std::cin, resp);
+    if (!(resp == "y" || resp == "Y" || resp == "yes" || resp == "YES")) {
+      std::cout << "Aborted.\n";
+      std::exit(1);
+    }
+  }
   return options;
 }
 

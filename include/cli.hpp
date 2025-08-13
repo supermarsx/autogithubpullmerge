@@ -12,6 +12,7 @@ struct CliOptions {
   bool verbose = false;           ///< Enables verbose output
   std::string config_file;        ///< Optional path to configuration file
   std::string log_level = "info"; ///< Logging verbosity level
+  bool assume_yes{false};         ///< Skip confirmation prompts
   std::vector<std::string> include_repos; ///< Repositories to include
   std::vector<std::string> exclude_repos; ///< Repositories to exclude
   bool include_merged{false};             ///< Include merged pull requests

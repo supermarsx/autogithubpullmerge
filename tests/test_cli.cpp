@@ -112,10 +112,15 @@ int main() {
   agpm::CliOptions opts15 = agpm::parse_cli(2, argv15);
   assert(opts15.only_poll_stray);
 
+  char yes_flag[] = "--yes";
   char reject_flag[] = "--reject-dirty";
-  char *argv16b[] = {prog, reject_flag};
-  agpm::CliOptions opts16b = agpm::parse_cli(2, argv16b);
+  char *argv16b[] = {prog, yes_flag, reject_flag};
+  agpm::CliOptions opts16b = agpm::parse_cli(3, argv16b);
   assert(opts16b.reject_dirty);
+
+  char *argv_yes[] = {prog, yes_flag};
+  agpm::CliOptions opts_yes = agpm::parse_cli(2, argv_yes);
+  assert(opts_yes.assume_yes);
 
   char limit_flag[] = "--pr-limit";
   char limit_val[] = "25";
@@ -139,18 +144,18 @@ int main() {
 
   char purge_flag[] = "--purge-prefix";
   char purge_val[] = "tmp/";
-  char *argv20[] = {prog, purge_flag, purge_val};
-  agpm::CliOptions opts20 = agpm::parse_cli(3, argv20);
+  char *argv20[] = {prog, yes_flag, purge_flag, purge_val};
+  agpm::CliOptions opts20 = agpm::parse_cli(4, argv20);
   assert(opts20.purge_prefix == "tmp/");
 
   char auto_merge_flag[] = "--auto-merge";
-  char *argv21[] = {prog, auto_merge_flag};
-  agpm::CliOptions opts21 = agpm::parse_cli(2, argv21);
+  char *argv21[] = {prog, yes_flag, auto_merge_flag};
+  agpm::CliOptions opts21 = agpm::parse_cli(3, argv21);
   assert(opts21.auto_merge);
 
   char purge_only_flag[] = "--purge-only";
-  char *argv21b[] = {prog, purge_only_flag};
-  agpm::CliOptions opts21b = agpm::parse_cli(2, argv21b);
+  char *argv21b[] = {prog, yes_flag, purge_only_flag};
+  agpm::CliOptions opts21b = agpm::parse_cli(3, argv21b);
   assert(opts21b.purge_only);
 
   char *argv22[] = {prog};
