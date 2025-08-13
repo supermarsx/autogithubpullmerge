@@ -3,6 +3,8 @@
 
 #include "github_client.hpp"
 #include "poller.hpp"
+#include <functional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -31,6 +33,16 @@ public:
   /// Stop polling.
   void stop();
 
+  /// Invoke the polling routine immediately on the current thread.
+  void poll_now();
+
+  /// Set a callback invoked with the current pull requests after each poll.
+  void
+  set_pr_callback(std::function<void(const std::vector<PullRequest> &)> cb);
+
+  /// Set a callback invoked for log messages produced during polling.
+  void set_log_callback(std::function<void(const std::string &)> cb);
+
 private:
   void poll();
 
@@ -43,6 +55,9 @@ private:
   std::string purge_prefix_;
   bool auto_merge_;
   bool purge_only_;
+
+  std::function<void(const std::vector<PullRequest> &)> pr_cb_;
+  std::function<void(const std::string &)> log_cb_;
 };
 
 } // namespace agpm

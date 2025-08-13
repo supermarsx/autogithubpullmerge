@@ -17,7 +17,20 @@ void GitHubPoller::start() { poller_.start(); }
 
 void GitHubPoller::stop() { poller_.stop(); }
 
+void GitHubPoller::poll_now() { poll(); }
+
+void GitHubPoller::set_pr_callback(
+    std::function<void(const std::vector<PullRequest> &)> cb) {
+  pr_cb_ = std::move(cb);
+}
+
+void GitHubPoller::set_log_callback(
+    std::function<void(const std::string &)> cb) {
+  log_cb_ = std::move(cb);
+}
+
 void GitHubPoller::poll() {
+  std::vector<PullRequest> all_prs;
   for (const auto &r : repos_) {
     if (purge_only_) {
       if (!purge_prefix_.empty()) {
@@ -27,6 +40,7 @@ void GitHubPoller::poll() {
     }
     if (!only_poll_stray_) {
       auto prs = client_.list_pull_requests(r.first, r.second);
+      all_prs.insert(all_prs.end(), prs.begin(), prs.end());
       if (auto_merge_) {
         for (const auto &pr : prs) {
           client_.merge_pull_request(r.first, r.second, pr.number);
@@ -42,6 +56,12 @@ void GitHubPoller::poll() {
         client_.close_dirty_branches(r.first, r.second);
       }
     }
+  }
+  if (pr_cb_) {
+    pr_cb_(all_prs);
+  }
+  if (log_cb_) {
+    log_cb_("Polled " + std::to_string(all_prs.size()) + " pull requests");
   }
 }
 

@@ -11,6 +11,11 @@
 #error "curses.h not found"
 #endif
 
+#include "github_client.hpp"
+#include "github_poller.hpp"
+#include <string>
+#include <vector>
+
 namespace agpm {
 
 /**
@@ -18,14 +23,42 @@ namespace agpm {
  */
 class Tui {
 public:
-  /// Initialize the curses library.
+  /// Construct a TUI bound to a GitHub client and poller.
+  Tui(GitHubClient &client, GitHubPoller &poller);
+
+  /// Initialize the curses library and windows.
   void init();
 
-  /// Display a placeholder window until a key is pressed.
+  /// Main interactive loop.
   void run();
 
   /// Clean up curses state.
   void cleanup();
+
+  /// Update the displayed pull requests.
+  void update_prs(const std::vector<PullRequest> &prs);
+
+  /// Draw the interface once.
+  void draw();
+
+  /// Handle a single key press.
+  void handle_key(int ch);
+
+  /// Access collected log messages.
+  const std::vector<std::string> &logs() const { return logs_; }
+
+private:
+  void log(const std::string &msg);
+
+  GitHubClient &client_;
+  GitHubPoller &poller_;
+  std::vector<PullRequest> prs_;
+  std::vector<std::string> logs_;
+  int selected_{0};
+  WINDOW *pr_win_{nullptr};
+  WINDOW *log_win_{nullptr};
+  WINDOW *help_win_{nullptr};
+  bool running_{false};
 };
 
 } // namespace agpm
