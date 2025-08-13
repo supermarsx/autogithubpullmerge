@@ -104,8 +104,9 @@ cmake --build --preset vcpkg
 ```
 
 The default preset uses `VCPKG_ROOT` to locate vcpkg. On Windows the build
-script locates `vswhere.exe` (falling back to the standard Visual Studio
-Installer directory if needed) and invokes `VsDevCmd.bat` so `cl.exe` is
-available without launching a dedicated developer shell. To use a custom vcpkg
-installation, create or edit `CMakeUserPresets.json` or export `VCPKG_ROOT` and
-add it to your `PATH`.
+script locates `vswhere.exe` using the `VSWHERE` environment variable, the
+`PATH`, common Visual Studio Installer directories or a Chocolatey install
+before falling back to the standard location, then invokes `VsDevCmd.bat` so
+`cl.exe` is available without launching a dedicated developer shell. To use a
+custom vcpkg installation, create or edit `CMakeUserPresets.json` or export
+`VCPKG_ROOT` and add it to your `PATH`.
