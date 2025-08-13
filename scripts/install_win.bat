@@ -4,9 +4,11 @@ echo ============================================================
 echo   AutoGitHubPullMerge Windows Dependency Installation
 echo ============================================================
 echo.
-
+echo This script assumes Visual Studio Build Tools are installed.
+echo Run future builds from an "x64 Native Tools Command Prompt for VS 2022".
+echo.
 echo [1/5] Installing required packages...
-choco install cmake git curl sqlite mingw ninja -y
+choco install cmake git curl sqlite ninja -y
 
 echo [2/5] Determining vcpkg location...
 if "%VCPKG_ROOT%"=="" (

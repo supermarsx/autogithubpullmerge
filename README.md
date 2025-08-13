@@ -13,7 +13,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - SQLite-based history storage with CSV/JSON export
 - Configurable logging with `--log-level`
 - Uses spdlog for colored console logging
-- Cross-platform compile scripts using g++
+- Cross-platform compile scripts (g++ on Unix-like systems, MSVC on Windows)
 - CLI options for GitHub API keys (`--api-key`, `--api-key-from-stream`,
   `--api-key-url`, `--api-key-url-user`, `--api-key-url-password`,
   `--api-key-file`)
@@ -33,28 +33,37 @@ cmake --build --preset vcpkg
 ```
 
 ## Building (Windows)
-```powershell
-./scripts/install_win.bat
-cmake --preset vcpkg --fresh
-cmake --build --preset vcpkg --config Release
+```bat
+:: Run in an "x64 Native Tools Command Prompt for VS 2022"
+scripts\install_win.bat
+rmdir /s /q build\vcpkg
+cmake -S . -B build\vcpkg -G "Ninja Multi-Config" ^
+  -DCMAKE_TOOLCHAIN_FILE=%CD%\vcpkg\scripts\buildsystems\vcpkg.cmake ^
+  -DVCPKG_TARGET_TRIPLET=x64-windows ^
+  -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl
+cmake --build build\vcpkg --config Release
 ```
 
+Ensure `cl.exe` appears first in `PATH` and that `C:\Strawberry\c\bin` is not
+earlier in the path to avoid fallback to MinGW.
 
-The install scripts clone and bootstrap [vcpkg](https://github.com/microsoft/vcpkg)
-if `VCPKG_ROOT` is not set, then install all dependencies declared in
-`vcpkg.json`. They also install the Ninja build tool on Windows so the preset
-works out of the box. The `vcpkg` CMake preset automatically locates the
-toolchain via `VCPKG_ROOT` or a local `vcpkg` directory, so builds run without
-extra flags. To use a different vcpkg installation, create or edit
-`CMakeUserPresets.json` or export `VCPKG_ROOT` and add it to your `PATH`.
-## Compiling with g++
 
-The `compile_*` scripts wrap the CMake preset for convenience:
+The install scripts clone and bootstrap
+[vcpkg](https://github.com/microsoft/vcpkg) if `VCPKG_ROOT` is not set, then
+install all dependencies declared in `vcpkg.json`. Ninja is installed so the
+Windows and Unix builds work out of the box. On Linux and macOS the `vcpkg`
+CMake preset automatically locates the toolchain. To use a different vcpkg
+installation, create or edit `CMakeUserPresets.json` or export `VCPKG_ROOT` and
+add it to your `PATH`.
+
+## Compiling
+
+The `compile_*` scripts wrap the platform build commands:
 
 ```bash
-./scripts/compile_linux.sh   # Linux
-./scripts/compile_mac.sh     # macOS
-./scripts/compile_win.bat    # Windows
+./scripts/compile_linux.sh   # Linux (g++)
+./scripts/compile_mac.sh     # macOS (g++)
+./scripts/compile_win.bat    # Windows (MSVC/CL)
 ```
 Run the matching `install_*` script for your platform first to ensure vcpkg is
 bootstrapped and dependencies are installed.
