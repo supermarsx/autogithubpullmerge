@@ -5,13 +5,13 @@ namespace agpm {
 GitHubPoller::GitHubPoller(
     GitHubClient &client,
     std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
-    int max_rate, bool poll_prs_only, bool poll_stray_only,
-    bool auto_reject_dirty, std::string purge_prefix, bool auto_merge)
+    int max_rate, bool only_poll_prs, bool only_poll_stray, bool reject_dirty,
+    std::string purge_prefix, bool auto_merge)
     : client_(client), repos_(std::move(repos)),
       poller_([this] { poll(); }, interval_ms, max_rate),
-      poll_prs_only_(poll_prs_only), poll_stray_only_(poll_stray_only),
-      auto_reject_dirty_(auto_reject_dirty),
-      purge_prefix_(std::move(purge_prefix)), auto_merge_(auto_merge) {}
+      only_poll_prs_(only_poll_prs), only_poll_stray_(only_poll_stray),
+      reject_dirty_(reject_dirty), purge_prefix_(std::move(purge_prefix)),
+      auto_merge_(auto_merge) {}
 
 void GitHubPoller::start() { poller_.start(); }
 
@@ -19,7 +19,7 @@ void GitHubPoller::stop() { poller_.stop(); }
 
 void GitHubPoller::poll() {
   for (const auto &r : repos_) {
-    if (!poll_stray_only_) {
+    if (!only_poll_stray_) {
       auto prs = client_.list_pull_requests(r.first, r.second);
       if (auto_merge_) {
         for (const auto &pr : prs) {
@@ -30,9 +30,9 @@ void GitHubPoller::poll() {
         client_.cleanup_branches(r.first, r.second, purge_prefix_);
       }
     }
-    if (!poll_prs_only_) {
+    if (!only_poll_prs_) {
       // Placeholder for stray branch polling logic
-      if (auto_reject_dirty_) {
+      if (reject_dirty_) {
         client_.close_dirty_branches(r.first, r.second);
       }
     }

@@ -102,20 +102,20 @@ int main() {
   agpm::CliOptions opts13 = agpm::parse_cli(2, argv13);
   assert(opts13.include_merged);
 
-  char poll_prs_flag[] = "--poll-prs";
+  char poll_prs_flag[] = "--only-poll-prs";
   char *argv14[] = {prog, poll_prs_flag};
   agpm::CliOptions opts14 = agpm::parse_cli(2, argv14);
-  assert(opts14.poll_prs_only);
+  assert(opts14.only_poll_prs);
 
-  char poll_stray_flag[] = "--poll-stray-branches";
+  char poll_stray_flag[] = "--only-poll-stray";
   char *argv15[] = {prog, poll_stray_flag};
   agpm::CliOptions opts15 = agpm::parse_cli(2, argv15);
-  assert(opts15.poll_stray_only);
+  assert(opts15.only_poll_stray);
 
-  char auto_reject_flag[] = "--auto-reject-dirty";
-  char *argv16b[] = {prog, auto_reject_flag};
+  char reject_flag[] = "--reject-dirty";
+  char *argv16b[] = {prog, reject_flag};
   agpm::CliOptions opts16b = agpm::parse_cli(2, argv16b);
-  assert(opts16b.auto_reject_dirty);
+  assert(opts16b.reject_dirty);
 
   char limit_flag[] = "--pr-limit";
   char limit_val[] = "25";
@@ -137,7 +137,7 @@ int main() {
   agpm::CliOptions opts19 = agpm::parse_cli(1, argv19);
   assert(opts19.pr_since == std::chrono::seconds(0));
 
-  char purge_flag[] = "--purge-branch-prefix";
+  char purge_flag[] = "--purge-prefix";
   char purge_val[] = "tmp/";
   char *argv20[] = {prog, purge_flag, purge_val};
   agpm::CliOptions opts20 = agpm::parse_cli(3, argv20);

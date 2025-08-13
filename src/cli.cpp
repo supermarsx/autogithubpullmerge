@@ -187,14 +187,15 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Only list pull requests newer than given duration")
       ->type_name("DURATION")
       ->default_val("0");
-  app.add_flag("--poll-prs", options.poll_prs_only, "Only poll pull requests");
-  app.add_flag("--poll-stray-branches", options.poll_stray_only,
+  app.add_flag("--only-poll-prs", options.only_poll_prs,
+               "Only poll pull requests");
+  app.add_flag("--only-poll-stray", options.only_poll_stray,
                "Only poll stray branches");
-  app.add_flag("--auto-reject-dirty", options.auto_reject_dirty,
+  app.add_flag("--reject-dirty", options.reject_dirty,
                "Close dirty stray branches automatically");
   app.add_flag("--auto-merge", options.auto_merge,
                "Automatically merge pull requests");
-  app.add_option("--purge-branch-prefix", options.purge_prefix,
+  app.add_option("--purge-prefix", options.purge_prefix,
                  "Delete branches with this prefix after PR close")
       ->type_name("PREFIX");
   try {

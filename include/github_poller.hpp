@@ -21,8 +21,8 @@ public:
    */
   GitHubPoller(GitHubClient &client,
                std::vector<std::pair<std::string, std::string>> repos,
-               int interval_ms, int max_rate, bool poll_prs_only = false,
-               bool poll_stray_only = false, bool auto_reject_dirty = false,
+               int interval_ms, int max_rate, bool only_poll_prs = false,
+               bool only_poll_stray = false, bool reject_dirty = false,
                std::string purge_prefix = "", bool auto_merge = false);
 
   /// Start polling in a background thread.
@@ -36,9 +36,9 @@ private:
   GitHubClient &client_;
   std::vector<std::pair<std::string, std::string>> repos_;
   Poller poller_;
-  bool poll_prs_only_;
-  bool poll_stray_only_;
-  bool auto_reject_dirty_;
+  bool only_poll_prs_;
+  bool only_poll_stray_;
+  bool reject_dirty_;
   std::string purge_prefix_;
   bool auto_merge_;
 };

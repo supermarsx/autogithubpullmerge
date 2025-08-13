@@ -134,10 +134,10 @@ API keys can be provided in several ways:
 - `--pr-since` filters pull requests newer than the given duration
   (e.g. `30m`, `2h`, `1d`).
 - `--include-merged` lists merged pull requests in addition to open ones (off by default).
-- `--poll-prs` polls only pull requests.
-- `--poll-stray-branches` polls only stray branches.
-- `--auto-reject-dirty` closes stray branches that have diverged.
-- `--purge-branch-prefix` deletes branches with this prefix after their pull
+- `--only-poll-prs` polls only pull requests.
+- `--only-poll-stray` polls only stray branches.
+- `--reject-dirty` closes stray branches that have diverged.
+- `--purge-prefix` deletes branches with this prefix after their pull
   request is closed or merged.
 - `--auto-merge` merges pull requests automatically.
 

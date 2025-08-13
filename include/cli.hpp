@@ -24,13 +24,14 @@ struct CliOptions {
   std::string history_db = "history.db";  ///< SQLite history database path
   int poll_interval = 0;                  ///< Polling interval in seconds
   int max_request_rate = 60;              ///< Max requests per minute
-  bool poll_prs_only = false;             ///< Only poll pull requests
-  bool poll_stray_only = false;           ///< Only poll stray branches
-  bool auto_reject_dirty = false;         ///< Auto close dirty branches
+  bool only_poll_prs = false;             ///< Only poll pull requests
+  bool only_poll_stray = false;           ///< Only poll stray branches
+  bool reject_dirty = false;              ///< Auto close dirty branches
   bool auto_merge{false};                 ///< Automatically merge pull requests
   std::string purge_prefix;               ///< Delete branches with this prefix
   int pr_limit{50};                       ///< Number of pull requests to fetch
-  std::chrono::seconds pr_since{0}; ///< Only list pull requests newer than this
+  std::chrono::seconds pr_since{
+      0}; ///< Only list pull requests newer than this duration
 };
 
 /**
