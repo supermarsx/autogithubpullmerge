@@ -2,7 +2,9 @@
 #define AUTOGITHUBPULLMERGE_GITHUB_CLIENT_HPP
 
 #include <chrono>
+#include <curl/curl.h>
 #include <memory>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
@@ -45,9 +47,33 @@ public:
                           const std::vector<std::string> &headers) = 0;
 };
 
-/** CURL-based HTTP client implementation. */
+/**
+ * RAII wrapper for a CURL easy handle.
+ *
+ * Ensures global CURL initialization occurs once.
+ */
+class CurlHandle {
+public:
+  CurlHandle();
+  ~CurlHandle();
+  CurlHandle(const CurlHandle &) = delete;
+  CurlHandle &operator=(const CurlHandle &) = delete;
+  CURL *get() const { return handle_; }
+
+private:
+  CURL *handle_;
+};
+
+/**
+ * CURL-based HTTP client implementation.
+ *
+ * @note This class is not thread-safe; use one instance per thread or provide
+ *       external synchronization.
+ */
 class CurlHttpClient : public HttpClient {
 public:
+  CurlHttpClient();
+
   /// @copydoc HttpClient::get()
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override;
@@ -59,6 +85,9 @@ public:
   /// @copydoc HttpClient::del()
   std::string del(const std::string &url,
                   const std::vector<std::string> &headers) override;
+
+private:
+  CurlHandle curl_;
 };
 
 /// Representation of a GitHub pull request.
