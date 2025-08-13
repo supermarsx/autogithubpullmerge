@@ -38,10 +38,11 @@ scripts\install_win.bat
 scripts\build_win.bat
 ```
 
-The build script uses `vswhere` to locate the newest Visual Studio
-installation and calls `VsDevCmd.bat` so `cl.exe` is available. Visual
-Studio Build Tools must be installed but the script can be run from a normal
-command prompt.
+The build script automatically locates `vswhere.exe` (falling back to the
+default Visual Studio Installer path when it's not on `PATH`) to find the
+newest Visual Studio installation. It then calls `VsDevCmd.bat` so `cl.exe`
+is available. Visual Studio Build Tools must be installed but the script can
+be run from a normal command prompt.
 
 
 The install scripts clone and bootstrap

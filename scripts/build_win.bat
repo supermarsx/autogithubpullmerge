@@ -4,7 +4,16 @@ setlocal
 :: Ensure MSVC build tools are available
 where cl >nul 2>&1
 if %errorlevel% neq 0 (
-    for /f "usebackq tokens=*" %%i in (`vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do (
+    set "VSWHERE=vswhere"
+    where %VSWHERE% >nul 2>&1
+    if %errorlevel% neq 0 (
+        set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+    )
+    if not exist "%VSWHERE%" (
+        echo [ERROR] vswhere.exe not found. Install Visual Studio Build Tools and try again.
+        exit /b 1
+    )
+    for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do (
         set "VS_PATH=%%i"
     )
     if not defined VS_PATH (
