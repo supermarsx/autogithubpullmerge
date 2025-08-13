@@ -25,12 +25,16 @@ void Tui::init() {
   noecho();
   keypad(stdscr, TRUE);
   curs_set(0);
-  start_color();
+  if (has_colors()) {
+    start_color();
 #if defined(COLOR_PAIR)
-  use_default_colors();
+    use_default_colors();
 #endif
-  init_pair(1, COLOR_CYAN, -1);   // highlight
-  init_pair(2, COLOR_YELLOW, -1); // logs
+    init_pair(1, COLOR_CYAN, -1);   // highlight
+    init_pair(2, COLOR_YELLOW, -1); // logs
+    init_pair(3, COLOR_GREEN, -1);  // help text
+  }
+  refresh();
 }
 
 void Tui::update_prs(const std::vector<PullRequest> &prs) {
@@ -51,6 +55,14 @@ void Tui::draw() {
     pr_win_ = newwin(h - log_h, w, 0, 0);
     log_win_ = newwin(log_h, w - help_w, h - log_h, 0);
     help_win_ = newwin(log_h, help_w, h - log_h, w - help_w);
+  }
+  if (has_colors()) {
+    wbkgd(pr_win_, COLOR_PAIR(0));
+    wbkgd(log_win_, COLOR_PAIR(0));
+    wbkgd(help_win_, COLOR_PAIR(0));
+    redrawwin(pr_win_);
+    redrawwin(log_win_);
+    redrawwin(help_win_);
   }
   // PR window
   werase(pr_win_);
@@ -89,9 +101,13 @@ void Tui::draw() {
   werase(help_win_);
   box(help_win_, 0, 0);
   mvwprintw(help_win_, 0, 2, "Hotkeys");
+  if (has_colors())
+    wattron(help_win_, COLOR_PAIR(3));
   mvwprintw(help_win_, 1, 1, "r - Refresh");
   mvwprintw(help_win_, 2, 1, "m - Merge");
   mvwprintw(help_win_, 3, 1, "q - Quit");
+  if (has_colors())
+    wattroff(help_win_, COLOR_PAIR(3));
   wrefresh(help_win_);
 }
 
