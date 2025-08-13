@@ -107,10 +107,14 @@ Logging is controlled via `--log-level`. Valid levels are `trace`, `debug`,
 
 ## TUI Features
 
-A minimal curses-based TUI (`agpm::Tui`) is provided. It uses ncurses on
-Linux and macOS and PDCurses on Windows. The interface initializes the
-library, draws a simple window that displays "AGPM running" and waits for a
-key press before exiting.
+A curses-based TUI (`agpm::Tui`) displays active pull requests and recent log
+messages. It uses ncurses on Linux and macOS and PDCurses on Windows, enabling
+basic color output. The interface supports the following hotkeys:
+
+- **↑/↓** – navigate pull requests
+- **r** – refresh the list immediately
+- **m** – merge the selected pull request
+- **q** – quit the interface
 
 ## Building
 
