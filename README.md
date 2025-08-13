@@ -13,7 +13,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - SQLite-based history storage with CSV/JSON export
 - Configurable logging with `--log-level`
 - Uses spdlog for colored console logging
-- Cross-platform compile scripts (g++ on all platforms)
+- Cross-platform compile scripts (MSVC on Windows, g++ on Linux/macOS)
 - CLI options for GitHub API keys (`--api-key`, `--api-key-from-stream`,
   `--api-key-url`, `--api-key-url-user`, `--api-key-url-password`,
   `--api-key-file`)
@@ -55,7 +55,7 @@ The `compile_*` scripts wrap the platform build commands:
 ```bash
 ./scripts/compile_linux.sh   # Linux (g++)
 ./scripts/compile_mac.sh     # macOS (g++)
-./scripts/compile_win.bat    # Windows (g++)
+./scripts/compile_win.bat    # Windows (MSVC)
 ```
 Run the matching `install_*` script for your platform first to ensure vcpkg is
 bootstrapped and dependencies are installed.
@@ -69,7 +69,7 @@ To install vcpkg manually without the helper scripts:
 git clone https://github.com/microsoft/vcpkg %USERPROFILE%\vcpkg
 %USERPROFILE%\vcpkg\bootstrap-vcpkg.bat
 %USERPROFILE%\vcpkg\vcpkg.exe integrate install
-setx VCPKG_DEFAULT_TRIPLET x64-mingw-static /M
+setx VCPKG_DEFAULT_TRIPLET x64-windows-static /M
 setx VCPKG_ROOT "%USERPROFILE%\vcpkg" /M
 setx PATH "%PATH%;%VCPKG_ROOT%" /M
 ```

@@ -35,6 +35,6 @@ Product specification list
 - has cli arg to include repo, its repeatable
 - by default checks for all repos available to a given api key
 - has cli mode to use global mode or individual repo/multiple repo mode
-- compilation uses g++ in all platforms
+- compilation uses g++ on Linux and macOS, and MSVC on Windows
 - use the latest c++
 - ensure compilation uses good optimizations

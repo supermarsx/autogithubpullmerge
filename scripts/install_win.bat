@@ -4,11 +4,11 @@ echo ============================================================
 echo   AutoGitHubPullMerge Windows Dependency Installation
 echo ============================================================
 echo.
-echo Ensure a MinGW toolchain is available in your PATH.
-echo Run future builds from a shell where g++ is accessible.
+echo Ensure Microsoft Visual C++ Build Tools are available in your PATH.
+echo Run future builds from a Developer Command Prompt where cl is accessible.
 echo.
 echo [1/5] Installing required packages...
-choco install cmake git curl sqlite ninja mingw -y
+choco install cmake git curl sqlite ninja visualstudio2022buildtools -y
 
 echo [2/5] Determining vcpkg location...
 if "%VCPKG_ROOT%"=="" (
@@ -33,7 +33,7 @@ if not exist "%VCPKG_ROOT%\vcpkg.exe" (
 "%VCPKG_ROOT%\vcpkg.exe" integrate install || exit /b 1
 
 echo [5/5] Installing project dependencies...
-if "%VCPKG_DEFAULT_TRIPLET%"=="" set "VCPKG_DEFAULT_TRIPLET=x64-mingw-static"
+if "%VCPKG_DEFAULT_TRIPLET%"=="" set "VCPKG_DEFAULT_TRIPLET=x64-windows-static"
 "%VCPKG_ROOT%\vcpkg.exe" install --triplet %VCPKG_DEFAULT_TRIPLET% || exit /b 1
 
 echo Persisting environment variables...
