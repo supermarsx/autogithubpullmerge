@@ -28,6 +28,7 @@ to build the project on supported platforms.
 - `--auto-merge` - merge pull requests automatically.
 - `--purge-prefix` - delete branches with this prefix once their PR is
   closed or merged.
+- `--purge-only` - skip pull request polling and only run branch cleanup.
 - `--poll-interval` - how often to poll GitHub (seconds, `0` disables).
 - `--max-request-rate` - limit GitHub requests per minute. When polling is
   enabled a worker thread fetches pull requests at the configured interval.
@@ -49,6 +50,12 @@ Supply `--purge-prefix` to remove branches with a matching prefix after their
 pull request has been merged or closed. The cleanup is integrated into the
 normal pull request workflow so branches disappear once they are no longer
 needed.
+
+### Purge-Only Mode
+
+Combine `--purge-only` with `--purge-prefix` to delete branches without
+polling for pull requests. This mode runs cleanup and exits without performing
+any other polling activity.
 
 ### Overriding Dirty Branches
 

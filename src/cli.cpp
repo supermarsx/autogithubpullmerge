@@ -198,6 +198,8 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_option("--purge-prefix", options.purge_prefix,
                  "Delete branches with this prefix after PR close")
       ->type_name("PREFIX");
+  app.add_flag("--purge-only", options.purge_only,
+               "Only purge branches and skip PR polling");
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {

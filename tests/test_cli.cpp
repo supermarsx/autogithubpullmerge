@@ -148,9 +148,15 @@ int main() {
   agpm::CliOptions opts21 = agpm::parse_cli(2, argv21);
   assert(opts21.auto_merge);
 
+  char purge_only_flag[] = "--purge-only";
+  char *argv21b[] = {prog, purge_only_flag};
+  agpm::CliOptions opts21b = agpm::parse_cli(2, argv21b);
+  assert(opts21b.purge_only);
+
   char *argv22[] = {prog};
   agpm::CliOptions opts22 = agpm::parse_cli(1, argv22);
   assert(!opts22.auto_merge);
+  assert(!opts22.purge_only);
 
   return 0;
 }
