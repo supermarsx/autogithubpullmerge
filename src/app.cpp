@@ -1,7 +1,6 @@
 #include "app.hpp"
 #include "cli.hpp"
 #include "config.hpp"
-#include "history.hpp"
 #include "log.hpp"
 #include <cstdlib>
 #include <spdlog/spdlog.h>
@@ -33,8 +32,6 @@ int App::run(int argc, char **argv) {
     log_file = options_.log_file;
   }
   init_logger(lvl, pattern, log_file);
-  PullRequestHistory history(options_.history_db);
-  (void)history;
   if (options_.verbose) {
     spdlog::debug("Verbose mode enabled");
   }

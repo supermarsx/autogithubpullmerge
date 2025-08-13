@@ -126,13 +126,11 @@ void Tui::handle_key(int ch) {
 
 void Tui::run() {
   running_ = true;
-  poller_.start();
   while (running_) {
     draw();
     int ch = getch();
     handle_key(ch);
   }
-  poller_.stop();
 }
 
 void Tui::cleanup() {
