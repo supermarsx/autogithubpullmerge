@@ -4,11 +4,11 @@ echo ============================================================
 echo   AutoGitHubPullMerge Windows Dependency Installation
 echo ============================================================
 echo.
-echo Ensure Microsoft Visual C++ Build Tools are available in your PATH.
-echo Run future builds from a Developer Command Prompt where cl is accessible.
+echo Ensure Microsoft Visual C++ Build Tools are installed.
+echo Build scripts automatically locate MSVC using vswhere.
 echo.
 echo [1/5] Installing required packages...
-choco install cmake git curl sqlite ninja visualstudio2022buildtools -y
+choco install cmake git curl sqlite ninja visualstudio2022buildtools vswhere -y
 
 echo [2/5] Determining vcpkg location...
 if "%VCPKG_ROOT%"=="" (

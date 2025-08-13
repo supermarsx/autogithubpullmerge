@@ -1,6 +1,19 @@
 @echo off
 setlocal
 
+:: Ensure MSVC build tools are available
+where cl >nul 2>&1
+if %errorlevel% neq 0 (
+    for /f "usebackq tokens=*" %%i in (`vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do (
+        set "VS_PATH=%%i"
+    )
+    if not defined VS_PATH (
+        echo [ERROR] MSVC build tools not found. Install Visual Studio Build Tools and try again.
+        exit /b 1
+    )
+    call "%VS_PATH%\Common7\Tools\VsDevCmd.bat" -arch=x64 || exit /b 1
+)
+
 if "%VCPKG_ROOT%"=="" (
     set "SCRIPT_DIR=%~dp0"
     if exist "%SCRIPT_DIR%..\vcpkg\vcpkg.exe" (

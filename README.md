@@ -35,9 +35,13 @@ cmake --build --preset vcpkg
 ## Building (Windows)
 ```bat
 scripts\install_win.bat
-cmake --preset vcpkg --fresh
-cmake --build --preset vcpkg
+scripts\build_win.bat
 ```
+
+The build script uses `vswhere` to locate the newest Visual Studio
+installation and calls `VsDevCmd.bat` so `cl.exe` is available. Visual
+Studio Build Tools must be installed but the script can be run from a normal
+command prompt.
 
 
 The install scripts clone and bootstrap
@@ -58,7 +62,8 @@ The `compile_*` scripts wrap the platform build commands:
 ./scripts/compile_win.bat    # Windows (MSVC)
 ```
 Run the matching `install_*` script for your platform first to ensure vcpkg is
-bootstrapped and dependencies are installed.
+bootstrapped and dependencies are installed. The Windows script mirrors the
+logic in `build_win.bat` and automatically configures the MSVC environment.
 
 ## vcpkg Manual Setup
 
