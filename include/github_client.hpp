@@ -116,8 +116,8 @@ public:
                         const std::string &prefix);
 
   /**
-   * Close stray branches that have diverged from the default branch.
-   * Placeholder implementation that will be replaced with real logic.
+   * Close or delete branches that have diverged from the repository's default
+   * branch.
    */
   void close_dirty_branches(const std::string &owner, const std::string &repo);
 

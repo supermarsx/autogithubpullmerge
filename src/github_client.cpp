@@ -228,15 +228,55 @@ void GitHubClient::close_dirty_branches(const std::string &owner,
   if (!repo_allowed(repo)) {
     return;
   }
-  // Placeholder: real implementation would check branch status and close
-  // any branches with unmerged commits. Currently it just performs a GET to
-  // keep the interface exercised during tests.
-  enforce_delay();
-  std::string url =
-      "https://api.github.com/repos/" + owner + "/" + repo + "/branches";
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
-  (void)http_->get(url, headers);
+
+  // Fetch repository metadata to determine the default branch.
+  enforce_delay();
+  std::string repo_url = "https://api.github.com/repos/" + owner + "/" + repo;
+  std::string repo_resp = http_->get(repo_url, headers);
+  nlohmann::json repo_json = nlohmann::json::parse(repo_resp, nullptr, false);
+  if (!repo_json.is_object() || !repo_json.contains("default_branch")) {
+    return;
+  }
+  std::string default_branch = repo_json["default_branch"].get<std::string>();
+
+  // Retrieve branches for the repository.
+  enforce_delay();
+  std::string branches_url = repo_url + "/branches";
+  std::string branches_resp = http_->get(branches_url, headers);
+  nlohmann::json branches_json =
+      nlohmann::json::parse(branches_resp, nullptr, false);
+  if (!branches_json.is_array()) {
+    return;
+  }
+
+  for (const auto &b : branches_json) {
+    if (!b.contains("name")) {
+      continue;
+    }
+    std::string branch = b["name"].get<std::string>();
+    if (branch == default_branch) {
+      continue;
+    }
+    // Compare branch with default branch to detect divergence.
+    enforce_delay();
+    std::string compare_url =
+        repo_url + "/compare/" + default_branch + "..." + branch;
+    std::string compare_resp = http_->get(compare_url, headers);
+    nlohmann::json compare_json =
+        nlohmann::json::parse(compare_resp, nullptr, false);
+    if (!compare_json.is_object()) {
+      continue;
+    }
+    std::string status = compare_json.value("status", "");
+    if (status != "identical") {
+      // Branch has diverged; delete it to reject dirty branch.
+      enforce_delay();
+      std::string del_url = repo_url + "/git/refs/heads/" + branch;
+      (void)http_->del(del_url, headers);
+    }
+  }
 }
 
 void GitHubClient::enforce_delay() {
