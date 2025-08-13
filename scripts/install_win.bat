@@ -5,7 +5,7 @@ echo   AutoGitHubPullMerge Windows Dependency Installation
 echo ============================================================
 echo.
 echo Ensure Microsoft Visual C++ Build Tools are installed.
-echo Build scripts automatically locate MSVC using vswhere.
+echo Build scripts automatically locate MSVC from common locations or via vswhere.
 echo.
 echo [1/5] Installing required packages...
 choco install cmake git curl sqlite ninja visualstudio2022buildtools vswhere -y
