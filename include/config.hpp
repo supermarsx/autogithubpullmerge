@@ -34,6 +34,18 @@ public:
   /// Set logging verbosity level.
   void set_log_level(const std::string &level) { log_level_ = level; }
 
+  /// Get logging pattern.
+  const std::string &log_pattern() const { return log_pattern_; }
+
+  /// Set logging pattern.
+  void set_log_pattern(const std::string &pattern) { log_pattern_ = pattern; }
+
+  /// Path to rotating log file.
+  const std::string &log_file() const { return log_file_; }
+
+  /// Set path for rotating log file.
+  void set_log_file(const std::string &file) { log_file_ = file; }
+
   /// Repositories to include.
   const std::vector<std::string> &include_repos() const {
     return include_repos_;
@@ -160,6 +172,8 @@ private:
   int poll_interval_ = 0;
   int max_request_rate_ = 60;
   std::string log_level_ = "info";
+  std::string log_pattern_;
+  std::string log_file_;
   std::vector<std::string> include_repos_;
   std::vector<std::string> exclude_repos_;
   bool include_merged_ = false;

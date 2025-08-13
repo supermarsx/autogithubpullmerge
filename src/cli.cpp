@@ -144,6 +144,9 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("LEVEL")
       ->default_val("info")
       ->group("General");
+  app.add_option("--log-file", options.log_file, "Path to rotating log file")
+      ->type_name("FILE")
+      ->group("General");
   app.add_flag("-y,--yes", options.assume_yes,
                "Assume yes to confirmation prompts")
       ->group("General");

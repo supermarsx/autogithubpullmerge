@@ -76,3 +76,7 @@ add_test(NAME branch_cleanup_test COMMAND test_branch_cleanup)
 add_executable(test_auto_merge test_auto_merge.cpp)
 target_link_libraries(test_auto_merge PRIVATE autogithubpullmerge_lib)
 add_test(NAME auto_merge_test COMMAND test_auto_merge)
+
+add_executable(test_log test_log.cpp)
+target_link_libraries(test_log PRIVATE autogithubpullmerge_lib)
+add_test(NAME log_test COMMAND test_log)

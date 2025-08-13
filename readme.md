@@ -11,8 +11,8 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
   Linux/macOS or `pdcurses` on Windows)
 - Unit tests using Catch2
 - SQLite-based history storage with CSV/JSON export
-- Configurable logging with `--log-level`
-- Uses spdlog for colored console logging
+- Configurable logging with `--log-level` and optional `--log-file`
+- Uses spdlog for colored console and rotating file logging
 - Cross-platform compile scripts (MSVC on Windows, g++ on Linux/macOS)
 - CLI options for GitHub API keys (`--api-key`, `--api-key-from-stream`,
   `--api-key-url`, `--api-key-url-user`, `--api-key-url-password`,
@@ -123,8 +123,10 @@ doxygen docs/Doxyfile
 Logging output uses the **spdlog** library with colorized messages by default.
 The `--log-level` option controls verbosity. Valid levels include
 `trace`, `debug`, `info`, `warn`, `error`, `critical` and `off`.
+`--log-file` writes messages to a rotating log file in addition to stdout.
 Passing `--verbose` sets the logger to the `debug` level unless `--log-level`
-specifies another level.
+specifies another level. Configuration files may also define `log_level`,
+`log_pattern` and `log_file` values.
 
 ## API Key Options
 
