@@ -1,4 +1,19 @@
 @echo off
+setlocal
+
+:: Ensure MSVC build tools are available
+where cl >nul 2>&1
+if %errorlevel% neq 0 (
+    for /f "usebackq tokens=*" %%i in (`vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do (
+        set "VS_PATH=%%i"
+    )
+    if not defined VS_PATH (
+        echo [ERROR] MSVC build tools not found. Install Visual Studio Build Tools and try again.
+        exit /b 1
+    )
+    call "%VS_PATH%\Common7\Tools\VsDevCmd.bat" -arch=x64 || exit /b 1
+)
+
 if "%VCPKG_ROOT%"=="" (
     echo [ERROR] VCPKG_ROOT not set. Run install_win.bat first.
     exit /b 1
@@ -9,4 +24,5 @@ cmake -S . -B build\vcpkg -G "Ninja Multi-Config" ^
   -DVCPKG_TARGET_TRIPLET=x64-windows-static ^
   -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl || exit /b 1
 cmake --build build\vcpkg --config Release || exit /b 1
- 
+
+endlocal
