@@ -56,12 +56,13 @@ rmdir /s /q build\vcpkg 2>nul
 
 echo [5/7] Configuring project with CMake...
 cmake -S . -B build\vcpkg -G "Ninja Multi-Config" ^
+  -DBUILD_TESTING=OFF ^
   -DCMAKE_TOOLCHAIN_FILE="%CD%\vcpkg\scripts\buildsystems\vcpkg.cmake" ^
   -DVCPKG_TARGET_TRIPLET=x64-windows-static ^
   -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl || exit /b 1
 
 echo [6/7] Building project...
-cmake --build build\vcpkg --config Release || exit /b 1
+cmake --build build\vcpkg --config Release --target autogithubpullmerge || exit /b 1
 
 echo [7/7] Compilation complete.
 
