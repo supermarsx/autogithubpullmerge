@@ -38,6 +38,11 @@ scripts\install_win.bat
 scripts\build_win.bat
 ```
 
+The Windows build links against the static MSVC runtime to produce a
+fully self-contained executable. Ensure all dependencies are installed
+with the `x64-windows-static` vcpkg triplet to avoid `/MT` vs `/MD`
+runtime mismatches.
+
 The build script automatically locates `vswhere.exe` using the `VSWHERE`
 environment variable, the `PATH`, standard Visual Studio Installer
 directories or a Chocolatey installation before falling back to the default

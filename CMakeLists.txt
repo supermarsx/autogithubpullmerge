@@ -31,6 +31,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Ensure all targets link against the static MSVC runtime when building on
+# Windows. This avoids mismatches between /MT and /MD when linking against
+# vcpkg packages built with the static triplet.
+if(MSVC)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 # Compiler flags
 if(MSVC)
   add_compile_options(/W4 /O2)
