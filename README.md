@@ -13,7 +13,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - SQLite-based history storage with CSV/JSON export
 - Configurable logging with `--log-level`
 - Uses spdlog for colored console logging
-- Cross-platform compile scripts (g++ on Unix-like systems, MSVC on Windows)
+- Cross-platform compile scripts (g++ on all platforms)
 - CLI options for GitHub API keys (`--api-key`, `--api-key-from-stream`,
   `--api-key-url`, `--api-key-url-user`, `--api-key-url-password`,
   `--api-key-file`)
@@ -34,18 +34,10 @@ cmake --build --preset vcpkg
 
 ## Building (Windows)
 ```bat
-:: Run in an "x64 Native Tools Command Prompt for VS 2022"
 scripts\install_win.bat
-rmdir /s /q build\vcpkg
-cmake -S . -B build\vcpkg -G "Ninja Multi-Config" ^
-  -DCMAKE_TOOLCHAIN_FILE=%CD%\vcpkg\scripts\buildsystems\vcpkg.cmake ^
-  -DVCPKG_TARGET_TRIPLET=x64-windows ^
-  -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl
-cmake --build build\vcpkg --config Release
+cmake --preset vcpkg --fresh
+cmake --build --preset vcpkg
 ```
-
-Ensure `cl.exe` appears first in `PATH` and that `C:\Strawberry\c\bin` is not
-earlier in the path to avoid fallback to MinGW.
 
 
 The install scripts clone and bootstrap
@@ -63,7 +55,7 @@ The `compile_*` scripts wrap the platform build commands:
 ```bash
 ./scripts/compile_linux.sh   # Linux (g++)
 ./scripts/compile_mac.sh     # macOS (g++)
-./scripts/compile_win.bat    # Windows (MSVC/CL)
+./scripts/compile_win.bat    # Windows (g++)
 ```
 Run the matching `install_*` script for your platform first to ensure vcpkg is
 bootstrapped and dependencies are installed.
@@ -77,7 +69,7 @@ To install vcpkg manually without the helper scripts:
 git clone https://github.com/microsoft/vcpkg %USERPROFILE%\vcpkg
 %USERPROFILE%\vcpkg\bootstrap-vcpkg.bat
 %USERPROFILE%\vcpkg\vcpkg.exe integrate install
-setx VCPKG_DEFAULT_TRIPLET x64-windows /M
+setx VCPKG_DEFAULT_TRIPLET x64-mingw-static /M
 setx VCPKG_ROOT "%USERPROFILE%\vcpkg" /M
 setx PATH "%PATH%;%VCPKG_ROOT%" /M
 ```

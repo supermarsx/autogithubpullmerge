@@ -19,6 +19,12 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
   endif()
 endif()
 
+# Use MinGW vcpkg triplet on Windows when none is specified
+if(WIN32 AND NOT DEFINED VCPKG_TARGET_TRIPLET)
+  set(VCPKG_TARGET_TRIPLET "x64-mingw-static" CACHE STRING
+                                 "Vcpkg target triplet" FORCE)
+endif()
+
 project(autogithubpullmerge LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
