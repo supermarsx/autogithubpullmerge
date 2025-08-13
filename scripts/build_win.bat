@@ -5,7 +5,10 @@ echo ============================================================
 echo   AutoGitHubPullMerge Windows Build and Test
 echo ============================================================
 
-echo [1/7] Checking for MSVC build tools...
+echo [1/8] Initializing MSVC environment...
+call :init_vcvars
+
+echo [2/8] Checking for MSVC build tools...
 where cl >nul 2>&1
 if %errorlevel% neq 0 (
     echo     cl.exe not found in PATH. Searching common locations...
@@ -40,7 +43,7 @@ if %errorlevel% neq 0 (
     )
 )
 
-echo [2/7] Verifying VCPKG_ROOT...
+echo [3/8] Verifying VCPKG_ROOT...
 if "%VCPKG_ROOT%"=="" (
     set "SCRIPT_DIR=%~dp0"
     if exist "%SCRIPT_DIR%..\vcpkg\vcpkg.exe" (
@@ -54,24 +57,38 @@ if "%VCPKG_ROOT%"=="" (
     echo     VCPKG_ROOT is %VCPKG_ROOT%
 )
 
-echo [3/7] Cleaning previous build directory...
+echo [4/8] Cleaning previous build directory...
 rmdir /s /q build\vcpkg 2>nul
 
-echo [4/7] Configuring project with CMake...
+echo [5/8] Configuring project with CMake...
 cmake -S . -B build\vcpkg -G "Ninja Multi-Config" ^
   -DCMAKE_TOOLCHAIN_FILE="%CD%\vcpkg\scripts\buildsystems\vcpkg.cmake" ^
   -DVCPKG_TARGET_TRIPLET=x64-windows-static ^
   -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl || exit /b 1
 
-echo [5/7] Building project...
+echo [6/8] Building project...
 cmake --build build\vcpkg --config Release || exit /b 1
 
-echo [6/7] Running tests...
+echo [7/8] Running tests...
 ctest --test-dir build\vcpkg -C Release || exit /b 1
 
-echo [7/7] Build and tests completed successfully.
+echo [8/8] Build and tests completed successfully.
 
 endlocal
+exit /b 0
+
+:init_vcvars
+set "VCVARS2022=C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\vsdevcmd\ext\vcvars.bat"
+set "VCVARS2019=C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\vsdevcmd\ext\vcvars.bat"
+if exist "%VCVARS2022%" (
+    echo     Initializing environment with VC Tools 2022...
+    call "%VCVARS2022%" || exit /b 1
+) else if exist "%VCVARS2019%" (
+    echo     Initializing environment with VC Tools 2019...
+    call "%VCVARS2019%" || exit /b 1
+) else (
+    echo     No vcvars script found in default locations.
+)
 exit /b 0
 
 :find_cl
