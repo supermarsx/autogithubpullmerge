@@ -22,11 +22,11 @@ to build the project on supported platforms.
   from a remote URL with optional basic authentication.
 - `--api-key-file` - load tokens from a local YAML or JSON file.
 - `--include-merged` - show merged pull requests when listing (off by default).
-- `--poll-prs` - only poll pull requests.
-- `--poll-stray-branches` - only poll stray branches.
-- `--auto-reject-dirty` - automatically close dirty stray branches.
+- `--only-poll-prs` - only poll pull requests.
+- `--only-poll-stray` - only poll stray branches.
+- `--reject-dirty` - automatically close dirty stray branches.
 - `--auto-merge` - merge pull requests automatically.
-- `--purge-branch-prefix` - delete branches with this prefix once their PR is
+- `--purge-prefix` - delete branches with this prefix once their PR is
   closed or merged.
 - `--poll-interval` - how often to poll GitHub (seconds, `0` disables).
 - `--max-request-rate` - limit GitHub requests per minute. When polling is
