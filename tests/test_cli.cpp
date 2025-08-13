@@ -26,6 +26,12 @@ int main() {
   agpm::CliOptions opts4 = agpm::parse_cli(3, argv4);
   assert(opts4.log_level == "debug");
 
+  char log_file_flag[] = "--log-file";
+  char path[] = "app.log";
+  char *argv4b[] = {prog, log_file_flag, path};
+  agpm::CliOptions opts4b = agpm::parse_cli(3, argv4b);
+  assert(opts4b.log_file == "app.log");
+
   char *argv5[] = {prog};
   agpm::CliOptions opts5 = agpm::parse_cli(1, argv5);
   assert(opts5.log_level == "info");

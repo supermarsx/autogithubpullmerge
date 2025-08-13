@@ -57,6 +57,12 @@ Config Config::from_file(const std::string &path) {
     if (node["log_level"]) {
       cfg.set_log_level(node["log_level"].as<std::string>());
     }
+    if (node["log_pattern"]) {
+      cfg.set_log_pattern(node["log_pattern"].as<std::string>());
+    }
+    if (node["log_file"]) {
+      cfg.set_log_file(node["log_file"].as<std::string>());
+    }
     if (node["include_repos"]) {
       cfg.set_include_repos(
           node["include_repos"].as<std::vector<std::string>>());
@@ -129,6 +135,12 @@ Config Config::from_file(const std::string &path) {
     }
     if (j.contains("log_level")) {
       cfg.set_log_level(j["log_level"].get<std::string>());
+    }
+    if (j.contains("log_pattern")) {
+      cfg.set_log_pattern(j["log_pattern"].get<std::string>());
+    }
+    if (j.contains("log_file")) {
+      cfg.set_log_file(j["log_file"].get<std::string>());
     }
     if (j.contains("include_repos")) {
       cfg.set_include_repos(j["include_repos"].get<std::vector<std::string>>());

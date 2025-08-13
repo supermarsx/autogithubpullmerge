@@ -12,6 +12,7 @@ struct CliOptions {
   bool verbose = false;           ///< Enables verbose output
   std::string config_file;        ///< Optional path to configuration file
   std::string log_level = "info"; ///< Logging verbosity level
+  std::string log_file;           ///< Optional path to rotating log file
   bool assume_yes{false};         ///< Skip confirmation prompts
   std::vector<std::string> include_repos; ///< Repositories to include
   std::vector<std::string> exclude_repos; ///< Repositories to exclude

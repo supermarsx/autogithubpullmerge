@@ -12,17 +12,27 @@ int App::run(int argc, char **argv) {
   options_ = parse_cli(argc, argv);
   include_repos_ = options_.include_repos;
   exclude_repos_ = options_.exclude_repos;
-  spdlog::level::level_enum lvl =
-      options_.verbose ? spdlog::level::debug : spdlog::level::info;
-  try {
-    lvl = spdlog::level::from_str(options_.log_level);
-  } catch (const spdlog::spdlog_ex &) {
-    // keep default
-  }
-  init_logger(lvl);
   if (!options_.config_file.empty()) {
     config_ = Config::from_file(options_.config_file);
   }
+  std::string level_str = options_.verbose ? "debug" : "info";
+  if (options_.log_level != "info") {
+    level_str = options_.log_level;
+  } else if (config_.log_level() != "info") {
+    level_str = config_.log_level();
+  }
+  spdlog::level::level_enum lvl = spdlog::level::info;
+  try {
+    lvl = spdlog::level::from_str(level_str);
+  } catch (const spdlog::spdlog_ex &) {
+    // keep default
+  }
+  std::string pattern = config_.log_pattern();
+  std::string log_file = config_.log_file();
+  if (!options_.log_file.empty()) {
+    log_file = options_.log_file;
+  }
+  init_logger(lvl, pattern, log_file);
   PullRequestHistory history(options_.history_db);
   (void)history;
   if (options_.verbose) {
