@@ -3,6 +3,8 @@
 
 #include "cli.hpp"
 #include "config.hpp"
+#include "github_client.hpp"
+#include <memory>
 #include <vector>
 
 namespace agpm {
@@ -18,6 +20,11 @@ public:
    * @return 0 on success, non‐zero otherwise
    */
   int run(int argc, char **argv);
+
+  /// Inject a custom HTTP client for testing.
+  void set_http_client(std::unique_ptr<HttpClient> http) {
+    http_client_ = std::move(http);
+  }
 
   /** Retrieve the parsed command line options. */
   const CliOptions &options() const { return options_; }
@@ -40,6 +47,7 @@ private:
   Config config_;
   std::vector<std::string> include_repos_;
   std::vector<std::string> exclude_repos_;
+  std::unique_ptr<HttpClient> http_client_;
 };
 
 } // namespace agpm
