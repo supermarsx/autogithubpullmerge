@@ -358,9 +358,10 @@ void GitHubClient::close_dirty_branches(const std::string &owner,
     if (!compare_json.is_object()) {
       continue;
     }
+    int ahead_by = compare_json.value("ahead_by", 0);
     std::string status = compare_json.value("status", "");
-    if (status != "identical") {
-      // Branch has diverged; delete it to reject dirty branch.
+    if (ahead_by > 0 && (status == "ahead" || status == "diverged")) {
+      // Branch has unmerged commits; delete it to reject dirty branch.
       enforce_delay();
       std::string del_url = repo_url + "/git/refs/heads/" + branch;
       try {
