@@ -86,10 +86,24 @@ static std::vector<std::string> load_tokens_from_url(const std::string &url,
   }
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  char errbuf[CURL_ERROR_SIZE];
+  errbuf[0] = '\0';
+  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
   CURLcode res = curl_easy_perform(curl);
+  std::string errstr;
+  if (res != CURLE_OK) {
+    std::ostringstream oss;
+    oss << "curl GET failed: " << curl_easy_strerror(res);
+    if (errbuf[0] != '\0') {
+      oss << " - " << errbuf;
+    }
+    errstr = oss.str();
+  }
   curl_easy_cleanup(curl);
   if (res != CURLE_OK) {
-    throw std::runtime_error("curl GET failed");
+    throw std::runtime_error(errstr);
   }
   std::vector<std::string> tokens;
   std::stringstream ss(response);
