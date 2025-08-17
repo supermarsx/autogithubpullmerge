@@ -5,6 +5,7 @@
 #include <ctime>
 #include <iomanip>
 #include <mutex>
+#include <spdlog/spdlog.h>
 #include <sstream>
 #include <stdexcept>
 #include <thread>
@@ -48,8 +49,11 @@ std::string CurlHttpClient::get(const std::string &url,
       curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
   CURLcode res = curl_easy_perform(curl);
+  long http_code = 0;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
   curl_slist_free_all(header_list);
-  if (res != CURLE_OK) {
+  if (res != CURLE_OK || http_code < 200 || http_code >= 300) {
+    spdlog::error("curl GET {} failed with HTTP code {}", url, http_code);
     throw std::runtime_error("curl GET failed");
   }
   return response;
@@ -73,8 +77,11 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
       curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
   CURLcode res = curl_easy_perform(curl);
+  long http_code = 0;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
   curl_slist_free_all(header_list);
-  if (res != CURLE_OK) {
+  if (res != CURLE_OK || http_code < 200 || http_code >= 300) {
+    spdlog::error("curl PUT {} failed with HTTP code {}", url, http_code);
     throw std::runtime_error("curl PUT failed");
   }
   return response;
@@ -97,8 +104,11 @@ std::string CurlHttpClient::del(const std::string &url,
       curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
   CURLcode res = curl_easy_perform(curl);
+  long http_code = 0;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
   curl_slist_free_all(header_list);
-  if (res != CURLE_OK) {
+  if (res != CURLE_OK || http_code < 200 || http_code >= 300) {
+    spdlog::error("curl DELETE {} failed with HTTP code {}", url, http_code);
     throw std::runtime_error("curl DELETE failed");
   }
   return response;
@@ -153,8 +163,20 @@ GitHubClient::list_pull_requests(const std::string &owner,
   }
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
-  std::string resp = http_->get(url, headers);
-  nlohmann::json j = nlohmann::json::parse(resp);
+  std::string resp;
+  try {
+    resp = http_->get(url, headers);
+  } catch (const std::exception &e) {
+    spdlog::error("HTTP GET failed: {}", e.what());
+    return {};
+  }
+  nlohmann::json j;
+  try {
+    j = nlohmann::json::parse(resp);
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to parse pull request list: {}", e.what());
+    return {};
+  }
   std::vector<PullRequest> prs;
   auto cutoff = std::chrono::system_clock::now() - since;
   for (const auto &item : j) {
@@ -194,9 +216,14 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
                     "/pulls/" + std::to_string(pr_number) + "/merge";
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
-  std::string resp = http_->put(url, "{}", headers);
-  nlohmann::json j = nlohmann::json::parse(resp);
-  return j.contains("merged") && j["merged"].get<bool>();
+  try {
+    std::string resp = http_->put(url, "{}", headers);
+    nlohmann::json j = nlohmann::json::parse(resp);
+    return j.contains("merged") && j["merged"].get<bool>();
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to merge pull request: {}", e.what());
+    return false;
+  }
 }
 
 void GitHubClient::cleanup_branches(const std::string &owner,
@@ -210,8 +237,20 @@ void GitHubClient::cleanup_branches(const std::string &owner,
                     "/pulls?state=closed";
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
-  std::string resp = http_->get(url, headers);
-  nlohmann::json j = nlohmann::json::parse(resp);
+  std::string resp;
+  try {
+    resp = http_->get(url, headers);
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to fetch pull requests for cleanup: {}", e.what());
+    return;
+  }
+  nlohmann::json j;
+  try {
+    j = nlohmann::json::parse(resp);
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to parse pull requests for cleanup: {}", e.what());
+    return;
+  }
   if (!j.is_array()) {
     return;
   }
@@ -222,7 +261,11 @@ void GitHubClient::cleanup_branches(const std::string &owner,
         enforce_delay();
         std::string del_url = "https://api.github.com/repos/" + owner + "/" +
                               repo + "/git/refs/heads/" + branch;
-        (void)http_->del(del_url, headers);
+        try {
+          (void)http_->del(del_url, headers);
+        } catch (const std::exception &e) {
+          spdlog::error("Failed to delete branch {}: {}", branch, e.what());
+        }
       }
     }
   }
@@ -239,8 +282,20 @@ void GitHubClient::close_dirty_branches(const std::string &owner,
   // Fetch repository metadata to determine the default branch.
   enforce_delay();
   std::string repo_url = "https://api.github.com/repos/" + owner + "/" + repo;
-  std::string repo_resp = http_->get(repo_url, headers);
-  nlohmann::json repo_json = nlohmann::json::parse(repo_resp, nullptr, false);
+  std::string repo_resp;
+  try {
+    repo_resp = http_->get(repo_url, headers);
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to fetch repo metadata: {}", e.what());
+    return;
+  }
+  nlohmann::json repo_json;
+  try {
+    repo_json = nlohmann::json::parse(repo_resp);
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to parse repo metadata: {}", e.what());
+    return;
+  }
   if (!repo_json.is_object() || !repo_json.contains("default_branch")) {
     return;
   }
@@ -249,9 +304,20 @@ void GitHubClient::close_dirty_branches(const std::string &owner,
   // Retrieve branches for the repository.
   enforce_delay();
   std::string branches_url = repo_url + "/branches";
-  std::string branches_resp = http_->get(branches_url, headers);
-  nlohmann::json branches_json =
-      nlohmann::json::parse(branches_resp, nullptr, false);
+  std::string branches_resp;
+  try {
+    branches_resp = http_->get(branches_url, headers);
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to fetch branches: {}", e.what());
+    return;
+  }
+  nlohmann::json branches_json;
+  try {
+    branches_json = nlohmann::json::parse(branches_resp);
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to parse branches list: {}", e.what());
+    return;
+  }
   if (!branches_json.is_array()) {
     return;
   }
@@ -268,9 +334,21 @@ void GitHubClient::close_dirty_branches(const std::string &owner,
     enforce_delay();
     std::string compare_url =
         repo_url + "/compare/" + default_branch + "..." + branch;
-    std::string compare_resp = http_->get(compare_url, headers);
-    nlohmann::json compare_json =
-        nlohmann::json::parse(compare_resp, nullptr, false);
+    std::string compare_resp;
+    try {
+      compare_resp = http_->get(compare_url, headers);
+    } catch (const std::exception &e) {
+      spdlog::error("Failed to compare branch {}: {}", branch, e.what());
+      continue;
+    }
+    nlohmann::json compare_json;
+    try {
+      compare_json = nlohmann::json::parse(compare_resp);
+    } catch (const std::exception &e) {
+      spdlog::error("Failed to parse compare JSON for branch {}: {}", branch,
+                    e.what());
+      continue;
+    }
     if (!compare_json.is_object()) {
       continue;
     }
@@ -279,7 +357,11 @@ void GitHubClient::close_dirty_branches(const std::string &owner,
       // Branch has diverged; delete it to reject dirty branch.
       enforce_delay();
       std::string del_url = repo_url + "/git/refs/heads/" + branch;
-      (void)http_->del(del_url, headers);
+      try {
+        (void)http_->del(del_url, headers);
+      } catch (const std::exception &e) {
+        spdlog::error("Failed to delete branch {}: {}", branch, e.what());
+      }
     }
   }
 }
