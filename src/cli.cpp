@@ -248,6 +248,14 @@ CliOptions parse_cli(int argc, char **argv) {
     options.api_keys.insert(options.api_keys.end(), tokens.begin(),
                             tokens.end());
   }
+  if (options.api_key_from_stream) {
+    std::string line;
+    while (std::getline(std::cin, line)) {
+      if (!line.empty()) {
+        options.api_keys.push_back(line);
+      }
+    }
+  }
   options.pr_since = parse_duration(pr_since_str);
   bool destructive = options.reject_dirty || options.auto_merge ||
                      !options.purge_prefix.empty() || options.purge_only;
