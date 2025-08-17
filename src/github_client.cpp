@@ -44,7 +44,7 @@ static size_t header_callback(char *buffer, size_t size, size_t nitems,
   return total;
 }
 
-std::pair<std::string, std::vector<std::string>>
+HttpResponse
 CurlHttpClient::get_with_headers(const std::string &url,
                                  const std::vector<std::string> &headers) {
   CURL *curl = curl_.get();
@@ -84,16 +84,20 @@ CurlHttpClient::get_with_headers(const std::string &url,
     throw std::runtime_error(oss.str());
   }
   if (http_code < 200 || http_code >= 300) {
+    if (http_code == 403 || http_code == 429) {
+      // Let caller handle rate limiting
+      return {response, resp_headers, http_code};
+    }
     spdlog::error("curl GET {} failed with HTTP code {}", url, http_code);
     throw std::runtime_error("curl GET failed with HTTP code " +
                              std::to_string(http_code));
   }
-  return {response, resp_headers};
+  return {response, resp_headers, http_code};
 }
 
 std::string CurlHttpClient::get(const std::string &url,
                                 const std::vector<std::string> &headers) {
-  return get_with_headers(url, headers).first;
+  return get_with_headers(url, headers).body;
 }
 
 std::string CurlHttpClient::put(const std::string &url, const std::string &data,
@@ -198,7 +202,7 @@ public:
     return request([&] { return inner_->get(url, headers); });
   }
 
-  std::pair<std::string, std::vector<std::string>>
+  HttpResponse
   get_with_headers(const std::string &url,
                    const std::vector<std::string> &headers) override {
     return request([&] { return inner_->get_with_headers(url, headers); });
@@ -302,16 +306,23 @@ GitHubClient::list_pull_requests(const std::string &owner,
   std::vector<PullRequest> prs;
   while (true) {
     enforce_delay();
-    std::pair<std::string, std::vector<std::string>> res;
+    HttpResponse res;
     try {
       res = http_->get_with_headers(url, headers);
     } catch (const std::exception &e) {
       spdlog::error("HTTP GET failed: {}", e.what());
       break;
     }
+    if (handle_rate_limit(res))
+      continue;
+    if (res.status_code < 200 || res.status_code >= 300) {
+      spdlog::error("HTTP GET {} failed with HTTP code {}", url,
+                    res.status_code);
+      break;
+    }
     nlohmann::json j;
     try {
-      j = nlohmann::json::parse(res.first);
+      j = nlohmann::json::parse(res.body);
     } catch (const std::exception &e) {
       spdlog::error("Failed to parse pull request list: {}", e.what());
       break;
@@ -347,7 +358,7 @@ GitHubClient::list_pull_requests(const std::string &owner,
     if (static_cast<int>(prs.size()) >= limit)
       break;
     std::string next_url;
-    for (const auto &h : res.second) {
+    for (const auto &h : res.headers) {
       if (h.rfind("Link:", 0) == 0) {
         std::string links = h.substr(5);
         std::stringstream ss(links);
@@ -529,6 +540,40 @@ void GitHubClient::close_dirty_branches(const std::string &owner,
       }
     }
   }
+}
+
+bool GitHubClient::handle_rate_limit(const HttpResponse &resp) {
+  long remaining = -1;
+  long reset = 0;
+  long retry_after = 0;
+  for (const auto &h : resp.headers) {
+    if (h.rfind("X-RateLimit-Remaining:", 0) == 0) {
+      remaining = std::stol(h.substr(22));
+    } else if (h.rfind("X-RateLimit-Reset:", 0) == 0) {
+      reset = std::stol(h.substr(19));
+    } else if (h.rfind("Retry-After:", 0) == 0) {
+      retry_after = std::stol(h.substr(12));
+    }
+  }
+  if (resp.status_code == 403 || resp.status_code == 429 || remaining == 0) {
+    std::chrono::milliseconds wait{0};
+    auto now = std::chrono::system_clock::now();
+    if (retry_after > 0) {
+      wait = std::chrono::seconds(retry_after);
+    } else if (reset > 0) {
+      auto reset_time =
+          std::chrono::system_clock::time_point(std::chrono::seconds(reset));
+      if (reset_time > now)
+        wait = std::chrono::duration_cast<std::chrono::milliseconds>(
+            reset_time - now);
+    }
+    if (wait.count() > 0) {
+      std::this_thread::sleep_for(wait);
+    }
+    last_request_ = std::chrono::steady_clock::now();
+    return true;
+  }
+  return false;
 }
 
 void GitHubClient::enforce_delay() {

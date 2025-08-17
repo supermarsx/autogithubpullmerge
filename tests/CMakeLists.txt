@@ -65,6 +65,10 @@ add_executable(test_github_client_retry test_github_client_retry.cpp)
 target_link_libraries(test_github_client_retry PRIVATE autogithubpullmerge_lib)
 add_test(NAME github_client_retry_test COMMAND test_github_client_retry)
 
+add_executable(test_github_rate_limit test_github_rate_limit.cpp)
+target_link_libraries(test_github_rate_limit PRIVATE autogithubpullmerge_lib)
+add_test(NAME github_rate_limit_test COMMAND test_github_rate_limit)
+
 add_executable(test_github_client_accept test_github_client_accept.cpp)
 target_link_libraries(test_github_client_accept PRIVATE autogithubpullmerge_lib)
 add_test(NAME github_client_accept_test COMMAND test_github_client_accept)
