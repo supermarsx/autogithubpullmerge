@@ -1,5 +1,6 @@
 #include "history.hpp"
 #include <fstream>
+#include <string_view>
 
 #if __has_include(<sqlite3.h>)
 #include <sqlite3.h>
@@ -10,24 +11,6 @@
 #include <stdexcept>
 
 namespace agpm {
-
-static std::string csv_escape_field(const std::string &field) {
-  bool needs_wrap = field.find(',') != std::string::npos ||
-                    field.find('"') != std::string::npos;
-  std::string escaped;
-  escaped.reserve(field.size());
-  for (char c : field) {
-    if (c == '"') {
-      escaped += "\"\"";
-    } else {
-      escaped += c;
-    }
-  }
-  if (needs_wrap) {
-    return "\"" + escaped + "\"";
-  }
-  return escaped;
-}
 
 PullRequestHistory::PullRequestHistory(const std::string &db_path) {
   if (sqlite3_open(db_path.c_str(), &db_) != SQLITE_OK) {
@@ -73,6 +56,27 @@ void PullRequestHistory::export_csv(const std::string &path) {
   if (!out) {
     throw std::runtime_error("Failed to open CSV file");
   }
+
+  auto escape_csv_field = [](std::string_view field) {
+    bool needs_wrap = field.find(',') != std::string_view::npos ||
+                      field.find('"') != std::string_view::npos ||
+                      field.find('\n') != std::string_view::npos ||
+                      field.find('\r') != std::string_view::npos;
+    std::string escaped;
+    escaped.reserve(field.size());
+    for (char c : field) {
+      if (c == '"') {
+        escaped += "\"\"";
+      } else {
+        escaped += c;
+      }
+    }
+    if (needs_wrap) {
+      return std::string("\"") + escaped + "\"";
+    }
+    return escaped;
+  };
+
   out << "number,title,merged\n";
   const char *sql = "SELECT number,title,merged FROM pull_requests";
   sqlite3_stmt *stmt = nullptr;
@@ -83,9 +87,9 @@ void PullRequestHistory::export_csv(const std::string &path) {
     int number = sqlite3_column_int(stmt, 0);
     const unsigned char *title = sqlite3_column_text(stmt, 1);
     int merged = sqlite3_column_int(stmt, 2);
-    out << csv_escape_field(std::to_string(number)) << ','
-        << csv_escape_field(title ? reinterpret_cast<const char *>(title) : "")
-        << ',' << csv_escape_field(std::to_string(merged)) << '\n';
+    out << escape_csv_field(std::to_string(number)) << ','
+        << escape_csv_field(title ? reinterpret_cast<const char *>(title) : "")
+        << ',' << escape_csv_field(std::to_string(merged)) << '\n';
   }
   sqlite3_finalize(stmt);
 }
