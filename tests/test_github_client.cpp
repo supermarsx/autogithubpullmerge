@@ -60,7 +60,7 @@ public:
   }
 };
 
-class ThrowingHttpClient : public HttpClient {
+class ErrorHttpClient : public HttpClient {
 public:
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override {
@@ -80,6 +80,29 @@ public:
     (void)url;
     (void)headers;
     throw std::runtime_error("http error");
+  }
+};
+
+class TimeoutHttpClient : public HttpClient {
+public:
+  std::string get(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
+    throw std::runtime_error("timeout");
+  }
+  std::string put(const std::string &url, const std::string &data,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)data;
+    (void)headers;
+    throw std::runtime_error("timeout");
+  }
+  std::string del(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
+    throw std::runtime_error("timeout");
   }
 };
 
@@ -126,13 +149,22 @@ int main() {
   assert(!bad_merge);
 
   // HTTP errors should be swallowed and result in defaults
-  auto throwing = std::make_unique<ThrowingHttpClient>();
+  auto throwing = std::make_unique<ErrorHttpClient>();
   GitHubClient client_throw("token",
                             std::unique_ptr<HttpClient>(throwing.release()));
   auto none_prs = client_throw.list_pull_requests("owner", "repo");
   assert(none_prs.empty());
   bool merge_fail = client_throw.merge_pull_request("owner", "repo", 1);
   assert(!merge_fail);
+
+  // Timeouts should also be handled gracefully
+  auto timeout = std::make_unique<TimeoutHttpClient>();
+  GitHubClient client_timeout("token",
+                              std::unique_ptr<HttpClient>(timeout.release()));
+  auto timeout_prs = client_timeout.list_pull_requests("owner", "repo");
+  assert(timeout_prs.empty());
+  bool timeout_merge = client_timeout.merge_pull_request("owner", "repo", 1);
+  assert(!timeout_merge);
 
   return 0;
 }
