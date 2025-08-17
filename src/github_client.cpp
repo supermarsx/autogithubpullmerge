@@ -274,6 +274,8 @@ GitHubClient::list_pull_requests(const std::string &owner,
       PullRequest pr;
       pr.number = item["number"].get<int>();
       pr.title = item["title"].get<std::string>();
+      pr.owner = owner;
+      pr.repo = repo;
       prs.push_back(pr);
       if (static_cast<int>(prs.size()) >= limit)
         break;

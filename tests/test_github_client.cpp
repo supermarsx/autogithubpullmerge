@@ -167,6 +167,8 @@ int main() {
   assert(prs.size() == 1);
   assert(prs[0].number == 1);
   assert(prs[0].title == "Test");
+  assert(prs[0].owner == "owner");
+  assert(prs[0].repo == "repo");
 
   auto mock_include = std::make_unique<MockHttpClient>();
   mock_include->response = "[]";

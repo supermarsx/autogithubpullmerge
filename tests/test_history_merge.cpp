@@ -41,7 +41,9 @@ int main() {
   auto prs = client.list_pull_requests("me", "repo");
   PullRequestHistory hist("merge_test.db");
   for (const auto &pr : prs) {
-    bool merged = client.merge_pull_request("me", "repo", pr.number);
+    assert(pr.owner == "me");
+    assert(pr.repo == "repo");
+    bool merged = client.merge_pull_request(pr.owner, pr.repo, pr.number);
     hist.insert(pr.number, pr.title, merged);
   }
   hist.export_json("merge.json");

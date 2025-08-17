@@ -43,7 +43,7 @@ void GitHubPoller::poll() {
       all_prs.insert(all_prs.end(), prs.begin(), prs.end());
       if (auto_merge_) {
         for (const auto &pr : prs) {
-          client_.merge_pull_request(r.first, r.second, pr.number);
+          client_.merge_pull_request(pr.owner, pr.repo, pr.number);
         }
       }
       if (!purge_prefix_.empty()) {

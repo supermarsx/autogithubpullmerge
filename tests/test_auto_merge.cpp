@@ -10,6 +10,7 @@ class MergeHttpClient : public HttpClient {
 public:
   MergeHttpClient() : merge_calls(0) {}
   std::atomic<int> merge_calls;
+  std::string last_url;
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override {
     (void)headers;
@@ -20,9 +21,9 @@ public:
   }
   std::string put(const std::string &url, const std::string &data,
                   const std::vector<std::string> &headers) override {
-    (void)url;
     (void)data;
     (void)headers;
+    last_url = url;
     merge_calls++;
     return "{\"merged\":true}";
   }
@@ -44,5 +45,7 @@ int main() {
   std::this_thread::sleep_for(std::chrono::milliseconds(80));
   poller.stop();
   assert(raw->merge_calls > 0);
+  assert(raw->last_url.find("/repos/me/repo/pulls/1/merge") !=
+         std::string::npos);
   return 0;
 }
