@@ -23,7 +23,7 @@ CurlHandle::CurlHandle() {
 
 CurlHandle::~CurlHandle() { curl_easy_cleanup(handle_); }
 
-CurlHttpClient::CurlHttpClient() = default;
+CurlHttpClient::CurlHttpClient(long timeout_ms) : timeout_ms_(timeout_ms) {}
 
 static size_t write_callback(void *contents, size_t size, size_t nmemb,
                              void *userp) {
@@ -56,8 +56,8 @@ CurlHttpClient::get_with_headers(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
   curl_easy_setopt(curl, CURLOPT_HEADERDATA, &resp_headers);
-  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
-  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, timeout_ms_);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms_);
   char errbuf[CURL_ERROR_SIZE];
   errbuf[0] = '\0';
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
@@ -106,8 +106,8 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
-  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, timeout_ms_);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms_);
   char errbuf[CURL_ERROR_SIZE];
   errbuf[0] = '\0';
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
@@ -150,8 +150,8 @@ std::string CurlHttpClient::del(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
-  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, timeout_ms_);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms_);
   char errbuf[CURL_ERROR_SIZE];
   errbuf[0] = '\0';
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
@@ -185,11 +185,75 @@ std::string CurlHttpClient::del(const std::string &url,
   return response;
 }
 
+namespace {
+class RetryHttpClient : public agpm::HttpClient {
+public:
+  RetryHttpClient(std::unique_ptr<agpm::HttpClient> inner, int max_retries,
+                  int backoff_ms)
+      : inner_(std::move(inner)), max_retries_(max_retries),
+        backoff_ms_(backoff_ms) {}
+
+  std::string get(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    return request([&] { return inner_->get(url, headers); });
+  }
+
+  std::pair<std::string, std::vector<std::string>>
+  get_with_headers(const std::string &url,
+                   const std::vector<std::string> &headers) override {
+    return request([&] { return inner_->get_with_headers(url, headers); });
+  }
+
+  std::string put(const std::string &url, const std::string &data,
+                  const std::vector<std::string> &headers) override {
+    return request([&] { return inner_->put(url, data, headers); });
+  }
+
+  std::string del(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    return request([&] { return inner_->del(url, headers); });
+  }
+
+private:
+  template <typename F> auto request(F f) -> decltype(f()) {
+    int attempt = 0;
+    while (true) {
+      try {
+        return f();
+      } catch (const std::exception &e) {
+        if (attempt >= max_retries_ || !is_transient(e))
+          throw;
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(backoff_ms_ * (1 << attempt)));
+        ++attempt;
+      }
+    }
+  }
+
+  bool is_transient(const std::exception &e) const {
+    std::string msg = e.what();
+    auto pos = msg.find("HTTP code ");
+    if (pos != std::string::npos) {
+      int code = std::stoi(msg.substr(pos + 10));
+      return code >= 500 && code < 600;
+    }
+    return true;
+  }
+
+  std::unique_ptr<agpm::HttpClient> inner_;
+  int max_retries_;
+  int backoff_ms_;
+};
+} // namespace
+
 GitHubClient::GitHubClient(std::string token, std::unique_ptr<HttpClient> http,
                            std::vector<std::string> include_repos,
-                           std::vector<std::string> exclude_repos, int delay_ms)
+                           std::vector<std::string> exclude_repos, int delay_ms,
+                           int timeout_ms, int max_retries)
     : token_(std::move(token)),
-      http_(http ? std::move(http) : std::make_unique<CurlHttpClient>()),
+      http_(std::make_unique<RetryHttpClient>(
+          http ? std::move(http) : std::make_unique<CurlHttpClient>(timeout_ms),
+          max_retries, 100)),
       include_repos_(std::move(include_repos)),
       exclude_repos_(std::move(exclude_repos)), delay_ms_(delay_ms),
       last_request_(std::chrono::steady_clock::now() -

@@ -26,6 +26,8 @@ struct CliOptions {
   std::string history_db = "history.db";  ///< SQLite history database path
   int poll_interval = 0;                  ///< Polling interval in seconds
   int max_request_rate = 60;              ///< Max requests per minute
+  int http_timeout = 30;                  ///< HTTP timeout in seconds
+  int http_retries = 3;                   ///< Number of HTTP retries
   bool only_poll_prs = false;             ///< Only poll pull requests
   bool only_poll_stray = false;           ///< Only poll stray branches
   bool reject_dirty = false;              ///< Auto close dirty branches

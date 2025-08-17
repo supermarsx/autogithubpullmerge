@@ -86,7 +86,12 @@ private:
  */
 class CurlHttpClient : public HttpClient {
 public:
-  CurlHttpClient();
+  /**
+   * Construct a CURL based HTTP client.
+   *
+   * @param timeout_ms Request timeout in milliseconds
+   */
+  explicit CurlHttpClient(long timeout_ms = 30000);
 
   /// @copydoc HttpClient::get()
   std::string get(const std::string &url,
@@ -107,6 +112,7 @@ public:
 
 private:
   CurlHandle curl_;
+  long timeout_ms_;
 };
 
 /// Representation of a GitHub pull request.
@@ -123,12 +129,18 @@ public:
    *
    * @param token Personal access token
    * @param http Optional HTTP client implementation
+   * @param include_repos Repositories to include
+   * @param exclude_repos Repositories to exclude
+   * @param delay_ms Minimum delay between requests in milliseconds
+   * @param timeout_ms HTTP request timeout in milliseconds
+   * @param max_retries Number of retry attempts for transient failures
    */
   explicit GitHubClient(std::string token,
                         std::unique_ptr<HttpClient> http = nullptr,
                         std::vector<std::string> include_repos = {},
                         std::vector<std::string> exclude_repos = {},
-                        int delay_ms = 0);
+                        int delay_ms = 0, int timeout_ms = 30000,
+                        int max_retries = 3);
 
   /// Set minimum delay between HTTP requests in milliseconds.
   void set_delay_ms(int delay_ms);
