@@ -11,6 +11,38 @@
 
 namespace agpm {
 
+/// RAII wrapper for sqlite3_stmt ensuring sqlite3_finalize is called.
+class Statement {
+public:
+  Statement(sqlite3 *db, const char *sql) : stmt_(nullptr) {
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt_, nullptr) != SQLITE_OK) {
+      throw std::runtime_error("Failed to prepare statement");
+    }
+  }
+  ~Statement() {
+    if (stmt_)
+      sqlite3_finalize(stmt_);
+  }
+  Statement(const Statement &) = delete;
+  Statement &operator=(const Statement &) = delete;
+  Statement(Statement &&other) noexcept : stmt_(other.stmt_) {
+    other.stmt_ = nullptr;
+  }
+  Statement &operator=(Statement &&other) noexcept {
+    if (this != &other) {
+      if (stmt_)
+        sqlite3_finalize(stmt_);
+      stmt_ = other.stmt_;
+      other.stmt_ = nullptr;
+    }
+    return *this;
+  }
+  sqlite3_stmt *get() const { return stmt_; }
+
+private:
+  sqlite3_stmt *stmt_;
+};
+
 PullRequestHistory::PullRequestHistory(const std::string &db_path) {
   if (sqlite3_open(db_path.c_str(), &db_) != SQLITE_OK) {
     throw std::runtime_error("Failed to open database");
@@ -34,20 +66,15 @@ PullRequestHistory::~PullRequestHistory() {
 
 void PullRequestHistory::insert(int number, const std::string &title,
                                 bool merged) {
-  sqlite3_stmt *stmt = nullptr;
   const char *sql =
       "INSERT INTO pull_requests(number,title,merged) VALUES(?,?,?)";
-  if (sqlite3_prepare_v2(db_, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-    throw std::runtime_error("Failed to prepare insert");
-  }
-  sqlite3_bind_int(stmt, 1, number);
-  sqlite3_bind_text(stmt, 2, title.c_str(), -1, SQLITE_TRANSIENT);
-  sqlite3_bind_int(stmt, 3, merged ? 1 : 0);
-  if (sqlite3_step(stmt) != SQLITE_DONE) {
-    sqlite3_finalize(stmt);
+  Statement stmt(db_, sql);
+  sqlite3_bind_int(stmt.get(), 1, number);
+  sqlite3_bind_text(stmt.get(), 2, title.c_str(), -1, SQLITE_TRANSIENT);
+  sqlite3_bind_int(stmt.get(), 3, merged ? 1 : 0);
+  if (sqlite3_step(stmt.get()) != SQLITE_DONE) {
     throw std::runtime_error("Failed to execute insert");
   }
-  sqlite3_finalize(stmt);
 }
 
 void PullRequestHistory::export_csv(const std::string &path) {
@@ -57,39 +84,31 @@ void PullRequestHistory::export_csv(const std::string &path) {
   }
   out << "number,title,merged\n";
   const char *sql = "SELECT number,title,merged FROM pull_requests";
-  sqlite3_stmt *stmt = nullptr;
-  if (sqlite3_prepare_v2(db_, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-    throw std::runtime_error("Failed to query database");
-  }
-  while (sqlite3_step(stmt) == SQLITE_ROW) {
-    int number = sqlite3_column_int(stmt, 0);
-    const unsigned char *title = sqlite3_column_text(stmt, 1);
-    int merged = sqlite3_column_int(stmt, 2);
+  Statement stmt(db_, sql);
+  while (sqlite3_step(stmt.get()) == SQLITE_ROW) {
+    int number = sqlite3_column_int(stmt.get(), 0);
+    const unsigned char *title = sqlite3_column_text(stmt.get(), 1);
+    int merged = sqlite3_column_int(stmt.get(), 2);
     out << number << ",\""
         << (title ? reinterpret_cast<const char *>(title) : "") << "\","
         << merged << "\n";
   }
-  sqlite3_finalize(stmt);
 }
 
 void PullRequestHistory::export_json(const std::string &path) {
   nlohmann::json j = nlohmann::json::array();
   const char *sql = "SELECT number,title,merged FROM pull_requests";
-  sqlite3_stmt *stmt = nullptr;
-  if (sqlite3_prepare_v2(db_, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-    throw std::runtime_error("Failed to query database");
-  }
-  while (sqlite3_step(stmt) == SQLITE_ROW) {
-    int number = sqlite3_column_int(stmt, 0);
-    const unsigned char *title = sqlite3_column_text(stmt, 1);
-    int merged = sqlite3_column_int(stmt, 2);
+  Statement stmt(db_, sql);
+  while (sqlite3_step(stmt.get()) == SQLITE_ROW) {
+    int number = sqlite3_column_int(stmt.get(), 0);
+    const unsigned char *title = sqlite3_column_text(stmt.get(), 1);
+    int merged = sqlite3_column_int(stmt.get(), 2);
     nlohmann::json item;
     item["number"] = number;
     item["title"] = title ? reinterpret_cast<const char *>(title) : "";
     item["merged"] = merged != 0;
     j.push_back(item);
   }
-  sqlite3_finalize(stmt);
   std::ofstream out(path);
   if (!out) {
     throw std::runtime_error("Failed to open JSON file");

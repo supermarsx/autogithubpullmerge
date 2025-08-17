@@ -80,3 +80,8 @@ add_test(NAME auto_merge_test COMMAND test_auto_merge)
 add_executable(test_log test_log.cpp)
 target_link_libraries(test_log PRIVATE autogithubpullmerge_lib)
 add_test(NAME log_test COMMAND test_log)
+
+add_executable(test_statement_raii test_statement_raii.cpp)
+target_include_directories(test_statement_raii PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+target_link_libraries(test_statement_raii PRIVATE SQLite::SQLite3 nlohmann_json::nlohmann_json)
+add_test(NAME statement_raii_test COMMAND test_statement_raii)
