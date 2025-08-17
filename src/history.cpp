@@ -11,6 +11,24 @@
 
 namespace agpm {
 
+static std::string csv_escape_field(const std::string &field) {
+  bool needs_wrap = field.find(',') != std::string::npos ||
+                    field.find('"') != std::string::npos;
+  std::string escaped;
+  escaped.reserve(field.size());
+  for (char c : field) {
+    if (c == '"') {
+      escaped += "\"\"";
+    } else {
+      escaped += c;
+    }
+  }
+  if (needs_wrap) {
+    return "\"" + escaped + "\"";
+  }
+  return escaped;
+}
+
 PullRequestHistory::PullRequestHistory(const std::string &db_path) {
   if (sqlite3_open(db_path.c_str(), &db_) != SQLITE_OK) {
     throw std::runtime_error("Failed to open database");
@@ -65,9 +83,9 @@ void PullRequestHistory::export_csv(const std::string &path) {
     int number = sqlite3_column_int(stmt, 0);
     const unsigned char *title = sqlite3_column_text(stmt, 1);
     int merged = sqlite3_column_int(stmt, 2);
-    out << number << ",\""
-        << (title ? reinterpret_cast<const char *>(title) : "") << "\","
-        << merged << "\n";
+    out << csv_escape_field(std::to_string(number)) << ','
+        << csv_escape_field(title ? reinterpret_cast<const char *>(title) : "")
+        << ',' << csv_escape_field(std::to_string(merged)) << '\n';
   }
   sqlite3_finalize(stmt);
 }
