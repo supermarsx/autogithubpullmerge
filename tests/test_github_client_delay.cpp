@@ -1,6 +1,7 @@
 #include "github_client.hpp"
 #include <cassert>
 #include <chrono>
+#include <curl/curl.h>
 #include <string>
 
 using namespace agpm;
@@ -49,6 +50,17 @@ int main() {
   auto t6 = std::chrono::steady_clock::now();
   diff = std::chrono::duration_cast<std::chrono::milliseconds>(t6 - t5).count();
   assert(diff >= 50);
+
+  try {
+    CurlHttpClient real;
+    real.get("https://nonexistent.invalid", {});
+    assert(false && "Expected exception");
+  } catch (const std::exception &e) {
+    std::string msg = e.what();
+    assert(msg.find("nonexistent.invalid") != std::string::npos);
+    assert(msg.find(curl_easy_strerror(CURLE_COULDNT_RESOLVE_HOST)) !=
+           std::string::npos);
+  }
 
   return 0;
 }

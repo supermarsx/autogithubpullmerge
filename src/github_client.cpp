@@ -58,6 +58,11 @@ CurlHttpClient::get_with_headers(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_HEADERDATA, &resp_headers);
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+  char errbuf[CURL_ERROR_SIZE];
+  errbuf[0] = '\0';
+  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
   struct curl_slist *header_list = nullptr;
   for (const auto &h : headers) {
     header_list = curl_slist_append(header_list, h.c_str());
@@ -69,9 +74,19 @@ CurlHttpClient::get_with_headers(const std::string &url,
   long http_code = 0;
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
   curl_slist_free_all(header_list);
-  if (res != CURLE_OK || http_code < 200 || http_code >= 300) {
+  if (res != CURLE_OK) {
+    std::ostringstream oss;
+    oss << "curl GET failed: " << curl_easy_strerror(res);
+    if (errbuf[0] != '\0') {
+      oss << " - " << errbuf;
+    }
+    spdlog::error(oss.str());
+    throw std::runtime_error(oss.str());
+  }
+  if (http_code < 200 || http_code >= 300) {
     spdlog::error("curl GET {} failed with HTTP code {}", url, http_code);
-    throw std::runtime_error("curl GET failed");
+    throw std::runtime_error("curl GET failed with HTTP code " +
+                             std::to_string(http_code));
   }
   return {response, resp_headers};
 }
@@ -93,6 +108,11 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+  char errbuf[CURL_ERROR_SIZE];
+  errbuf[0] = '\0';
+  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
   struct curl_slist *header_list = nullptr;
   for (const auto &h : headers) {
     header_list = curl_slist_append(header_list, h.c_str());
@@ -104,9 +124,19 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   long http_code = 0;
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
   curl_slist_free_all(header_list);
-  if (res != CURLE_OK || http_code < 200 || http_code >= 300) {
+  if (res != CURLE_OK) {
+    std::ostringstream oss;
+    oss << "curl PUT failed: " << curl_easy_strerror(res);
+    if (errbuf[0] != '\0') {
+      oss << " - " << errbuf;
+    }
+    spdlog::error(oss.str());
+    throw std::runtime_error(oss.str());
+  }
+  if (http_code < 200 || http_code >= 300) {
     spdlog::error("curl PUT {} failed with HTTP code {}", url, http_code);
-    throw std::runtime_error("curl PUT failed");
+    throw std::runtime_error("curl PUT failed with HTTP code " +
+                             std::to_string(http_code));
   }
   return response;
 }
@@ -122,6 +152,11 @@ std::string CurlHttpClient::del(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+  char errbuf[CURL_ERROR_SIZE];
+  errbuf[0] = '\0';
+  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
   struct curl_slist *header_list = nullptr;
   for (const auto &h : headers) {
     header_list = curl_slist_append(header_list, h.c_str());
@@ -133,9 +168,19 @@ std::string CurlHttpClient::del(const std::string &url,
   long http_code = 0;
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
   curl_slist_free_all(header_list);
-  if (res != CURLE_OK || http_code < 200 || http_code >= 300) {
+  if (res != CURLE_OK) {
+    std::ostringstream oss;
+    oss << "curl DELETE failed: " << curl_easy_strerror(res);
+    if (errbuf[0] != '\0') {
+      oss << " - " << errbuf;
+    }
+    spdlog::error(oss.str());
+    throw std::runtime_error(oss.str());
+  }
+  if (http_code < 200 || http_code >= 300) {
     spdlog::error("curl DELETE {} failed with HTTP code {}", url, http_code);
-    throw std::runtime_error("curl DELETE failed");
+    throw std::runtime_error("curl DELETE failed with HTTP code " +
+                             std::to_string(http_code));
   }
   return response;
 }
