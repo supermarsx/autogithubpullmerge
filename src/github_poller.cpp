@@ -51,10 +51,7 @@ void GitHubPoller::poll() {
       }
     }
     if (!only_poll_prs_) {
-      // Placeholder for stray branch polling logic
-      if (reject_dirty_) {
-        client_.close_dirty_branches(r.first, r.second);
-      }
+      client_.close_dirty_branches(r.first, r.second, reject_dirty_);
     }
   }
   if (pr_cb_) {

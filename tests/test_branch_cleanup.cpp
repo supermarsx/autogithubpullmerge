@@ -35,11 +35,9 @@ class BranchHttpClient : public HttpClient {
 public:
   std::unordered_map<std::string, std::string> responses;
   std::string last_deleted;
-  std::string last_url;
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override {
     (void)headers;
-    last_url = url;
     auto it = responses.find(url);
     if (it != responses.end()) {
       return it->second;
@@ -82,11 +80,10 @@ int main() {
     std::string base = "https://api.github.com/repos/me/repo";
     raw->responses[base] = "{\"default_branch\":\"main\"}";
     raw->responses[base + "/branches"] =
-        "[{\"name\":\"main\"},{\"name\":\"feature\"}]";
-    raw->responses[base + "/compare/main...feature"] =
-        "{\"status\":\"identical\"}";
+        "[{\"name\":\"main\",\"commit\":{\"sha\":\"1\"}},{\"name\":\"feature\","
+        "\"commit\":{\"sha\":\"1\"}}]";
     GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
-    client.close_dirty_branches("me", "repo");
+    client.close_dirty_branches("me", "repo", true);
     assert(raw->last_deleted.empty());
   }
 
@@ -97,10 +94,10 @@ int main() {
     std::string base = "https://api.github.com/repos/me/repo";
     raw->responses[base] = "{\"default_branch\":\"main\"}";
     raw->responses[base + "/branches"] =
-        "[{\"name\":\"main\"},{\"name\":\"feature\"}]";
-    raw->responses[base + "/compare/main...feature"] = "{\"status\":\"ahead\"}";
+        "[{\"name\":\"main\",\"commit\":{\"sha\":\"1\"}},{\"name\":\"feature\","
+        "\"commit\":{\"sha\":\"2\"}}]";
     GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
-    client.close_dirty_branches("me", "repo");
+    client.close_dirty_branches("me", "repo", true);
     assert(raw->last_deleted == base + "/git/refs/heads/feature");
   }
 

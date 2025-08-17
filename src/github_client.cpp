@@ -4,6 +4,7 @@
 #include <chrono>
 #include <ctime>
 #include <iomanip>
+#include <iostream>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
@@ -228,15 +229,41 @@ void GitHubClient::cleanup_branches(const std::string &owner,
   }
 }
 
+std::vector<Branch> GitHubClient::list_branches(const std::string &owner,
+                                                const std::string &repo) {
+  std::vector<Branch> branches;
+  if (!repo_allowed(repo)) {
+    return branches;
+  }
+  enforce_delay();
+  std::string url =
+      "https://api.github.com/repos/" + owner + "/" + repo + "/branches";
+  std::vector<std::string> headers = {"Authorization: token " + token_,
+                                      "Accept: application/vnd.github+json"};
+  std::string resp = http_->get(url, headers);
+  nlohmann::json j = nlohmann::json::parse(resp, nullptr, false);
+  if (!j.is_array()) {
+    return branches;
+  }
+  for (const auto &b : j) {
+    if (b.contains("name") && b.contains("commit") &&
+        b["commit"].contains("sha")) {
+      branches.push_back({b["name"].get<std::string>(),
+                          b["commit"]["sha"].get<std::string>()});
+    }
+  }
+  return branches;
+}
+
 void GitHubClient::close_dirty_branches(const std::string &owner,
-                                        const std::string &repo) {
+                                        const std::string &repo,
+                                        bool delete_dirty) {
   if (!repo_allowed(repo)) {
     return;
   }
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
 
-  // Fetch repository metadata to determine the default branch.
   enforce_delay();
   std::string repo_url = "https://api.github.com/repos/" + owner + "/" + repo;
   std::string repo_resp = http_->get(repo_url, headers);
@@ -246,40 +273,31 @@ void GitHubClient::close_dirty_branches(const std::string &owner,
   }
   std::string default_branch = repo_json["default_branch"].get<std::string>();
 
-  // Retrieve branches for the repository.
-  enforce_delay();
-  std::string branches_url = repo_url + "/branches";
-  std::string branches_resp = http_->get(branches_url, headers);
-  nlohmann::json branches_json =
-      nlohmann::json::parse(branches_resp, nullptr, false);
-  if (!branches_json.is_array()) {
+  auto branches = list_branches(owner, repo);
+  std::string default_sha;
+  for (const auto &b : branches) {
+    if (b.name == default_branch) {
+      default_sha = b.sha;
+      break;
+    }
+  }
+  if (default_sha.empty()) {
     return;
   }
 
-  for (const auto &b : branches_json) {
-    if (!b.contains("name")) {
+  for (const auto &b : branches) {
+    if (b.name == default_branch) {
       continue;
     }
-    std::string branch = b["name"].get<std::string>();
-    if (branch == default_branch) {
-      continue;
-    }
-    // Compare branch with default branch to detect divergence.
-    enforce_delay();
-    std::string compare_url =
-        repo_url + "/compare/" + default_branch + "..." + branch;
-    std::string compare_resp = http_->get(compare_url, headers);
-    nlohmann::json compare_json =
-        nlohmann::json::parse(compare_resp, nullptr, false);
-    if (!compare_json.is_object()) {
-      continue;
-    }
-    std::string status = compare_json.value("status", "");
-    if (status != "identical") {
-      // Branch has diverged; delete it to reject dirty branch.
-      enforce_delay();
-      std::string del_url = repo_url + "/git/refs/heads/" + branch;
-      (void)http_->del(del_url, headers);
+    if (b.sha != default_sha) {
+      if (delete_dirty) {
+        enforce_delay();
+        std::string del_url = repo_url + "/git/refs/heads/" + b.name;
+        (void)http_->del(del_url, headers);
+      } else {
+        std::cerr << "Branch " << b.name << " diverged from " << default_branch
+                  << "\n";
+      }
     }
   }
 }

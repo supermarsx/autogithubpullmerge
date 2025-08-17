@@ -96,6 +96,12 @@ struct PullRequest {
   std::string title;
 };
 
+/// Representation of a repository branch.
+struct Branch {
+  std::string name;
+  std::string sha;
+};
+
 /** Simple GitHub API client. */
 class GitHubClient {
 public:
@@ -148,7 +154,12 @@ public:
    * Close or delete branches that have diverged from the repository's default
    * branch.
    */
-  void close_dirty_branches(const std::string &owner, const std::string &repo);
+  void close_dirty_branches(const std::string &owner, const std::string &repo,
+                            bool delete_dirty);
+
+  /// List branches for a repository.
+  std::vector<Branch> list_branches(const std::string &owner,
+                                    const std::string &repo);
 
 private:
   std::string token_;
