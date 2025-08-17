@@ -1,6 +1,7 @@
 #include "cli.hpp"
 #include <cassert>
 #include <fstream>
+#include <sstream>
 
 int main() {
   // Load tokens from YAML file
@@ -27,6 +28,19 @@ int main() {
   assert(opts2.api_keys.size() == 2);
   assert(opts2.api_keys[0] == "c");
   assert(opts2.api_keys[1] == "d");
+
+  // Tokens from stdin
+  {
+    std::istringstream input("e\nf\n\n");
+    auto *cinbuf = std::cin.rdbuf();
+    std::cin.rdbuf(input.rdbuf());
+    char *argv3[] = {prog, const_cast<char *>("--api-key-from-stream")};
+    agpm::CliOptions opts3 = agpm::parse_cli(2, argv3);
+    std::cin.rdbuf(cinbuf);
+    assert(opts3.api_keys.size() == 2);
+    assert(opts3.api_keys[0] == "e");
+    assert(opts3.api_keys[1] == "f");
+  }
 
   return 0;
 }
