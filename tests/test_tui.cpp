@@ -55,7 +55,7 @@ int main() {
   Tui ui(client, poller);
   ui.init();
 
-  ui.update_prs({{1, "Test PR"}});
+  ui.update_prs({{1, "Test PR", "o", "r"}});
   ui.draw();
   char buf[80];
   mvwinnstr(stdscr, 1, 1, buf, 79);
@@ -67,6 +67,7 @@ int main() {
 
   ui.handle_key('m');
   assert(raw->last_method == "PUT");
+  assert(raw->last_url.find("/repos/o/r/pulls/1/merge") != std::string::npos);
   assert(!ui.logs().empty());
   assert(ui.logs().back().find("Merged PR #1") != std::string::npos);
 

@@ -113,6 +113,8 @@ private:
 struct PullRequest {
   int number;
   std::string title;
+  std::string owner{};
+  std::string repo{};
 };
 
 /** Simple GitHub API client. */

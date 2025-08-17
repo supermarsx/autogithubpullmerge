@@ -121,9 +121,9 @@ void Tui::handle_key(int ch) {
     break;
   case 'm':
     if (selected_ < static_cast<int>(prs_.size())) {
-      int num = prs_[selected_].number;
-      if (client_.merge_pull_request("", "", num)) {
-        log("Merged PR #" + std::to_string(num));
+      const auto &pr = prs_[selected_];
+      if (client_.merge_pull_request(pr.owner, pr.repo, pr.number)) {
+        log("Merged PR #" + std::to_string(pr.number));
       }
     }
     break;
