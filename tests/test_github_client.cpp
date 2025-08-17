@@ -1,5 +1,7 @@
 #include "github_client.hpp"
 #include <cassert>
+#include <chrono>
+#include <ctime>
 #include <stdexcept>
 #include <string>
 
@@ -106,6 +108,56 @@ public:
   }
 };
 
+class MultiPageHttpClient : public HttpClient {
+public:
+  int calls = 0;
+  std::string old_ts;
+  std::string recent1_ts;
+  std::string recent2_ts;
+
+  MultiPageHttpClient(std::string old_t, std::string recent1_t,
+                      std::string recent2_t)
+      : old_ts(std::move(old_t)), recent1_ts(std::move(recent1_t)),
+        recent2_ts(std::move(recent2_t)) {}
+
+  std::pair<std::string, std::vector<std::string>>
+  get_with_headers(const std::string &url,
+                   const std::vector<std::string> &headers) override {
+    (void)headers;
+    ++calls;
+    if (calls == 1) {
+      std::string body =
+          "[{\"number\":1,\"title\":\"Old\",\"created_at\":\"" + old_ts +
+          "\"},{\"number\":2,\"title\":\"New\",\"created_at\":\"" + recent1_ts +
+          "\"}]";
+      std::string next =
+          url + (url.find('?') == std::string::npos ? "?" : "&") + "page=2";
+      return {body, {"Link: <" + next + ">; rel=\"next\""}};
+    }
+    std::string body = "[{\"number\":3,\"title\":\"Newer\",\"created_at\":\"" +
+                       recent2_ts + "\"}]";
+    return {body, {}};
+  }
+
+  std::string get(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    return get_with_headers(url, headers).first;
+  }
+  std::string put(const std::string &url, const std::string &data,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)data;
+    (void)headers;
+    return "{}";
+  }
+  std::string del(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
+    return "";
+  }
+};
+
 int main() {
   // Test listing pull requests
   auto mock = std::make_unique<MockHttpClient>();
@@ -131,6 +183,35 @@ int main() {
                             std::unique_ptr<HttpClient>(mock_limit.release()));
   client_limit.list_pull_requests("owner", "repo", false, 10);
   assert(raw_limit->last_url.find("per_page=10") != std::string::npos);
+
+  using namespace std::chrono;
+  auto now = system_clock::now();
+  auto recent1 = now - minutes(30);
+  auto recent2 = now - minutes(20);
+  auto old = now - hours(5);
+  auto recent1_t = system_clock::to_time_t(recent1);
+  auto recent2_t = system_clock::to_time_t(recent2);
+  auto old_t = system_clock::to_time_t(old);
+  char recent_buf1[32];
+  char recent_buf2[32];
+  char old_buf[32];
+  std::strftime(recent_buf1, sizeof(recent_buf1), "%Y-%m-%dT%H:%M:%SZ",
+                std::gmtime(&recent1_t));
+  std::strftime(recent_buf2, sizeof(recent_buf2), "%Y-%m-%dT%H:%M:%SZ",
+                std::gmtime(&recent2_t));
+  std::strftime(old_buf, sizeof(old_buf), "%Y-%m-%dT%H:%M:%SZ",
+                std::gmtime(&old_t));
+  auto multi_http = std::make_unique<MultiPageHttpClient>(
+      std::string(old_buf), std::string(recent_buf1), std::string(recent_buf2));
+  MultiPageHttpClient *raw_multi = multi_http.get();
+  GitHubClient client_multi("tok",
+                            std::unique_ptr<HttpClient>(multi_http.release()));
+  auto multi_prs =
+      client_multi.list_pull_requests("me", "repo", false, 2, hours(1));
+  assert(multi_prs.size() == 2);
+  assert(multi_prs[0].number == 2);
+  assert(multi_prs[1].number == 3);
+  assert(raw_multi->calls == 2);
 
   // Test merging pull requests
   auto mock2 = std::make_unique<MockHttpClient>();

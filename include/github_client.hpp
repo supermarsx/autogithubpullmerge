@@ -7,6 +7,7 @@
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace agpm {
@@ -24,6 +25,19 @@ public:
    */
   virtual std::string get(const std::string &url,
                           const std::vector<std::string> &headers) = 0;
+
+  /**
+   * Perform a HTTP GET request returning both body and response headers.
+   *
+   * @param url Request URL
+   * @param headers Additional request headers
+   * @return Pair of response body and headers
+   */
+  virtual std::pair<std::string, std::vector<std::string>>
+  get_with_headers(const std::string &url,
+                   const std::vector<std::string> &headers) {
+    return {get(url, headers), {}};
+  }
 
   /**
    * Perform a HTTP PUT request.
@@ -77,6 +91,11 @@ public:
   /// @copydoc HttpClient::get()
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override;
+
+  /// @copydoc HttpClient::get_with_headers()
+  std::pair<std::string, std::vector<std::string>>
+  get_with_headers(const std::string &url,
+                   const std::vector<std::string> &headers) override;
 
   /// @copydoc HttpClient::put()
   std::string put(const std::string &url, const std::string &data,
