@@ -120,7 +120,7 @@ public:
       : old_ts(std::move(old_t)), recent1_ts(std::move(recent1_t)),
         recent2_ts(std::move(recent2_t)) {}
 
-  std::pair<std::string, std::vector<std::string>>
+  HttpResponse
   get_with_headers(const std::string &url,
                    const std::vector<std::string> &headers) override {
     (void)headers;
@@ -132,16 +132,16 @@ public:
           "\"}]";
       std::string next =
           url + (url.find('?') == std::string::npos ? "?" : "&") + "page=2";
-      return {body, {"Link: <" + next + ">; rel=\"next\""}};
+      return {body, {"Link: <" + next + ">; rel=\"next\""}, 200};
     }
     std::string body = "[{\"number\":3,\"title\":\"Newer\",\"created_at\":\"" +
                        recent2_ts + "\"}]";
-    return {body, {}};
+    return {body, {}, 200};
   }
 
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override {
-    return get_with_headers(url, headers).first;
+    return get_with_headers(url, headers).body;
   }
   std::string put(const std::string &url, const std::string &data,
                   const std::vector<std::string> &headers) override {

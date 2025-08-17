@@ -7,10 +7,16 @@
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace agpm {
+
+/** Simple HTTP response container. */
+struct HttpResponse {
+  std::string body;                 ///< Response body
+  std::vector<std::string> headers; ///< Response headers
+  long status_code = 0;             ///< HTTP status code
+};
 
 /** Interface for performing HTTP requests. */
 class HttpClient {
@@ -31,12 +37,12 @@ public:
    *
    * @param url Request URL
    * @param headers Additional request headers
-   * @return Pair of response body and headers
+   * @return Response body, headers and status code
    */
-  virtual std::pair<std::string, std::vector<std::string>>
+  virtual HttpResponse
   get_with_headers(const std::string &url,
                    const std::vector<std::string> &headers) {
-    return {get(url, headers), {}};
+    return {get(url, headers), {}, 200};
   }
 
   /**
@@ -98,7 +104,7 @@ public:
                   const std::vector<std::string> &headers) override;
 
   /// @copydoc HttpClient::get_with_headers()
-  std::pair<std::string, std::vector<std::string>>
+  HttpResponse
   get_with_headers(const std::string &url,
                    const std::vector<std::string> &headers) override;
 
@@ -194,6 +200,7 @@ private:
 
   bool repo_allowed(const std::string &repo) const;
   void enforce_delay();
+  bool handle_rate_limit(const HttpResponse &resp);
 };
 
 } // namespace agpm
