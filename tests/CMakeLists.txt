@@ -1,89 +1,172 @@
 add_executable(test_main test_main.cpp)
 
-target_link_libraries(test_main PRIVATE autogithubpullmerge_lib)
-add_test(NAME main_test COMMAND test_main)
+    target_link_libraries(test_main PRIVATE autogithubpullmerge_lib) add_test(
+        NAME main_test COMMAND test_main)
 
-add_executable(test_cli test_cli.cpp)
-target_link_libraries(test_cli PRIVATE autogithubpullmerge_lib)
-add_test(NAME cli_test COMMAND test_cli)
+        add_executable(test_cli test_cli.cpp) target_link_libraries(
+            test_cli PRIVATE
+                autogithubpullmerge_lib) add_test(NAME cli_test COMMAND
+                                                      test_cli)
 
-add_executable(test_config test_config.cpp)
-target_link_libraries(test_config PRIVATE autogithubpullmerge_lib)
-add_test(NAME config_test COMMAND test_config)
+            add_executable(test_config test_config.cpp) target_link_libraries(
+                test_config PRIVATE
+                    autogithubpullmerge_lib) add_test(NAME config_test COMMAND
+                                                          test_config)
 
-add_executable(test_config_manager test_config_manager.cpp)
-target_link_libraries(test_config_manager PRIVATE autogithubpullmerge_lib)
-add_test(NAME config_manager_test COMMAND test_config_manager)
+                add_executable(test_config_manager test_config_manager.cpp) target_link_libraries(
+                    test_config_manager PRIVATE
+                        autogithubpullmerge_lib) add_test(NAME config_manager_test
+                                                              COMMAND
+                                                                  test_config_manager)
 
-add_executable(test_github_client test_github_client.cpp)
-target_link_libraries(test_github_client PRIVATE autogithubpullmerge_lib)
-add_test(NAME github_client_test COMMAND test_github_client)
+                    add_executable(test_github_client test_github_client.cpp) target_link_libraries(
+                        test_github_client PRIVATE
+                            autogithubpullmerge_lib) add_test(NAME github_client_test
+                                                                  COMMAND
+                                                                      test_github_client)
 
-add_executable(test_github_client_behavior test_github_client_behavior.cpp)
-target_link_libraries(test_github_client_behavior PRIVATE autogithubpullmerge_lib)
-add_test(NAME github_client_behavior_test COMMAND test_github_client_behavior)
+                        add_executable(
+                            test_github_client_behavior test_github_client_behavior
+                                .cpp) target_link_libraries(test_github_client_behavior PRIVATE
+                                                                autogithubpullmerge_lib) add_test(NAME github_client_behavior_test
+                                                                                                      COMMAND
+                                                                                                          test_github_client_behavior)
 
-add_executable(test_history test_history.cpp)
-target_link_libraries(test_history PRIVATE autogithubpullmerge_lib)
-add_test(NAME history_test COMMAND test_history)
+                            add_executable(test_history test_history.cpp) target_link_libraries(
+                                test_history PRIVATE
+                                    autogithubpullmerge_lib) add_test(NAME history_test
+                                                                          COMMAND
+                                                                              test_history)
 
-add_executable(test_history_quotes test_history_quotes.cpp)
-target_link_libraries(test_history_quotes PRIVATE autogithubpullmerge_lib)
-add_test(NAME history_quotes_test COMMAND test_history_quotes)
+                                add_executable(
+                                    test_history_quotes test_history_quotes
+                                        .cpp) target_link_libraries(test_history_quotes
+                                                                        PRIVATE
+                                                                            autogithubpullmerge_lib)
+                                    add_test(NAME history_quotes_test COMMAND
+                                                 test_history_quotes)
 
-add_executable(test_tui test_tui.cpp)
-target_link_libraries(test_tui PRIVATE autogithubpullmerge_lib)
-add_test(NAME tui_test COMMAND test_tui)
+                                        add_executable(test_tui test_tui.cpp) target_link_libraries(
+                                            test_tui PRIVATE
+                                                autogithubpullmerge_lib) add_test(NAME tui_test
+                                                                                      COMMAND
+                                                                                          test_tui)
 
-add_executable(test_github_filter test_github_filter.cpp)
-target_link_libraries(test_github_filter PRIVATE autogithubpullmerge_lib)
-add_test(NAME github_filter_test COMMAND test_github_filter)
+                                            add_executable(
+                                                test_github_filter test_github_filter
+                                                    .cpp) target_link_libraries(test_github_filter PRIVATE autogithubpullmerge_lib)
+                                                add_test(NAME github_filter_test COMMAND
+                                                             test_github_filter)
 
-add_executable(test_poller test_poller.cpp)
-target_link_libraries(test_poller PRIVATE autogithubpullmerge_lib)
-add_test(NAME poller_test COMMAND test_poller)
+                                                    add_executable(
+                                                        test_poller
+                                                            test_poller.cpp) target_link_libraries(test_poller PRIVATE
+                                                                                                       autogithubpullmerge_lib)
+                                                        add_test(
+                                                            NAME poller_test
+                                                                COMMAND
+                                                                    test_poller)
 
-add_executable(test_pr_since test_pr_since.cpp)
-target_link_libraries(test_pr_since PRIVATE autogithubpullmerge_lib)
-add_test(NAME pr_since_test COMMAND test_pr_since)
+                                                            add_executable(
+                                                                test_pr_since test_pr_since
+                                                                    .cpp) target_link_libraries(test_pr_since PRIVATE autogithubpullmerge_lib)
+                                                                add_test(
+                                                                    NAME pr_since_test COMMAND
+                                                                        test_pr_since)
 
-add_executable(test_cli_tokens test_cli_tokens.cpp)
-target_link_libraries(test_cli_tokens PRIVATE autogithubpullmerge_lib)
-add_test(NAME cli_tokens_test COMMAND test_cli_tokens)
+                                                                    add_executable(
+                                                                        test_sort test_sort
+                                                                            .cpp) target_link_libraries(test_sort PRIVATE autogithubpullmerge_lib)
+                                                                        add_test(
+                                                                            NAME sort_test COMMAND
+                                                                                test_sort)
 
-add_executable(test_config_loading test_config_loading.cpp)
-target_link_libraries(test_config_loading PRIVATE autogithubpullmerge_lib)
-add_test(NAME config_loading_test COMMAND test_config_loading)
+                                                                            add_executable(
+                                                                                test_cli_tokens
+                                                                                    test_cli_tokens
+                                                                                        .cpp)
+                                                                                target_link_libraries(
+                                                                                    test_cli_tokens
+                                                                                        PRIVATE
+                                                                                            autogithubpullmerge_lib)
+                                                                                    add_test(
+                                                                                        NAME cli_tokens_test
+                                                                                            COMMAND
+                                                                                                test_cli_tokens)
 
-add_executable(test_github_client_headers test_github_client_headers.cpp)
-target_link_libraries(test_github_client_headers PRIVATE autogithubpullmerge_lib)
-add_test(NAME github_client_headers_test COMMAND test_github_client_headers)
-add_executable(test_github_client_delay test_github_client_delay.cpp)
-target_link_libraries(test_github_client_delay PRIVATE autogithubpullmerge_lib)
-add_test(NAME github_client_delay_test COMMAND test_github_client_delay)
-add_executable(test_github_client_retry test_github_client_retry.cpp)
-target_link_libraries(test_github_client_retry PRIVATE autogithubpullmerge_lib)
-add_test(NAME github_client_retry_test COMMAND test_github_client_retry)
+                                                                                        add_executable(
+                                                                                            test_config_loading
+                                                                                                test_config_loading
+                                                                                                    .cpp)
+                                                                                            target_link_libraries(
+                                                                                                test_config_loading
+                                                                                                    PRIVATE
+                                                                                                        autogithubpullmerge_lib)
+                                                                                                add_test(
+                                                                                                    NAME config_loading_test
+                                                                                                        COMMAND
+                                                                                                            test_config_loading)
 
-add_executable(test_github_client_accept test_github_client_accept.cpp)
-target_link_libraries(test_github_client_accept PRIVATE autogithubpullmerge_lib)
-add_test(NAME github_client_accept_test COMMAND test_github_client_accept)
-add_executable(test_history_merge test_history_merge.cpp)
-target_link_libraries(test_history_merge PRIVATE autogithubpullmerge_lib)
-add_test(NAME history_merge_test COMMAND test_history_merge)
+                                                                                                    add_executable(
+                                                                                                        test_github_client_headers
+                                                                                                            test_github_client_headers
+                                                                                                                .cpp) target_link_libraries(test_github_client_headers PRIVATE autogithubpullmerge_lib) add_test(NAME
+                                                                                                                                                                                                                     github_client_headers_test COMMAND test_github_client_headers) add_executable(test_github_client_delay test_github_client_delay
+                                                                                                                                                                                                                                                                                                       .cpp) target_link_libraries(test_github_client_delay PRIVATE autogithubpullmerge_lib) add_test(NAME github_client_delay_test COMMAND
+                                                                                                                                                                                                                                                                                                                                                                                                          test_github_client_delay) add_executable(test_github_client_retry
+                                                                                                                                                                                                                                                                                                                                                                                                                                                       test_github_client_retry
+                                                                                                                                                                                                                                                                                                                                                                                                                                                           .cpp) target_link_libraries(test_github_client_retry PRIVATE
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           autogithubpullmerge_lib) add_test(NAME
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 github_client_retry_test
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     COMMAND
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         test_github_client_retry)
 
-add_executable(test_github_poller test_github_poller.cpp)
-target_link_libraries(test_github_poller PRIVATE autogithubpullmerge_lib)
-add_test(NAME github_poller_test COMMAND test_github_poller)
+                                                                                                        add_executable(
+                                                                                                            test_github_client_accept test_github_client_accept
+                                                                                                                .cpp) target_link_libraries(test_github_client_accept PRIVATE
+                                                                                                                                                autogithubpullmerge_lib) add_test(NAME
+                                                                                                                                                                                      github_client_accept_test
+                                                                                                                                                                                          COMMAND test_github_client_accept) add_executable(test_history_merge
+                                                                                                                                                                                                                                                test_history_merge
+                                                                                                                                                                                                                                                    .cpp) target_link_libraries(test_history_merge PRIVATE
+                                                                                                                                                                                                                                                                                    autogithubpullmerge_lib) add_test(NAME history_merge_test
+                                                                                                                                                                                                                                                                                                                          COMMAND
+                                                                                                                                                                                                                                                                                                                              test_history_merge)
 
-add_executable(test_branch_cleanup test_branch_cleanup.cpp)
-target_link_libraries(test_branch_cleanup PRIVATE autogithubpullmerge_lib)
-add_test(NAME branch_cleanup_test COMMAND test_branch_cleanup)
+                                                                                                            add_executable(
+                                                                                                                test_github_poller
+                                                                                                                    test_github_poller
+                                                                                                                        .cpp) target_link_libraries(test_github_poller PRIVATE autogithubpullmerge_lib) add_test(NAME
+                                                                                                                                                                                                                     github_poller_test COMMAND test_github_poller)
 
-add_executable(test_auto_merge test_auto_merge.cpp)
-target_link_libraries(test_auto_merge PRIVATE autogithubpullmerge_lib)
-add_test(NAME auto_merge_test COMMAND test_auto_merge)
+                                                                                                                add_executable(
+                                                                                                                    test_branch_cleanup test_branch_cleanup
+                                                                                                                        .cpp) target_link_libraries(test_branch_cleanup PRIVATE autogithubpullmerge_lib)
+                                                                                                                    add_test(
+                                                                                                                        NAME branch_cleanup_test
+                                                                                                                            COMMAND
+                                                                                                                                test_branch_cleanup)
 
-add_executable(test_log test_log.cpp)
-target_link_libraries(test_log PRIVATE autogithubpullmerge_lib)
-add_test(NAME log_test COMMAND test_log)
+                                                                                                                        add_executable(
+                                                                                                                            test_auto_merge
+                                                                                                                                test_auto_merge
+                                                                                                                                    .cpp)
+                                                                                                                            target_link_libraries(
+                                                                                                                                test_auto_merge
+                                                                                                                                    PRIVATE
+                                                                                                                                        autogithubpullmerge_lib)
+                                                                                                                                add_test(
+                                                                                                                                    NAME auto_merge_test
+                                                                                                                                        COMMAND
+                                                                                                                                            test_auto_merge)
+
+                                                                                                                                    add_executable(
+                                                                                                                                        test_log test_log
+                                                                                                                                            .cpp)
+                                                                                                                                        target_link_libraries(
+                                                                                                                                            test_log PRIVATE
+                                                                                                                                                autogithubpullmerge_lib)
+                                                                                                                                            add_test(
+                                                                                                                                                NAME log_test
+                                                                                                                                                    COMMAND
+                                                                                                                                                        test_log)

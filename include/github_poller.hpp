@@ -26,7 +26,7 @@ public:
                int interval_ms, int max_rate, bool only_poll_prs = false,
                bool only_poll_stray = false, bool reject_dirty = false,
                std::string purge_prefix = "", bool auto_merge = false,
-               bool purge_only = false);
+               bool purge_only = false, std::string sort_mode = "");
 
   /// Start polling in a background thread.
   void start();
@@ -55,6 +55,7 @@ private:
   std::string purge_prefix_;
   bool auto_merge_;
   bool purge_only_;
+  std::string sort_mode_;
 
   std::function<void(const std::vector<PullRequest> &)> pr_cb_;
   std::function<void(const std::string &)> log_cb_;

@@ -36,7 +36,8 @@ struct CliOptions {
   bool purge_only = false; ///< Only purge branches, skip PR polling
   int pr_limit{50};        ///< Number of pull requests to fetch
   std::chrono::seconds pr_since{
-      0}; ///< Only list pull requests newer than this duration
+      0};           ///< Only list pull requests newer than this duration
+  std::string sort; ///< Sorting mode for pull requests
 };
 
 /**

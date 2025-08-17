@@ -22,6 +22,7 @@ int main() {
     f << "purge_prefix: tmp/\n";
     f << "pr_limit: 25\n";
     f << "pr_since: 2h\n";
+    f << "sort: reverse\n";
     f.close();
   }
   agpm::Config yaml_cfg = agpm::Config::from_file("cfg.yaml");
@@ -42,6 +43,7 @@ int main() {
   assert(yaml_cfg.purge_prefix() == "tmp/");
   assert(yaml_cfg.pr_limit() == 25);
   assert(yaml_cfg.pr_since() == std::chrono::hours(2));
+  assert(yaml_cfg.sort_mode() == "reverse");
 
   // JSON config with extended options
   {
@@ -58,7 +60,8 @@ int main() {
     f << "\"only_poll_stray\":true,";
     f << "\"purge_prefix\":\"test/\",";
     f << "\"pr_limit\":30,";
-    f << "\"pr_since\":\"15m\"";
+    f << "\"pr_since\":\"15m\",";
+    f << "\"sort\":\"alphanum\"";
     f << "}";
     f.close();
   }
@@ -77,6 +80,7 @@ int main() {
   assert(json_cfg.purge_prefix() == "test/");
   assert(json_cfg.pr_limit() == 30);
   assert(json_cfg.pr_since() == std::chrono::minutes(15));
+  assert(json_cfg.sort_mode() == "alphanum");
 
   return 0;
 }

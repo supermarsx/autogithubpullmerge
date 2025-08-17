@@ -1,4 +1,5 @@
 #include "github_poller.hpp"
+#include "sort.hpp"
 
 namespace agpm {
 
@@ -6,12 +7,14 @@ GitHubPoller::GitHubPoller(
     GitHubClient &client,
     std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
     int max_rate, bool only_poll_prs, bool only_poll_stray, bool reject_dirty,
-    std::string purge_prefix, bool auto_merge, bool purge_only)
+    std::string purge_prefix, bool auto_merge, bool purge_only,
+    std::string sort_mode)
     : client_(client), repos_(std::move(repos)),
       poller_([this] { poll(); }, interval_ms, max_rate),
       only_poll_prs_(only_poll_prs), only_poll_stray_(only_poll_stray),
       reject_dirty_(reject_dirty), purge_prefix_(std::move(purge_prefix)),
-      auto_merge_(auto_merge), purge_only_(purge_only) {}
+      auto_merge_(auto_merge), purge_only_(purge_only),
+      sort_mode_(std::move(sort_mode)) {}
 
 void GitHubPoller::start() { poller_.start(); }
 
@@ -57,6 +60,7 @@ void GitHubPoller::poll() {
       }
     }
   }
+  sort_pull_requests(all_prs, sort_mode_);
   if (pr_cb_) {
     pr_cb_(all_prs);
   }

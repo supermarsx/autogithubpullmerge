@@ -176,6 +176,12 @@ public:
   /// Set duration for filtering pull requests.
   void set_pr_since(std::chrono::seconds since) { pr_since_ = since; }
 
+  /// Sorting mode for pull request listing.
+  const std::string &sort_mode() const { return sort_mode_; }
+
+  /// Set sorting mode for pull request listing.
+  void set_sort_mode(const std::string &mode) { sort_mode_ = mode; }
+
   /// Load configuration from the file at `path`.
   static Config from_file(const std::string &path);
 
@@ -203,6 +209,7 @@ private:
   std::string purge_prefix_;
   int pr_limit_ = 50;
   std::chrono::seconds pr_since_{0};
+  std::string sort_mode_;
   int http_timeout_ = 30;
   int http_retries_ = 3;
 };
