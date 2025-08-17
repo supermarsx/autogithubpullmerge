@@ -33,14 +33,29 @@ static size_t write_callback(void *contents, size_t size, size_t nmemb,
   return total;
 }
 
-std::string CurlHttpClient::get(const std::string &url,
-                                const std::vector<std::string> &headers) {
+static size_t header_callback(char *buffer, size_t size, size_t nitems,
+                              void *userdata) {
+  size_t total = size * nitems;
+  std::string line(buffer, total);
+  while (!line.empty() && (line.back() == '\r' || line.back() == '\n'))
+    line.pop_back();
+  auto *hdrs = static_cast<std::vector<std::string> *>(userdata);
+  hdrs->push_back(line);
+  return total;
+}
+
+std::pair<std::string, std::vector<std::string>>
+CurlHttpClient::get_with_headers(const std::string &url,
+                                 const std::vector<std::string> &headers) {
   CURL *curl = curl_.get();
   curl_easy_reset(curl);
   std::string response;
+  std::vector<std::string> resp_headers;
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
+  curl_easy_setopt(curl, CURLOPT_HEADERDATA, &resp_headers);
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
   struct curl_slist *header_list = nullptr;
@@ -58,7 +73,12 @@ std::string CurlHttpClient::get(const std::string &url,
     spdlog::error("curl GET {} failed with HTTP code {}", url, http_code);
     throw std::runtime_error("curl GET failed");
   }
-  return response;
+  return {response, resp_headers};
+}
+
+std::string CurlHttpClient::get(const std::string &url,
+                                const std::vector<std::string> &headers) {
+  return get_with_headers(url, headers).first;
 }
 
 std::string CurlHttpClient::put(const std::string &url, const std::string &data,
@@ -152,62 +172,89 @@ GitHubClient::list_pull_requests(const std::string &owner,
   if (!repo_allowed(repo)) {
     return {};
   }
-  enforce_delay();
+  int limit = per_page > 0 ? per_page : 50;
   std::string url =
       "https://api.github.com/repos/" + owner + "/" + repo + "/pulls";
   std::string query;
   if (include_merged) {
     query += "state=all";
   }
-  if (per_page > 0) {
+  if (limit > 0) {
     if (!query.empty())
       query += "&";
-    query += "per_page=" + std::to_string(per_page);
+    query += "per_page=" + std::to_string(limit);
   }
   if (!query.empty()) {
     url += "?" + query;
   }
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
-  std::string resp;
-  try {
-    resp = http_->get(url, headers);
-  } catch (const std::exception &e) {
-    spdlog::error("HTTP GET failed: {}", e.what());
-    return {};
-  }
-  nlohmann::json j;
-  try {
-    j = nlohmann::json::parse(resp);
-  } catch (const std::exception &e) {
-    spdlog::error("Failed to parse pull request list: {}", e.what());
-    return {};
-  }
-  std::vector<PullRequest> prs;
   auto cutoff = std::chrono::system_clock::now() - since;
-  for (const auto &item : j) {
-    std::string ts;
-    if (item.contains("created_at"))
-      ts = item["created_at"].get<std::string>();
-    std::tm tm{};
-    std::chrono::system_clock::time_point created =
-        std::chrono::system_clock::now();
-    if (!ts.empty()) {
-      std::istringstream ss(ts);
-      ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
-#ifdef _WIN32
-      std::time_t t = _mkgmtime(&tm);
-#else
-      std::time_t t = timegm(&tm);
-#endif
-      created = std::chrono::system_clock::from_time_t(t);
+  std::vector<PullRequest> prs;
+  while (true) {
+    enforce_delay();
+    std::pair<std::string, std::vector<std::string>> res;
+    try {
+      res = http_->get_with_headers(url, headers);
+    } catch (const std::exception &e) {
+      spdlog::error("HTTP GET failed: {}", e.what());
+      break;
     }
-    if (since.count() > 0 && created < cutoff)
-      continue;
-    PullRequest pr;
-    pr.number = item["number"].get<int>();
-    pr.title = item["title"].get<std::string>();
-    prs.push_back(pr);
+    nlohmann::json j;
+    try {
+      j = nlohmann::json::parse(res.first);
+    } catch (const std::exception &e) {
+      spdlog::error("Failed to parse pull request list: {}", e.what());
+      break;
+    }
+    for (const auto &item : j) {
+      std::string ts;
+      if (item.contains("created_at"))
+        ts = item["created_at"].get<std::string>();
+      std::tm tm{};
+      std::chrono::system_clock::time_point created =
+          std::chrono::system_clock::now();
+      if (!ts.empty()) {
+        std::istringstream ss(ts);
+        ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
+#ifdef _WIN32
+        std::time_t t = _mkgmtime(&tm);
+#else
+        std::time_t t = timegm(&tm);
+#endif
+        created = std::chrono::system_clock::from_time_t(t);
+      }
+      if (since.count() > 0 && created < cutoff)
+        continue;
+      PullRequest pr;
+      pr.number = item["number"].get<int>();
+      pr.title = item["title"].get<std::string>();
+      prs.push_back(pr);
+      if (static_cast<int>(prs.size()) >= limit)
+        break;
+    }
+    if (static_cast<int>(prs.size()) >= limit)
+      break;
+    std::string next_url;
+    for (const auto &h : res.second) {
+      if (h.rfind("Link:", 0) == 0) {
+        std::string links = h.substr(5);
+        std::stringstream ss(links);
+        std::string part;
+        while (std::getline(ss, part, ',')) {
+          if (part.find("rel=\"next\"") != std::string::npos) {
+            auto start = part.find('<');
+            auto end = part.find('>', start);
+            if (start != std::string::npos && end != std::string::npos) {
+              next_url = part.substr(start + 1, end - start - 1);
+            }
+          }
+        }
+      }
+    }
+    if (next_url.empty())
+      break;
+    url = next_url;
   }
   return prs;
 }
