@@ -54,6 +54,12 @@ Config Config::from_file(const std::string &path) {
     if (node["max_request_rate"]) {
       cfg.set_max_request_rate(node["max_request_rate"].as<int>());
     }
+    if (node["http_timeout"]) {
+      cfg.set_http_timeout(node["http_timeout"].as<int>());
+    }
+    if (node["http_retries"]) {
+      cfg.set_http_retries(node["http_retries"].as<int>());
+    }
     if (node["log_level"]) {
       cfg.set_log_level(node["log_level"].as<std::string>());
     }
@@ -132,6 +138,12 @@ Config Config::from_file(const std::string &path) {
     }
     if (j.contains("max_request_rate")) {
       cfg.set_max_request_rate(j["max_request_rate"].get<int>());
+    }
+    if (j.contains("http_timeout")) {
+      cfg.set_http_timeout(j["http_timeout"].get<int>());
+    }
+    if (j.contains("http_retries")) {
+      cfg.set_http_retries(j["http_retries"].get<int>());
     }
     if (j.contains("log_level")) {
       cfg.set_log_level(j["log_level"].get<std::string>());

@@ -33,7 +33,12 @@ int main(int argc, char **argv) {
       max_rate = 60;
     int delay_ms = max_rate > 0 ? 60000 / max_rate : 0;
 
-    agpm::GitHubClient client(token, nullptr, include, exclude, delay_ms);
+    int http_timeout =
+        opts.http_timeout != 30 ? opts.http_timeout : cfg.http_timeout();
+    int http_retries =
+        opts.http_retries != 3 ? opts.http_retries : cfg.http_retries();
+    agpm::GitHubClient client(token, nullptr, include, exclude, delay_ms,
+                              http_timeout * 1000, http_retries);
 
     int interval =
         opts.poll_interval != 0 ? opts.poll_interval : cfg.poll_interval();

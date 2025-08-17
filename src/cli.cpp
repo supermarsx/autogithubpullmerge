@@ -216,6 +216,16 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("RATE")
       ->default_val("60")
       ->group("Polling");
+  app.add_option("--http-timeout", options.http_timeout,
+                 "HTTP request timeout in seconds")
+      ->type_name("SECONDS")
+      ->default_val("30")
+      ->group("Networking");
+  app.add_option("--http-retries", options.http_retries,
+                 "Number of HTTP retry attempts")
+      ->type_name("N")
+      ->default_val("3")
+      ->group("Networking");
   app.add_option("--pr-limit", options.pr_limit,
                  "Number of pull requests to fetch")
       ->type_name("N")

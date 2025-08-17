@@ -28,6 +28,18 @@ public:
   /// Set maximum request rate.
   void set_max_request_rate(int rate) { max_request_rate_ = rate; }
 
+  /// HTTP request timeout in seconds.
+  int http_timeout() const { return http_timeout_; }
+
+  /// Set HTTP request timeout.
+  void set_http_timeout(int t) { http_timeout_ = t; }
+
+  /// Number of HTTP retry attempts.
+  int http_retries() const { return http_retries_; }
+
+  /// Set number of HTTP retry attempts.
+  void set_http_retries(int r) { http_retries_ = r; }
+
   /// Get logging verbosity level.
   const std::string &log_level() const { return log_level_; }
 
@@ -191,6 +203,8 @@ private:
   std::string purge_prefix_;
   int pr_limit_ = 50;
   std::chrono::seconds pr_since_{0};
+  int http_timeout_ = 30;
+  int http_retries_ = 3;
 };
 
 } // namespace agpm
