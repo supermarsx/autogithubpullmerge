@@ -41,6 +41,8 @@ std::string CurlHttpClient::get(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
   struct curl_slist *header_list = nullptr;
   for (const auto &h : headers) {
     header_list = curl_slist_append(header_list, h.c_str());
@@ -69,6 +71,8 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
   struct curl_slist *header_list = nullptr;
   for (const auto &h : headers) {
     header_list = curl_slist_append(header_list, h.c_str());
@@ -96,6 +100,8 @@ std::string CurlHttpClient::del(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
   struct curl_slist *header_list = nullptr;
   for (const auto &h : headers) {
     header_list = curl_slist_append(header_list, h.c_str());
