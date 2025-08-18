@@ -11,6 +11,8 @@ int main() {
   j["log_level"] = "debug";
   j["include_repos"] = {"a", "b"};
   j["pr_since"] = "5m";
+  j["http_timeout"] = 40;
+  j["http_retries"] = 5;
 
   agpm::Config cfg = agpm::Config::from_json(j);
 
@@ -20,6 +22,8 @@ int main() {
   assert(cfg.log_level() == "debug");
   assert(cfg.include_repos().size() == 2);
   assert(cfg.pr_since() == std::chrono::minutes(5));
+  assert(cfg.http_timeout() == 40);
+  assert(cfg.http_retries() == 5);
 
   return 0;
 }
