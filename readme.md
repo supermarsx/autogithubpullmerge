@@ -136,6 +136,10 @@ API keys can be provided in several ways:
 - `--api-key-from-stream` to read tokens from standard input
 - `--api-key-url` to fetch tokens from a remote URL with optional basic auth
 - `--api-key-file` to load tokens from a JSON or YAML file
+- if no other tokens are supplied, `GITHUB_TOKEN` (or `AGPM_API_KEY`) from the
+  environment is used
+- explicit CLI options, files, URLs or stdin tokens override the environment
+  variable
 
 ## Polling Options
 
