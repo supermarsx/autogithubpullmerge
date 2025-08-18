@@ -40,6 +40,10 @@ add_executable(test_tui_merge test_tui_merge.cpp)
 target_link_libraries(test_tui_merge PRIVATE autogithubpullmerge_lib)
 add_test(NAME tui_merge_test COMMAND test_tui_merge)
 
+add_executable(test_tui_log_limit test_tui_log_limit.cpp)
+target_link_libraries(test_tui_log_limit PRIVATE autogithubpullmerge_lib)
+add_test(NAME tui_log_limit_test COMMAND test_tui_log_limit)
+
 add_executable(test_github_filter test_github_filter.cpp)
 target_link_libraries(test_github_filter PRIVATE autogithubpullmerge_lib)
 add_test(NAME github_filter_test COMMAND test_github_filter)
