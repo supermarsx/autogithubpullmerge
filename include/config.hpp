@@ -2,6 +2,7 @@
 #define AUTOGITHUBPULLMERGE_CONFIG_HPP
 
 #include <chrono>
+#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <vector>
 
@@ -184,6 +185,9 @@ public:
 
   /// Load configuration from the file at `path`.
   static Config from_file(const std::string &path);
+
+  /// Build configuration from a JSON object.
+  static Config from_json(const nlohmann::json &j);
 
 private:
   bool verbose_ = false;

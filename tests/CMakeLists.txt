@@ -64,6 +64,10 @@ add_executable(test_config_loading test_config_loading.cpp)
 target_link_libraries(test_config_loading PRIVATE autogithubpullmerge_lib)
 add_test(NAME config_loading_test COMMAND test_config_loading)
 
+add_executable(test_config_from_json test_config_from_json.cpp)
+target_link_libraries(test_config_from_json PRIVATE autogithubpullmerge_lib)
+add_test(NAME config_from_json_test COMMAND test_config_from_json)
+
 add_executable(test_github_client_headers test_github_client_headers.cpp)
 target_link_libraries(test_github_client_headers
                       PRIVATE autogithubpullmerge_lib)
