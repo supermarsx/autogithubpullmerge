@@ -189,6 +189,9 @@ public:
   /// Build configuration from a JSON object.
   static Config from_json(const nlohmann::json &j);
 
+  /// Populate this configuration from a JSON object.
+  void load_json(const nlohmann::json &j);
+
 private:
   bool verbose_ = false;
   int poll_interval_ = 0;
