@@ -407,42 +407,64 @@ void GitHubClient::cleanup_branches(const std::string &owner,
   if (!repo_allowed(repo) || prefix.empty()) {
     return;
   }
-  enforce_delay();
   std::string url = "https://api.github.com/repos/" + owner + "/" + repo +
                     "/pulls?state=closed";
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
-  std::string resp;
-  try {
-    resp = http_->get(url, headers);
-  } catch (const std::exception &e) {
-    spdlog::error("Failed to fetch pull requests for cleanup: {}", e.what());
-    return;
-  }
-  nlohmann::json j;
-  try {
-    j = nlohmann::json::parse(resp);
-  } catch (const std::exception &e) {
-    spdlog::error("Failed to parse pull requests for cleanup: {}", e.what());
-    return;
-  }
-  if (!j.is_array()) {
-    return;
-  }
-  for (const auto &item : j) {
-    if (item.contains("head") && item["head"].contains("ref")) {
-      std::string branch = item["head"]["ref"].get<std::string>();
-      if (branch.rfind(prefix, 0) == 0) {
-        enforce_delay();
-        std::string del_url = "https://api.github.com/repos/" + owner + "/" +
-                              repo + "/git/refs/heads/" + branch;
-        try {
-          (void)http_->del(del_url, headers);
-        } catch (const std::exception &e) {
-          spdlog::error("Failed to delete branch {}: {}", branch, e.what());
+  while (true) {
+    enforce_delay();
+    HttpResponse res;
+    try {
+      res = http_->get_with_headers(url, headers);
+    } catch (const std::exception &e) {
+      spdlog::error("Failed to fetch pull requests for cleanup: {}", e.what());
+      return;
+    }
+    nlohmann::json j;
+    try {
+      j = nlohmann::json::parse(res.body);
+    } catch (const std::exception &e) {
+      spdlog::error("Failed to parse pull requests for cleanup: {}", e.what());
+      return;
+    }
+    if (!j.is_array()) {
+      return;
+    }
+    for (const auto &item : j) {
+      if (item.contains("head") && item["head"].contains("ref")) {
+        std::string branch = item["head"]["ref"].get<std::string>();
+        if (branch.rfind(prefix, 0) == 0) {
+          enforce_delay();
+          std::string del_url = "https://api.github.com/repos/" + owner + "/" +
+                                repo + "/git/refs/heads/" + branch;
+          try {
+            (void)http_->del(del_url, headers);
+          } catch (const std::exception &e) {
+            spdlog::error("Failed to delete branch {}: {}", branch, e.what());
+          }
         }
       }
     }
+    std::string next_url;
+    for (const auto &h : res.headers) {
+      if (h.rfind("Link:", 0) == 0) {
+        std::string links = h.substr(5);
+        std::stringstream ss(links);
+        std::string part;
+        while (std::getline(ss, part, ',')) {
+          if (part.find("rel=\"next\"") != std::string::npos) {
+            auto start = part.find('<');
+            auto end = part.find('>', start);
+            if (start != std::string::npos && end != std::string::npos) {
+              next_url = part.substr(start + 1, end - start - 1);
+            }
+          }
+        }
+      }
+    }
+    if (next_url.empty())
+      break;
+    url = next_url;
   }
 }
 
@@ -476,69 +498,90 @@ void GitHubClient::close_dirty_branches(const std::string &owner,
   }
   std::string default_branch = repo_json["default_branch"].get<std::string>();
 
-  // Retrieve branches for the repository.
-  enforce_delay();
-  std::string branches_url = repo_url + "/branches";
-  std::string branches_resp;
-  try {
-    branches_resp = http_->get(branches_url, headers);
-  } catch (const std::exception &e) {
-    spdlog::error("Failed to fetch branches: {}", e.what());
-    return;
-  }
-  nlohmann::json branches_json;
-  try {
-    branches_json = nlohmann::json::parse(branches_resp);
-  } catch (const std::exception &e) {
-    spdlog::error("Failed to parse branches list: {}", e.what());
-    return;
-  }
-  if (!branches_json.is_array()) {
-    return;
-  }
-
-  for (const auto &b : branches_json) {
-    if (!b.contains("name")) {
-      continue;
-    }
-    std::string branch = b["name"].get<std::string>();
-    if (branch == default_branch) {
-      continue;
-    }
-    // Compare branch with default branch to detect divergence.
+  std::string url = repo_url + "/branches";
+  while (true) {
     enforce_delay();
-    std::string compare_url =
-        repo_url + "/compare/" + default_branch + "..." + branch;
-    std::string compare_resp;
+    HttpResponse res;
     try {
-      compare_resp = http_->get(compare_url, headers);
+      res = http_->get_with_headers(url, headers);
     } catch (const std::exception &e) {
-      spdlog::error("Failed to compare branch {}: {}", branch, e.what());
-      continue;
+      spdlog::error("Failed to fetch branches: {}", e.what());
+      return;
     }
-    nlohmann::json compare_json;
+    nlohmann::json branches_json;
     try {
-      compare_json = nlohmann::json::parse(compare_resp);
+      branches_json = nlohmann::json::parse(res.body);
     } catch (const std::exception &e) {
-      spdlog::error("Failed to parse compare JSON for branch {}: {}", branch,
-                    e.what());
-      continue;
+      spdlog::error("Failed to parse branches list: {}", e.what());
+      return;
     }
-    if (!compare_json.is_object()) {
-      continue;
+    if (!branches_json.is_array()) {
+      return;
     }
-    int ahead_by = compare_json.value("ahead_by", 0);
-    std::string status = compare_json.value("status", "");
-    if (ahead_by > 0 && (status == "ahead" || status == "diverged")) {
-      // Branch has unmerged commits; delete it to reject dirty branch.
+
+    for (const auto &b : branches_json) {
+      if (!b.contains("name")) {
+        continue;
+      }
+      std::string branch = b["name"].get<std::string>();
+      if (branch == default_branch) {
+        continue;
+      }
+      // Compare branch with default branch to detect divergence.
       enforce_delay();
-      std::string del_url = repo_url + "/git/refs/heads/" + branch;
+      std::string compare_url =
+          repo_url + "/compare/" + default_branch + "..." + branch;
+      std::string compare_resp;
       try {
-        (void)http_->del(del_url, headers);
+        compare_resp = http_->get(compare_url, headers);
       } catch (const std::exception &e) {
-        spdlog::error("Failed to delete branch {}: {}", branch, e.what());
+        spdlog::error("Failed to compare branch {}: {}", branch, e.what());
+        continue;
+      }
+      nlohmann::json compare_json;
+      try {
+        compare_json = nlohmann::json::parse(compare_resp);
+      } catch (const std::exception &e) {
+        spdlog::error("Failed to parse compare JSON for branch {}: {}", branch,
+                      e.what());
+        continue;
+      }
+      if (!compare_json.is_object()) {
+        continue;
+      }
+      int ahead_by = compare_json.value("ahead_by", 0);
+      std::string status = compare_json.value("status", "");
+      if (ahead_by > 0 && (status == "ahead" || status == "diverged")) {
+        // Branch has unmerged commits; delete it to reject dirty branch.
+        enforce_delay();
+        std::string del_url = repo_url + "/git/refs/heads/" + branch;
+        try {
+          (void)http_->del(del_url, headers);
+        } catch (const std::exception &e) {
+          spdlog::error("Failed to delete branch {}: {}", branch, e.what());
+        }
       }
     }
+    std::string next_url;
+    for (const auto &h : res.headers) {
+      if (h.rfind("Link:", 0) == 0) {
+        std::string links = h.substr(5);
+        std::stringstream ss(links);
+        std::string part;
+        while (std::getline(ss, part, ',')) {
+          if (part.find("rel=\"next\"") != std::string::npos) {
+            auto start = part.find('<');
+            auto end = part.find('>', start);
+            if (start != std::string::npos && end != std::string::npos) {
+              next_url = part.substr(start + 1, end - start - 1);
+            }
+          }
+        }
+      }
+    }
+    if (next_url.empty())
+      break;
+    url = next_url;
   }
 }
 
