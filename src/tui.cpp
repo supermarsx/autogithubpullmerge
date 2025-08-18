@@ -12,6 +12,10 @@
 
 namespace agpm {
 
+namespace {
+constexpr std::size_t kMaxLogs = 200;
+} // namespace
+
 Tui::Tui(GitHubClient &client, GitHubPoller &poller)
     : client_(client), poller_(poller) {
   poller_.set_pr_callback(
@@ -44,7 +48,12 @@ void Tui::update_prs(const std::vector<PullRequest> &prs) {
   }
 }
 
-void Tui::log(const std::string &msg) { logs_.push_back(msg); }
+void Tui::log(const std::string &msg) {
+  logs_.push_back(msg);
+  if (logs_.size() > kMaxLogs) {
+    logs_.erase(logs_.begin(), logs_.begin() + (logs_.size() - kMaxLogs));
+  }
+}
 
 void Tui::draw() {
   int h, w;
