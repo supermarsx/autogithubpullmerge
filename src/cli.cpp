@@ -209,6 +209,13 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("DURATION")
       ->default_val("0")
       ->group("Polling");
+  app.add_option(
+         "--sort", options.sort,
+         "Sort pull requests: alpha, reverse, alphanum, reverse-alphanum")
+      ->type_name("MODE")
+      ->check(
+          CLI::IsMember({"alpha", "reverse", "alphanum", "reverse-alphanum"}))
+      ->group("Polling");
   app.add_flag("--only-poll-prs", options.only_poll_prs,
                "Only poll pull requests")
       ->group("Polling");

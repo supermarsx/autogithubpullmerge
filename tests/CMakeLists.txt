@@ -20,7 +20,8 @@ target_link_libraries(test_github_client PRIVATE autogithubpullmerge_lib)
 add_test(NAME github_client_test COMMAND test_github_client)
 
 add_executable(test_github_client_behavior test_github_client_behavior.cpp)
-target_link_libraries(test_github_client_behavior PRIVATE autogithubpullmerge_lib)
+target_link_libraries(test_github_client_behavior
+                      PRIVATE autogithubpullmerge_lib)
 add_test(NAME github_client_behavior_test COMMAND test_github_client_behavior)
 
 add_executable(test_history test_history.cpp)
@@ -51,6 +52,10 @@ add_executable(test_pr_since test_pr_since.cpp)
 target_link_libraries(test_pr_since PRIVATE autogithubpullmerge_lib)
 add_test(NAME pr_since_test COMMAND test_pr_since)
 
+add_executable(test_sort test_sort.cpp)
+target_link_libraries(test_sort PRIVATE autogithubpullmerge_lib)
+add_test(NAME sort_test COMMAND test_sort)
+
 add_executable(test_cli_tokens test_cli_tokens.cpp)
 target_link_libraries(test_cli_tokens PRIVATE autogithubpullmerge_lib)
 add_test(NAME cli_tokens_test COMMAND test_cli_tokens)
@@ -60,7 +65,8 @@ target_link_libraries(test_config_loading PRIVATE autogithubpullmerge_lib)
 add_test(NAME config_loading_test COMMAND test_config_loading)
 
 add_executable(test_github_client_headers test_github_client_headers.cpp)
-target_link_libraries(test_github_client_headers PRIVATE autogithubpullmerge_lib)
+target_link_libraries(test_github_client_headers
+                      PRIVATE autogithubpullmerge_lib)
 add_test(NAME github_client_headers_test COMMAND test_github_client_headers)
 add_executable(test_github_client_delay test_github_client_delay.cpp)
 target_link_libraries(test_github_client_delay PRIVATE autogithubpullmerge_lib)

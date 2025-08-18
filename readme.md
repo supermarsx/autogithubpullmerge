@@ -147,6 +147,8 @@ API keys can be provided in several ways:
 - `--pr-limit` limits how many pull requests to fetch when listing.
 - `--pr-since` filters pull requests newer than the given duration
   (e.g. `30m`, `2h`, `1d`).
+- `--sort` orders pull request titles by `alpha`, `reverse`, `alphanum` or
+  `reverse-alphanum`.
 - `--include-merged` lists merged pull requests in addition to open ones (off by default).
 - `--only-poll-prs` polls only pull requests.
 - `--only-poll-stray` enters an isolated stray-branch purge mode.

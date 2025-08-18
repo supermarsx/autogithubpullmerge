@@ -96,6 +96,9 @@ Config Config::from_file(const std::string &path) {
     if (node["pr_since"]) {
       cfg.set_pr_since(parse_duration(node["pr_since"].as<std::string>()));
     }
+    if (node["sort"]) {
+      cfg.set_sort_mode(node["sort"].as<std::string>());
+    }
   } else if (ext == "json") {
     std::ifstream f(path);
     if (!f) {
@@ -178,6 +181,9 @@ Config Config::from_file(const std::string &path) {
     }
     if (j.contains("pr_since")) {
       cfg.set_pr_since(parse_duration(j["pr_since"].get<std::string>()));
+    }
+    if (j.contains("sort")) {
+      cfg.set_sort_mode(j["sort"].get<std::string>());
     }
   } else {
     throw std::runtime_error("Unsupported config format");

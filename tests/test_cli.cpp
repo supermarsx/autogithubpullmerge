@@ -169,5 +169,27 @@ int main() {
   assert(!opts22.auto_merge);
   assert(!opts22.purge_only);
 
+  char sort_flag[] = "--sort";
+  char sort_alpha[] = "alpha";
+  char *argv_sort_alpha[] = {prog, sort_flag, sort_alpha};
+  agpm::CliOptions sort_opts_alpha = agpm::parse_cli(3, argv_sort_alpha);
+  assert(sort_opts_alpha.sort == "alpha");
+
+  char sort_reverse[] = "reverse";
+  char *argv_sort_reverse[] = {prog, sort_flag, sort_reverse};
+  agpm::CliOptions sort_opts_reverse = agpm::parse_cli(3, argv_sort_reverse);
+  assert(sort_opts_reverse.sort == "reverse");
+
+  char sort_alphanum[] = "alphanum";
+  char *argv_sort_alphanum[] = {prog, sort_flag, sort_alphanum};
+  agpm::CliOptions sort_opts_alphanum = agpm::parse_cli(3, argv_sort_alphanum);
+  assert(sort_opts_alphanum.sort == "alphanum");
+
+  char sort_rev_alpha[] = "reverse-alphanum";
+  char *argv_sort_rev_alpha[] = {prog, sort_flag, sort_rev_alpha};
+  agpm::CliOptions sort_opts_rev_alpha =
+      agpm::parse_cli(3, argv_sort_rev_alpha);
+  assert(sort_opts_rev_alpha.sort == "reverse-alphanum");
+
   return 0;
 }
