@@ -59,7 +59,9 @@ int main() {
   ui.draw();
   char buf[80];
   mvwinnstr(stdscr, 1, 1, buf, 79);
-  assert(std::string(buf).find("Test PR") != std::string::npos);
+  std::string line(buf);
+  assert(line.find("Test PR") != std::string::npos);
+  assert(line.find("o/r") != std::string::npos);
 
   int prev_get = raw->get_count;
   ui.handle_key('r');

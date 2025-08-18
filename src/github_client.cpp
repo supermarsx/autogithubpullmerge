@@ -348,11 +348,8 @@ GitHubClient::list_pull_requests(const std::string &owner,
       }
       if (since.count() > 0 && created < cutoff)
         continue;
-      PullRequest pr;
-      pr.number = item["number"].get<int>();
-      pr.title = item["title"].get<std::string>();
-      pr.owner = owner;
-      pr.repo = repo;
+      PullRequest pr{item["number"].get<int>(),
+                     item["title"].get<std::string>(), owner, repo};
       prs.push_back(pr);
       if (static_cast<int>(prs.size()) >= limit)
         break;

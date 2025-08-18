@@ -82,8 +82,8 @@ void Tui::draw() {
     if (i == selected_) {
       wattron(pr_win_, COLOR_PAIR(1));
     }
-    mvwprintw(pr_win_, 1 + i, 1, "#%d %s", prs_[i].number,
-              prs_[i].title.c_str());
+    mvwprintw(pr_win_, 1 + i, 1, "%s/%s #%d %s", prs_[i].owner.c_str(),
+              prs_[i].repo.c_str(), prs_[i].number, prs_[i].title.c_str());
     if (i == selected_) {
       wattroff(pr_win_, COLOR_PAIR(1));
     }
