@@ -123,10 +123,10 @@ private:
 
 /// Representation of a GitHub pull request.
 struct PullRequest {
-  int number;
-  std::string title;
-  std::string owner{};
-  std::string repo{};
+  int number;          ///< PR number
+  std::string title;   ///< PR title
+  std::string owner{}; ///< Repository owner
+  std::string repo{};  ///< Repository name
 };
 
 /** Simple GitHub API client. */
