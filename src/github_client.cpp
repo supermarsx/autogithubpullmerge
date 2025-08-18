@@ -265,13 +265,15 @@ GitHubClient::GitHubClient(std::string token, std::unique_ptr<HttpClient> http,
 
 void GitHubClient::set_delay_ms(int delay_ms) { delay_ms_ = delay_ms; }
 
-bool GitHubClient::repo_allowed(const std::string &repo) const {
+bool GitHubClient::repo_allowed(const std::string &owner,
+                                const std::string &repo) const {
+  std::string full = owner + "/" + repo;
   if (!include_repos_.empty() &&
-      std::find(include_repos_.begin(), include_repos_.end(), repo) ==
+      std::find(include_repos_.begin(), include_repos_.end(), full) ==
           include_repos_.end()) {
     return false;
   }
-  if (std::find(exclude_repos_.begin(), exclude_repos_.end(), repo) !=
+  if (std::find(exclude_repos_.begin(), exclude_repos_.end(), full) !=
       exclude_repos_.end()) {
     return false;
   }
@@ -282,7 +284,7 @@ std::vector<PullRequest>
 GitHubClient::list_pull_requests(const std::string &owner,
                                  const std::string &repo, bool include_merged,
                                  int per_page, std::chrono::seconds since) {
-  if (!repo_allowed(repo)) {
+  if (!repo_allowed(owner, repo)) {
     return {};
   }
   int limit = per_page > 0 ? per_page : 50;
@@ -383,7 +385,7 @@ GitHubClient::list_pull_requests(const std::string &owner,
 
 bool GitHubClient::merge_pull_request(const std::string &owner,
                                       const std::string &repo, int pr_number) {
-  if (!repo_allowed(repo)) {
+  if (!repo_allowed(owner, repo)) {
     return false;
   }
   enforce_delay();
@@ -404,7 +406,7 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
 void GitHubClient::cleanup_branches(const std::string &owner,
                                     const std::string &repo,
                                     const std::string &prefix) {
-  if (!repo_allowed(repo) || prefix.empty()) {
+  if (!repo_allowed(owner, repo) || prefix.empty()) {
     return;
   }
   std::string url = "https://api.github.com/repos/" + owner + "/" + repo +
@@ -470,7 +472,7 @@ void GitHubClient::cleanup_branches(const std::string &owner,
 
 void GitHubClient::close_dirty_branches(const std::string &owner,
                                         const std::string &repo) {
-  if (!repo_allowed(repo)) {
+  if (!repo_allowed(owner, repo)) {
     return;
   }
   std::vector<std::string> headers = {"Authorization: token " + token_,

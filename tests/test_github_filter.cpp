@@ -40,10 +40,10 @@ int main() {
   http->response = "[{\"number\":1,\"title\":\"Test\"}]";
   SpyHttpClient *raw1 = http.get();
   GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()),
-                      {"allowed"}, {"skip"});
+                      {"me/allowed"}, {"me/skip"});
 
   // not allowed by include filter
-  auto prs = client.list_pull_requests("owner", "other");
+  auto prs = client.list_pull_requests("me", "other");
   assert(prs.empty());
   assert(raw1->last_method.empty());
 
@@ -51,16 +51,16 @@ int main() {
   auto http2 = std::make_unique<SpyHttpClient>();
   http2->response = "[{\"number\":2,\"title\":\"Good\"}]";
   GitHubClient client2("tok", std::unique_ptr<HttpClient>(http2.release()),
-                       {"good"}, {});
-  auto prs2 = client2.list_pull_requests("owner", "good");
+                       {"me/good"}, {});
+  auto prs2 = client2.list_pull_requests("me", "good");
   assert(prs2.size() == 1);
 
   // excluded repository
   auto http3 = std::make_unique<SpyHttpClient>();
   SpyHttpClient *raw3 = http3.get();
   GitHubClient client3("tok", std::unique_ptr<HttpClient>(http3.release()), {},
-                       {"bad"});
-  bool merged = client3.merge_pull_request("owner", "bad", 1);
+                       {"me/bad"});
+  bool merged = client3.merge_pull_request("me", "bad", 1);
   assert(!merged);
   assert(raw3->last_method.empty());
 
