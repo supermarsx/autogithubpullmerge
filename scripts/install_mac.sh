@@ -7,6 +7,10 @@ echo "✨ Beginning macOS dependency installation..."
 
 # Install required packages
 echo "🍎 Updating Homebrew and installing requirements..."
+if ! command -v brew >/dev/null 2>&1; then
+        echo "❌ Homebrew is not installed. Please install it from https://brew.sh and rerun this script."
+        exit 1
+fi
 brew update
 brew install cmake git curl libpsl sqlite3 spdlog ncurses pkg-config
 
