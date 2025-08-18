@@ -1,6 +1,7 @@
 #include "cli.hpp"
 #include <cassert>
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 
 int main() {
@@ -81,6 +82,28 @@ int main() {
     assert(opts9.api_keys.size() == 2);
     assert(opts9.api_keys[0] == "a");
     assert(opts9.api_keys[1] == "b");
+  }
+
+  // Environment variable fallback
+  {
+    setenv("GITHUB_TOKEN", "envtok", 1);
+    char *argv_env[] = {prog};
+    agpm::CliOptions opts_env = agpm::parse_cli(1, argv_env);
+    assert(opts_env.api_keys.size() == 1);
+    assert(opts_env.api_keys[0] == "envtok");
+    unsetenv("GITHUB_TOKEN");
+  }
+
+  // Environment variable ignored when tokens supplied
+  {
+    setenv("GITHUB_TOKEN", "envtok", 1);
+    char api_flag2[] = "--api-key";
+    char key_env[] = "cmdtok";
+    char *argv_env2[] = {prog, api_flag2, key_env};
+    agpm::CliOptions opts_env2 = agpm::parse_cli(3, argv_env2);
+    assert(opts_env2.api_keys.size() == 1);
+    assert(opts_env2.api_keys[0] == "cmdtok");
+    unsetenv("GITHUB_TOKEN");
   }
 
   char stream_flag[] = "--api-key-from-stream";

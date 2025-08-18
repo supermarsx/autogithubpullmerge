@@ -260,6 +260,15 @@ CliOptions parse_cli(int argc, char **argv) {
       }
     }
   }
+  if (options.api_keys.empty()) {
+    const char *env = std::getenv("GITHUB_TOKEN");
+    if (!env || env[0] == '\0') {
+      env = std::getenv("AGPM_API_KEY");
+    }
+    if (env && env[0] != '\0') {
+      options.api_keys.emplace_back(env);
+    }
+  }
   options.pr_since = parse_duration(pr_since_str);
   bool destructive = options.reject_dirty || options.auto_merge ||
                      !options.purge_prefix.empty() || options.purge_only;
