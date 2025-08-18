@@ -198,7 +198,7 @@ private:
   int delay_ms_;
   std::chrono::steady_clock::time_point last_request_;
 
-  bool repo_allowed(const std::string &repo) const;
+  bool repo_allowed(const std::string &owner, const std::string &repo) const;
   void enforce_delay();
   bool handle_rate_limit(const HttpResponse &resp);
 };
