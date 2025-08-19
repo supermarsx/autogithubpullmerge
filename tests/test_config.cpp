@@ -19,6 +19,7 @@ int main() {
     f << "only_poll_prs: true\n";
     f << "reject_dirty: true\n";
     f << "auto_merge: true\n";
+    f << "purge_only: true\n";
     f << "purge_prefix: tmp/\n";
     f << "pr_limit: 25\n";
     f << "pr_since: 2h\n";
@@ -40,6 +41,7 @@ int main() {
   assert(yaml_cfg.only_poll_prs());
   assert(yaml_cfg.reject_dirty());
   assert(yaml_cfg.auto_merge());
+  assert(yaml_cfg.purge_only());
   assert(yaml_cfg.purge_prefix() == "tmp/");
   assert(yaml_cfg.pr_limit() == 25);
   assert(yaml_cfg.pr_since() == std::chrono::hours(2));
@@ -58,6 +60,7 @@ int main() {
     f << "\"api_keys\":[\"k1\"],";
     f << "\"history_db\":\"db.sqlite\",";
     f << "\"only_poll_stray\":true,";
+    f << "\"purge_only\":true,";
     f << "\"purge_prefix\":\"test/\",";
     f << "\"pr_limit\":30,";
     f << "\"pr_since\":\"15m\",";
@@ -77,6 +80,7 @@ int main() {
   assert(json_cfg.api_keys().size() == 1);
   assert(json_cfg.history_db() == "db.sqlite");
   assert(json_cfg.only_poll_stray());
+  assert(json_cfg.purge_only());
   assert(json_cfg.purge_prefix() == "test/");
   assert(json_cfg.pr_limit() == 30);
   assert(json_cfg.pr_since() == std::chrono::minutes(15));
