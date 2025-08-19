@@ -147,6 +147,12 @@ public:
   /// Set only poll stray flag.
   void set_only_poll_stray(bool v) { only_poll_stray_ = v; }
 
+  /// Only purge stray branches without polling PRs.
+  bool purge_only() const { return purge_only_; }
+
+  /// Set purge only flag.
+  void set_purge_only(bool v) { purge_only_ = v; }
+
   /// Auto reject dirty branches.
   bool reject_dirty() const { return reject_dirty_; }
 
@@ -211,6 +217,7 @@ private:
   std::string history_db_ = "history.db";
   bool only_poll_prs_ = false;
   bool only_poll_stray_ = false;
+  bool purge_only_ = false;
   bool reject_dirty_ = false;
   bool auto_merge_ = false;
   std::string purge_prefix_;
