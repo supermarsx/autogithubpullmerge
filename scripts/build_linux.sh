@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=util.sh
 . "${SCRIPT_DIR}/util.sh"
 
-ensure_tool make
+ensure_tool ninja
 ensure_tool cmake
 
 if [[ -z "${VCPKG_ROOT}" ]]; then
