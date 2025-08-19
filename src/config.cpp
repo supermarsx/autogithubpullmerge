@@ -75,6 +75,18 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("http_retries")) {
     set_http_retries(j["http_retries"].get<int>());
   }
+  if (j.contains("download_limit")) {
+    set_download_limit(j["download_limit"].get<long long>());
+  }
+  if (j.contains("upload_limit")) {
+    set_upload_limit(j["upload_limit"].get<long long>());
+  }
+  if (j.contains("max_download")) {
+    set_max_download(j["max_download"].get<long long>());
+  }
+  if (j.contains("max_upload")) {
+    set_max_upload(j["max_upload"].get<long long>());
+  }
   if (j.contains("log_level")) {
     set_log_level(j["log_level"].get<std::string>());
   }

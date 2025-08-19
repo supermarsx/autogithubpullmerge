@@ -13,6 +13,10 @@ int main() {
   j["pr_since"] = "5m";
   j["http_timeout"] = 40;
   j["http_retries"] = 5;
+  j["download_limit"] = 123;
+  j["upload_limit"] = 456;
+  j["max_download"] = 789;
+  j["max_upload"] = 1011;
 
   agpm::Config cfg = agpm::Config::from_json(j);
 
@@ -24,6 +28,10 @@ int main() {
   assert(cfg.pr_since() == std::chrono::minutes(5));
   assert(cfg.http_timeout() == 40);
   assert(cfg.http_retries() == 5);
+  assert(cfg.download_limit() == 123);
+  assert(cfg.upload_limit() == 456);
+  assert(cfg.max_download() == 789);
+  assert(cfg.max_upload() == 1011);
 
   return 0;
 }

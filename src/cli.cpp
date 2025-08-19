@@ -199,6 +199,22 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("N")
       ->default_val("3")
       ->group("Networking");
+  app.add_option("--download-limit", options.download_limit,
+                 "Maximum download rate in bytes per second")
+      ->type_name("BPS")
+      ->group("Networking");
+  app.add_option("--upload-limit", options.upload_limit,
+                 "Maximum upload rate in bytes per second")
+      ->type_name("BPS")
+      ->group("Networking");
+  app.add_option("--max-download", options.max_download,
+                 "Maximum total download in bytes")
+      ->type_name("BYTES")
+      ->group("Networking");
+  app.add_option("--max-upload", options.max_upload,
+                 "Maximum total upload in bytes")
+      ->type_name("BYTES")
+      ->group("Networking");
   app.add_option("--pr-limit", options.pr_limit,
                  "Number of pull requests to fetch")
       ->type_name("N")
