@@ -129,6 +129,9 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("auto_merge")) {
     set_auto_merge(j["auto_merge"].get<bool>());
   }
+  if (j.contains("purge_only")) {
+    set_purge_only(j["purge_only"].get<bool>());
+  }
   if (j.contains("purge_prefix")) {
     set_purge_prefix(j["purge_prefix"].get<std::string>());
   }
