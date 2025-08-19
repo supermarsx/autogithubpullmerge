@@ -60,7 +60,15 @@ void Tui::draw() {
   getmaxyx(stdscr, h, w);
   int log_h = h / 3;
   int help_w = w / 3;
-  if (!pr_win_) {
+  if (h != last_h_ || w != last_w_) {
+    last_h_ = h;
+    last_w_ = w;
+    if (pr_win_)
+      delwin(pr_win_);
+    if (log_win_)
+      delwin(log_win_);
+    if (help_win_)
+      delwin(help_win_);
     pr_win_ = newwin(h - log_h, w, 0, 0);
     log_win_ = newwin(log_h, w - help_w, h - log_h, 0);
     help_win_ = newwin(log_h, help_w, h - log_h, w - help_w);
