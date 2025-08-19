@@ -120,6 +120,9 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("only_poll_stray")) {
     set_only_poll_stray(j["only_poll_stray"].get<bool>());
   }
+  if (j.contains("purge_only")) {
+    set_purge_only(j["purge_only"].get<bool>());
+  }
   if (j.contains("reject_dirty")) {
     set_reject_dirty(j["reject_dirty"].get<bool>());
   }
