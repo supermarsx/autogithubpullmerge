@@ -54,7 +54,20 @@ void GitHubPoller::poll() {
       }
     }
     if (!only_poll_prs_) {
-      // Placeholder for stray branch polling logic
+      auto branches = client_.list_branches(r.first, r.second);
+      std::vector<std::string> stray;
+      for (const auto &b : branches) {
+        if (purge_prefix_.empty() || b.rfind(purge_prefix_, 0) != 0) {
+          stray.push_back(b);
+        }
+      }
+      if (log_cb_) {
+        log_cb_(r.first + "/" + r.second +
+                " stray branches: " + std::to_string(stray.size()));
+      }
+      if (only_poll_stray_ && !purge_prefix_.empty()) {
+        client_.cleanup_branches(r.first, r.second, purge_prefix_);
+      }
       if (reject_dirty_) {
         client_.close_dirty_branches(r.first, r.second);
       }
