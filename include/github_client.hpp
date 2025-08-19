@@ -96,8 +96,17 @@ public:
    * Construct a CURL based HTTP client.
    *
    * @param timeout_ms Request timeout in milliseconds
+   * @param download_limit Maximum download rate in bytes per second (0 =
+   * unlimited)
+   * @param upload_limit Maximum upload rate in bytes per second (0 = unlimited)
+   * @param max_download Maximum cumulative download in bytes (0 = unlimited)
+   * @param max_upload Maximum cumulative upload in bytes (0 = unlimited)
    */
-  explicit CurlHttpClient(long timeout_ms = 30000);
+  explicit CurlHttpClient(long timeout_ms = 30000,
+                          curl_off_t download_limit = 0,
+                          curl_off_t upload_limit = 0,
+                          curl_off_t max_download = 0,
+                          curl_off_t max_upload = 0);
 
   /// @copydoc HttpClient::get()
   std::string get(const std::string &url,
@@ -116,9 +125,21 @@ public:
   std::string del(const std::string &url,
                   const std::vector<std::string> &headers) override;
 
+  /// Total bytes downloaded so far.
+  curl_off_t total_downloaded() const { return total_downloaded_; }
+
+  /// Total bytes uploaded so far.
+  curl_off_t total_uploaded() const { return total_uploaded_; }
+
 private:
   CurlHandle curl_;
   long timeout_ms_;
+  curl_off_t download_limit_;
+  curl_off_t upload_limit_;
+  curl_off_t max_download_;
+  curl_off_t max_upload_;
+  curl_off_t total_downloaded_{0};
+  curl_off_t total_uploaded_{0};
 };
 
 /// Representation of a GitHub pull request.

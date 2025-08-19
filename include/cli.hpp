@@ -28,6 +28,10 @@ struct CliOptions {
   int max_request_rate = 60;              ///< Max requests per minute
   int http_timeout = 30;                  ///< HTTP timeout in seconds
   int http_retries = 3;                   ///< Number of HTTP retries
+  long long download_limit = 0;           ///< Download rate limit (bytes/sec)
+  long long upload_limit = 0;             ///< Upload rate limit (bytes/sec)
+  long long max_download = 0;             ///< Max cumulative download bytes
+  long long max_upload = 0;               ///< Max cumulative upload bytes
   bool only_poll_prs = false;             ///< Only poll pull requests
   bool only_poll_stray = false;           ///< Only poll stray branches
   bool reject_dirty = false;              ///< Auto close dirty branches

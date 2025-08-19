@@ -214,5 +214,23 @@ int main() {
       agpm::parse_cli(3, argv_sort_rev_alpha);
   assert(sort_opts_rev_alpha.sort == "reverse-alphanum");
 
+  char dl_flag[] = "--download-limit";
+  char dl_val[] = "1000";
+  char ul_flag[] = "--upload-limit";
+  char ul_val[] = "2000";
+  char *argv_dl[] = {prog, dl_flag, dl_val, ul_flag, ul_val};
+  agpm::CliOptions opts_dl = agpm::parse_cli(5, argv_dl);
+  assert(opts_dl.download_limit == 1000);
+  assert(opts_dl.upload_limit == 2000);
+
+  char max_dl_flag[] = "--max-download";
+  char max_dl_val[] = "5000";
+  char max_ul_flag[] = "--max-upload";
+  char max_ul_val[] = "6000";
+  char *argv_max[] = {prog, max_dl_flag, max_dl_val, max_ul_flag, max_ul_val};
+  agpm::CliOptions opts_max = agpm::parse_cli(5, argv_max);
+  assert(opts_max.max_download == 5000);
+  assert(opts_max.max_upload == 6000);
+
   return 0;
 }

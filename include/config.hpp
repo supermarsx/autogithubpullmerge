@@ -41,6 +41,30 @@ public:
   /// Set number of HTTP retry attempts.
   void set_http_retries(int r) { http_retries_ = r; }
 
+  /// Download rate limit in bytes per second (0 = unlimited).
+  long long download_limit() const { return download_limit_; }
+
+  /// Set download rate limit.
+  void set_download_limit(long long limit) { download_limit_ = limit; }
+
+  /// Upload rate limit in bytes per second (0 = unlimited).
+  long long upload_limit() const { return upload_limit_; }
+
+  /// Set upload rate limit.
+  void set_upload_limit(long long limit) { upload_limit_ = limit; }
+
+  /// Maximum cumulative download in bytes (0 = unlimited).
+  long long max_download() const { return max_download_; }
+
+  /// Set maximum cumulative download.
+  void set_max_download(long long bytes) { max_download_ = bytes; }
+
+  /// Maximum cumulative upload in bytes (0 = unlimited).
+  long long max_upload() const { return max_upload_; }
+
+  /// Set maximum cumulative upload.
+  void set_max_upload(long long bytes) { max_upload_ = bytes; }
+
   /// Get logging verbosity level.
   const std::string &log_level() const { return log_level_; }
 
@@ -233,6 +257,10 @@ private:
   std::string sort_mode_;
   int http_timeout_ = 30;
   int http_retries_ = 3;
+  long long download_limit_ = 0;
+  long long upload_limit_ = 0;
+  long long max_download_ = 0;
+  long long max_upload_ = 0;
 };
 
 } // namespace agpm

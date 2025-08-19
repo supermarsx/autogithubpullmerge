@@ -24,6 +24,10 @@ int main() {
     f << "pr_limit: 25\n";
     f << "pr_since: 2h\n";
     f << "sort: reverse\n";
+    f << "download_limit: 1000\n";
+    f << "upload_limit: 2000\n";
+    f << "max_download: 3000\n";
+    f << "max_upload: 4000\n";
     f.close();
   }
   agpm::Config yaml_cfg = agpm::Config::from_file("cfg.yaml");
@@ -46,6 +50,10 @@ int main() {
   assert(yaml_cfg.pr_limit() == 25);
   assert(yaml_cfg.pr_since() == std::chrono::hours(2));
   assert(yaml_cfg.sort_mode() == "reverse");
+  assert(yaml_cfg.download_limit() == 1000);
+  assert(yaml_cfg.upload_limit() == 2000);
+  assert(yaml_cfg.max_download() == 3000);
+  assert(yaml_cfg.max_upload() == 4000);
 
   // JSON config with extended options
   {
@@ -64,7 +72,11 @@ int main() {
     f << "\"purge_prefix\":\"test/\",";
     f << "\"pr_limit\":30,";
     f << "\"pr_since\":\"15m\",";
-    f << "\"sort\":\"alphanum\"";
+    f << "\"sort\":\"alphanum\",";
+    f << "\"download_limit\":500,";
+    f << "\"upload_limit\":600,";
+    f << "\"max_download\":700,";
+    f << "\"max_upload\":800";
     f << "}";
     f.close();
   }
@@ -85,6 +97,10 @@ int main() {
   assert(json_cfg.pr_limit() == 30);
   assert(json_cfg.pr_since() == std::chrono::minutes(15));
   assert(json_cfg.sort_mode() == "alphanum");
+  assert(json_cfg.download_limit() == 500);
+  assert(json_cfg.upload_limit() == 600);
+  assert(json_cfg.max_download() == 700);
+  assert(json_cfg.max_upload() == 800);
 
   return 0;
 }

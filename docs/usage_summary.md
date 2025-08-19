@@ -44,6 +44,13 @@ to build the project on supported platforms.
 - `--only-poll-prs` - only poll pull requests.
 - `--only-poll-stray` - only poll stray branches.
 
+### Networking
+
+- `--download-limit` - limit download speed in bytes per second.
+- `--upload-limit` - limit upload speed in bytes per second.
+- `--max-download` - cap cumulative downloaded bytes.
+- `--max-upload` - cap cumulative uploaded bytes.
+
 ### Actions
 
 The following options perform destructive actions and require confirmation

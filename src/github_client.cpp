@@ -23,7 +23,12 @@ CurlHandle::CurlHandle() {
 
 CurlHandle::~CurlHandle() { curl_easy_cleanup(handle_); }
 
-CurlHttpClient::CurlHttpClient(long timeout_ms) : timeout_ms_(timeout_ms) {}
+CurlHttpClient::CurlHttpClient(long timeout_ms, curl_off_t download_limit,
+                               curl_off_t upload_limit, curl_off_t max_download,
+                               curl_off_t max_upload)
+    : timeout_ms_(timeout_ms), download_limit_(download_limit),
+      upload_limit_(upload_limit), max_download_(max_download),
+      max_upload_(max_upload) {}
 
 static size_t write_callback(void *contents, size_t size, size_t nmemb,
                              void *userp) {
@@ -58,6 +63,10 @@ CurlHttpClient::get_with_headers(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_HEADERDATA, &resp_headers);
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, timeout_ms_);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms_);
+  if (download_limit_ > 0)
+    curl_easy_setopt(curl, CURLOPT_MAX_RECV_SPEED_LARGE, download_limit_);
+  if (upload_limit_ > 0)
+    curl_easy_setopt(curl, CURLOPT_MAX_SEND_SPEED_LARGE, upload_limit_);
   char errbuf[CURL_ERROR_SIZE];
   errbuf[0] = '\0';
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
@@ -73,6 +82,20 @@ CurlHttpClient::get_with_headers(const std::string &url,
   CURLcode res = curl_easy_perform(curl);
   long http_code = 0;
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+  curl_off_t dl = 0;
+  curl_off_t ul = 0;
+  curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD_T, &dl);
+  curl_easy_getinfo(curl, CURLINFO_SIZE_UPLOAD_T, &ul);
+  total_downloaded_ += dl;
+  total_uploaded_ += ul;
+  if (max_download_ > 0 && total_downloaded_ > max_download_) {
+    spdlog::error("Maximum download exceeded");
+    throw std::runtime_error("Maximum download exceeded");
+  }
+  if (max_upload_ > 0 && total_uploaded_ > max_upload_) {
+    spdlog::error("Maximum upload exceeded");
+    throw std::runtime_error("Maximum upload exceeded");
+  }
   curl_slist_free_all(header_list);
   if (res != CURLE_OK) {
     std::ostringstream oss;
@@ -112,6 +135,10 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, timeout_ms_);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms_);
+  if (download_limit_ > 0)
+    curl_easy_setopt(curl, CURLOPT_MAX_RECV_SPEED_LARGE, download_limit_);
+  if (upload_limit_ > 0)
+    curl_easy_setopt(curl, CURLOPT_MAX_SEND_SPEED_LARGE, upload_limit_);
   char errbuf[CURL_ERROR_SIZE];
   errbuf[0] = '\0';
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
@@ -127,6 +154,20 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   CURLcode res = curl_easy_perform(curl);
   long http_code = 0;
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+  curl_off_t dl = 0;
+  curl_off_t ul = 0;
+  curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD_T, &dl);
+  curl_easy_getinfo(curl, CURLINFO_SIZE_UPLOAD_T, &ul);
+  total_downloaded_ += dl;
+  total_uploaded_ += ul;
+  if (max_download_ > 0 && total_downloaded_ > max_download_) {
+    spdlog::error("Maximum download exceeded");
+    throw std::runtime_error("Maximum download exceeded");
+  }
+  if (max_upload_ > 0 && total_uploaded_ > max_upload_) {
+    spdlog::error("Maximum upload exceeded");
+    throw std::runtime_error("Maximum upload exceeded");
+  }
   curl_slist_free_all(header_list);
   if (res != CURLE_OK) {
     std::ostringstream oss;
@@ -156,6 +197,10 @@ std::string CurlHttpClient::del(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, timeout_ms_);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms_);
+  if (download_limit_ > 0)
+    curl_easy_setopt(curl, CURLOPT_MAX_RECV_SPEED_LARGE, download_limit_);
+  if (upload_limit_ > 0)
+    curl_easy_setopt(curl, CURLOPT_MAX_SEND_SPEED_LARGE, upload_limit_);
   char errbuf[CURL_ERROR_SIZE];
   errbuf[0] = '\0';
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
@@ -171,6 +216,20 @@ std::string CurlHttpClient::del(const std::string &url,
   CURLcode res = curl_easy_perform(curl);
   long http_code = 0;
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+  curl_off_t dl = 0;
+  curl_off_t ul = 0;
+  curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD_T, &dl);
+  curl_easy_getinfo(curl, CURLINFO_SIZE_UPLOAD_T, &ul);
+  total_downloaded_ += dl;
+  total_uploaded_ += ul;
+  if (max_download_ > 0 && total_downloaded_ > max_download_) {
+    spdlog::error("Maximum download exceeded");
+    throw std::runtime_error("Maximum download exceeded");
+  }
+  if (max_upload_ > 0 && total_uploaded_ > max_upload_) {
+    spdlog::error("Maximum upload exceeded");
+    throw std::runtime_error("Maximum upload exceeded");
+  }
   curl_slist_free_all(header_list);
   if (res != CURLE_OK) {
     std::ostringstream oss;
