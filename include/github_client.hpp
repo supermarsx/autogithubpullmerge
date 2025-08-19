@@ -177,6 +177,12 @@ public:
                           int pr_number);
 
   /**
+   * List branch names for a repository excluding the default branch.
+   */
+  std::vector<std::string> list_branches(const std::string &owner,
+                                         const std::string &repo);
+
+  /**
    * Delete branches whose associated pull request was closed or merged and
    * whose name begins with the given prefix.
    */

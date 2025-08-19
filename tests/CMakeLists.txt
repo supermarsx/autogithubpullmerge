@@ -113,3 +113,7 @@ add_test(NAME auto_merge_test COMMAND test_auto_merge)
 add_executable(test_log test_log.cpp)
 target_link_libraries(test_log PRIVATE autogithubpullmerge_lib)
 add_test(NAME log_test COMMAND test_log)
+
+add_executable(test_poller_branch test_poller_branch.cpp)
+target_link_libraries(test_poller_branch PRIVATE autogithubpullmerge_lib)
+add_test(NAME poller_branch_test COMMAND test_poller_branch)

@@ -400,6 +400,88 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   }
 }
 
+std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
+                                                     const std::string &repo) {
+  std::vector<std::string> branches;
+  if (!repo_allowed(owner, repo)) {
+    return branches;
+  }
+  std::vector<std::string> headers = {"Authorization: token " + token_,
+                                      "Accept: application/vnd.github+json"};
+  enforce_delay();
+  std::string repo_url = "https://api.github.com/repos/" + owner + "/" + repo;
+  std::string repo_resp;
+  try {
+    repo_resp = http_->get(repo_url, headers);
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to fetch repo metadata: {}", e.what());
+    return branches;
+  }
+  nlohmann::json repo_json;
+  try {
+    repo_json = nlohmann::json::parse(repo_resp);
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to parse repo metadata: {}", e.what());
+    return branches;
+  }
+  if (!repo_json.is_object() || !repo_json.contains("default_branch")) {
+    return branches;
+  }
+  std::string default_branch = repo_json["default_branch"].get<std::string>();
+  std::string url = repo_url + "/branches";
+  while (true) {
+    enforce_delay();
+    HttpResponse res;
+    try {
+      res = http_->get_with_headers(url, headers);
+    } catch (const std::exception &e) {
+      spdlog::error("Failed to fetch branches: {}", e.what());
+      return branches;
+    }
+    nlohmann::json j;
+    try {
+      j = nlohmann::json::parse(res.body);
+    } catch (const std::exception &e) {
+      spdlog::error("Failed to parse branches list: {}", e.what());
+      return branches;
+    }
+    if (!j.is_array()) {
+      return branches;
+    }
+    for (const auto &b : j) {
+      if (!b.contains("name")) {
+        continue;
+      }
+      std::string branch = b["name"].get<std::string>();
+      if (branch != default_branch) {
+        branches.push_back(branch);
+      }
+    }
+    std::string next_url;
+    for (const auto &h : res.headers) {
+      if (h.rfind("Link:", 0) == 0) {
+        std::string links = h.substr(5);
+        std::stringstream ss(links);
+        std::string part;
+        while (std::getline(ss, part, ',')) {
+          if (part.find("rel=\"next\"") != std::string::npos) {
+            auto start = part.find('<');
+            auto end = part.find('>', start);
+            if (start != std::string::npos && end != std::string::npos) {
+              next_url = part.substr(start + 1, end - start - 1);
+            }
+          }
+        }
+      }
+    }
+    if (next_url.empty()) {
+      break;
+    }
+    url = next_url;
+  }
+  return branches;
+}
+
 void GitHubClient::cleanup_branches(const std::string &owner,
                                     const std::string &repo,
                                     const std::string &prefix) {
