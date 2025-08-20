@@ -189,12 +189,6 @@ public:
   /// Set auto merge flag.
   void set_auto_merge(bool v) { auto_merge_ = v; }
 
-  /// Only purge branches without polling pull requests.
-  bool purge_only() const { return purge_only_; }
-
-  /// Set only purge branches flag.
-  void set_purge_only(bool v) { purge_only_ = v; }
-
   /// Prefix of branches to purge after merge.
   const std::string &purge_prefix() const { return purge_prefix_; }
 
@@ -250,7 +244,6 @@ private:
   bool purge_only_ = false;
   bool reject_dirty_ = false;
   bool auto_merge_ = false;
-  bool purge_only_ = false;
   std::string purge_prefix_;
   int pr_limit_ = 50;
   std::chrono::seconds pr_since_{0};
