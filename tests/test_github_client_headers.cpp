@@ -47,7 +47,8 @@ TEST_CASE("test github client headers") {
     if (h == "User-Agent: autogithubpullmerge")
       found_agent = true;
   }
-  REQUIRE(found_auth && found_agent);
+  REQUIRE(found_auth);
+  REQUIRE(found_agent);
 
   auto http2 = std::make_unique<HeaderHttpClient>();
   http2->response = "{\"merged\":true}";
@@ -63,5 +64,6 @@ TEST_CASE("test github client headers") {
     if (h == "User-Agent: autogithubpullmerge")
       found_agent = true;
   }
-  REQUIRE(found_auth && found_agent);
+  REQUIRE(found_auth);
+  REQUIRE(found_agent);
 }

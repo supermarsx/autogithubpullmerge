@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <exception>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
 TEST_CASE("test cli") {
