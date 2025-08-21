@@ -8,6 +8,7 @@ using namespace agpm;
 class BranchListClient : public HttpClient {
 public:
   int branch_get_count = 0;
+  std::string last_deleted;
   std::string base = "https://api.github.com/repos/me/repo";
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override {
@@ -37,8 +38,8 @@ public:
   }
   std::string del(const std::string &url,
                   const std::vector<std::string> &headers) override {
-    (void)url;
     (void)headers;
+    last_deleted = url;
     return "";
   }
 };
@@ -98,6 +99,7 @@ int main() {
     poller.poll_now();
     assert(raw->branch_get_count == 1);
     assert(msg.find("stray branches: 1") != std::string::npos);
+    assert(raw->last_deleted.empty());
   }
 
   // Cleanup branches and close dirty ones

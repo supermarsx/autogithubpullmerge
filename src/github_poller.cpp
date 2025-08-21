@@ -53,9 +53,6 @@ void GitHubPoller::poll() {
           client_.merge_pull_request(pr.owner, pr.repo, pr.number);
         }
       }
-      if (!purge_prefix_.empty()) {
-        client_.cleanup_branches(r.first, r.second, purge_prefix_);
-      }
     }
     if (!only_poll_prs_) {
       auto branches = client_.list_branches(r.first, r.second);
@@ -69,12 +66,12 @@ void GitHubPoller::poll() {
         log_cb_(r.first + "/" + r.second +
                 " stray branches: " + std::to_string(stray.size()));
       }
-      if (only_poll_stray_ && !purge_prefix_.empty()) {
-        client_.cleanup_branches(r.first, r.second, purge_prefix_);
-      }
-      if (reject_dirty_) {
-        client_.close_dirty_branches(r.first, r.second);
-      }
+    }
+    if (!purge_prefix_.empty()) {
+      client_.cleanup_branches(r.first, r.second, purge_prefix_);
+    }
+    if (!only_poll_prs_ && reject_dirty_) {
+      client_.close_dirty_branches(r.first, r.second);
     }
   }
   sort_pull_requests(all_prs, sort_mode_);
