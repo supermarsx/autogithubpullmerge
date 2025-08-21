@@ -54,7 +54,7 @@ TEST_CASE("test github client delay") {
   try {
     CurlHttpClient real;
     real.get("https://nonexistent.invalid", {});
-    REQUIRE(false && "Expected exception");
+    FAIL("Expected exception");
   } catch (const std::exception &e) {
     std::string msg = e.what();
     REQUIRE(msg.find("nonexistent.invalid") != std::string::npos);

@@ -14,6 +14,7 @@ namespace agpm {
 
 struct CurlSlist {
   curl_slist *list{nullptr};
+  CurlSlist() = default;
   ~CurlSlist() { curl_slist_free_all(list); }
   void append(const std::string &s) {
     list = curl_slist_append(list, s.c_str());
