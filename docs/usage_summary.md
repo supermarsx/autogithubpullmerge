@@ -62,6 +62,9 @@ The following options perform destructive actions and require confirmation
   closed or merged.
 - `--purge-only` - skip pull request polling and only run branch cleanup.
 
+Declining the confirmation prompt aborts the command and returns a non-zero
+exit code.
+
 ## Stray Branch Management
 
 ### Isolated Stray-Branch Purge Mode
