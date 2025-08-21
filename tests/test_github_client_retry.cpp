@@ -1,5 +1,5 @@
 #include "github_client.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <stdexcept>
 #include <string>
 
@@ -57,22 +57,21 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test github client retry") {
   {
     auto http = std::make_unique<FlakyHttpClient>();
     auto *raw = http.get();
     GitHubClient client("token", std::move(http));
     auto prs = client.list_pull_requests("o", "r");
-    assert(prs.size() == 1);
-    assert(raw->calls == 3);
+    REQUIRE(prs.size() == 1);
+    REQUIRE(raw->calls == 3);
   }
   {
     auto http = std::make_unique<BadRequestHttpClient>();
     auto *raw = http.get();
     GitHubClient client("token", std::move(http));
     auto prs = client.list_pull_requests("o", "r");
-    assert(prs.empty());
-    assert(raw->calls == 1);
+    REQUIRE(prs.empty());
+    REQUIRE(raw->calls == 1);
   }
-  return 0;
 }

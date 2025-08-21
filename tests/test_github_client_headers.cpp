@@ -1,5 +1,5 @@
 #include "github_client.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <string>
 #include <vector>
 
@@ -33,7 +33,7 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test github client headers") {
   auto http = std::make_unique<HeaderHttpClient>();
   http->response = "[]";
   HeaderHttpClient *raw = http.get();
@@ -47,14 +47,14 @@ int main() {
     if (h == "User-Agent: autogithubpullmerge")
       found_agent = true;
   }
-  assert(found_auth && found_agent);
+  REQUIRE(found_auth && found_agent);
 
   auto http2 = std::make_unique<HeaderHttpClient>();
   http2->response = "{\"merged\":true}";
   HeaderHttpClient *raw2 = http2.get();
   GitHubClient client2("tok", std::unique_ptr<HttpClient>(http2.release()));
   bool merged = client2.merge_pull_request("owner", "repo", 1);
-  assert(merged);
+  REQUIRE(merged);
   found_auth = false;
   found_agent = false;
   for (const auto &h : raw2->last_headers) {
@@ -63,7 +63,5 @@ int main() {
     if (h == "User-Agent: autogithubpullmerge")
       found_agent = true;
   }
-  assert(found_auth && found_agent);
-
-  return 0;
+  REQUIRE(found_auth && found_agent);
 }

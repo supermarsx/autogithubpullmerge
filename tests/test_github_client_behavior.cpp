@@ -1,5 +1,5 @@
 #include "github_client.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <string>
 #include <unordered_map>
 
@@ -65,20 +65,20 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test github client behavior") {
   auto dummy = std::make_unique<DummyHttpClient>();
   dummy->response = "[{\"number\":2,\"title\":\"Another\"}]";
   GitHubClient client("token", std::unique_ptr<HttpClient>(dummy.release()));
   auto prs = client.list_pull_requests("octocat", "hello");
-  assert(prs.size() == 1);
-  assert(prs[0].number == 2);
-  assert(prs[0].title == "Another");
+  REQUIRE(prs.size() == 1);
+  REQUIRE(prs[0].number == 2);
+  REQUIRE(prs[0].title == "Another");
 
   auto dummy2 = std::make_unique<DummyHttpClient>();
   dummy2->response = "{\"merged\":false}";
   GitHubClient client2("token", std::unique_ptr<HttpClient>(dummy2.release()));
   bool merged = client2.merge_pull_request("octocat", "hello", 5);
-  assert(!merged);
+  REQUIRE(!merged);
 
   // Clean branch should not be deleted.
   {
@@ -92,7 +92,7 @@ int main() {
         "{\"status\":\"identical\",\"ahead_by\":0}";
     GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo");
-    assert(raw->last_deleted.empty());
+    REQUIRE(raw->last_deleted.empty());
   }
 
   // Dirty branch should be deleted.
@@ -107,8 +107,6 @@ int main() {
         "{\"status\":\"ahead\",\"ahead_by\":1}";
     GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo");
-    assert(raw->last_deleted == base + "/git/refs/heads/feature");
+    REQUIRE(raw->last_deleted == base + "/git/refs/heads/feature");
   }
-
-  return 0;
 }

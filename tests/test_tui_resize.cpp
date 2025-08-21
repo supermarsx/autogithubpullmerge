@@ -2,7 +2,7 @@
 #define private public
 #include "tui.hpp"
 #undef private
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <cstdlib>
 #include <memory>
 
@@ -31,7 +31,7 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test tui resize") {
 #ifdef _WIN32
   _putenv_s("TERM", "xterm");
 #else
@@ -51,7 +51,6 @@ int main() {
   getmaxyx(stdscr, h, w);
   resize_term(h / 2, w / 2);
   ui.draw();
-  assert(before != ui.pr_win_);
+  REQUIRE(before != ui.pr_win_);
   ui.cleanup();
-  return 0;
 }

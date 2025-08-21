@@ -1,5 +1,5 @@
 #include "github_client.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <ctime>
 #include <stdexcept>
@@ -158,17 +158,17 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test github client") {
   // Test listing pull requests
   auto mock = std::make_unique<MockHttpClient>();
   mock->response = "[{\"number\":1,\"title\":\"Test\"}]";
   GitHubClient client("token", std::unique_ptr<HttpClient>(mock.release()));
   auto prs = client.list_pull_requests("owner", "repo");
-  assert(prs.size() == 1);
-  assert(prs[0].number == 1);
-  assert(prs[0].title == "Test");
-  assert(prs[0].owner == "owner");
-  assert(prs[0].repo == "repo");
+  REQUIRE(prs.size() == 1);
+  REQUIRE(prs[0].number == 1);
+  REQUIRE(prs[0].title == "Test");
+  REQUIRE(prs[0].owner == "owner");
+  REQUIRE(prs[0].repo == "repo");
 
   auto mock_include = std::make_unique<MockHttpClient>();
   mock_include->response = "[]";
@@ -176,7 +176,7 @@ int main() {
   GitHubClient client_inc("token",
                           std::unique_ptr<HttpClient>(mock_include.release()));
   client_inc.list_pull_requests("owner", "repo", true);
-  assert(raw_inc->last_url.find("state=all") != std::string::npos);
+  REQUIRE(raw_inc->last_url.find("state=all") != std::string::npos);
 
   auto mock_limit = std::make_unique<MockHttpClient>();
   mock_limit->response = "[]";
@@ -184,7 +184,7 @@ int main() {
   GitHubClient client_limit("token",
                             std::unique_ptr<HttpClient>(mock_limit.release()));
   client_limit.list_pull_requests("owner", "repo", false, 10);
-  assert(raw_limit->last_url.find("per_page=10") != std::string::npos);
+  REQUIRE(raw_limit->last_url.find("per_page=10") != std::string::npos);
 
   using namespace std::chrono;
   auto now = system_clock::now();
@@ -210,44 +210,42 @@ int main() {
                             std::unique_ptr<HttpClient>(multi_http.release()));
   auto multi_prs =
       client_multi.list_pull_requests("me", "repo", false, 2, hours(1));
-  assert(multi_prs.size() == 2);
-  assert(multi_prs[0].number == 2);
-  assert(multi_prs[1].number == 3);
-  assert(raw_multi->calls == 2);
+  REQUIRE(multi_prs.size() == 2);
+  REQUIRE(multi_prs[0].number == 2);
+  REQUIRE(multi_prs[1].number == 3);
+  REQUIRE(raw_multi->calls == 2);
 
   // Test merging pull requests
   auto mock2 = std::make_unique<MockHttpClient>();
   mock2->response = "{\"merged\":true}";
   GitHubClient client2("token", std::unique_ptr<HttpClient>(mock2.release()));
   bool merged = client2.merge_pull_request("owner", "repo", 1);
-  assert(merged);
+  REQUIRE(merged);
 
   // Invalid JSON should return empty results / false
   auto invalid = std::make_unique<InvalidJsonHttpClient>();
   GitHubClient client_invalid("token",
                               std::unique_ptr<HttpClient>(invalid.release()));
   auto bad_prs = client_invalid.list_pull_requests("owner", "repo");
-  assert(bad_prs.empty());
+  REQUIRE(bad_prs.empty());
   bool bad_merge = client_invalid.merge_pull_request("owner", "repo", 1);
-  assert(!bad_merge);
+  REQUIRE(!bad_merge);
 
   // HTTP errors should be swallowed and result in defaults
   auto throwing = std::make_unique<ErrorHttpClient>();
   GitHubClient client_throw("token",
                             std::unique_ptr<HttpClient>(throwing.release()));
   auto none_prs = client_throw.list_pull_requests("owner", "repo");
-  assert(none_prs.empty());
+  REQUIRE(none_prs.empty());
   bool merge_fail = client_throw.merge_pull_request("owner", "repo", 1);
-  assert(!merge_fail);
+  REQUIRE(!merge_fail);
 
   // Timeouts should also be handled gracefully
   auto timeout = std::make_unique<TimeoutHttpClient>();
   GitHubClient client_timeout("token",
                               std::unique_ptr<HttpClient>(timeout.release()));
   auto timeout_prs = client_timeout.list_pull_requests("owner", "repo");
-  assert(timeout_prs.empty());
+  REQUIRE(timeout_prs.empty());
   bool timeout_merge = client_timeout.merge_pull_request("owner", "repo", 1);
-  assert(!timeout_merge);
-
-  return 0;
+  REQUIRE(!timeout_merge);
 }

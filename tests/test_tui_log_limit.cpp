@@ -1,6 +1,6 @@
 #include "github_poller.hpp"
 #include "tui.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <cstdlib>
 #include <memory>
 
@@ -39,7 +39,7 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test tui log limit") {
 #ifdef _WIN32
   _putenv_s("TERM", "xterm");
 #else
@@ -57,8 +57,7 @@ int main() {
     ui.handle_key('m');
   }
 
-  assert(ui.logs().size() == 200);
-  assert(ui.logs().front().find("Merged PR #5") != std::string::npos);
-  assert(ui.logs().back().find("Merged PR #204") != std::string::npos);
-  return 0;
+  REQUIRE(ui.logs().size() == 200);
+  REQUIRE(ui.logs().front().find("Merged PR #5") != std::string::npos);
+  REQUIRE(ui.logs().back().find("Merged PR #204") != std::string::npos);
 }

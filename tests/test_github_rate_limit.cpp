@@ -1,5 +1,5 @@
 #include "github_client.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <ctime>
 #include <string>
@@ -65,7 +65,7 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test github rate limit") {
   {
     auto http = std::make_unique<ResetHttpClient>();
     auto *raw = http.get();
@@ -76,8 +76,8 @@ int main() {
     auto diff =
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
             .count();
-    assert(diff >= 1000);
-    assert(raw->calls == 2);
+    REQUIRE(diff >= 1000);
+    REQUIRE(raw->calls == 2);
   }
   {
     auto http = std::make_unique<RetryAfterHttpClient>();
@@ -89,8 +89,7 @@ int main() {
     auto diff =
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
             .count();
-    assert(diff >= 1000);
-    assert(raw->calls == 2);
+    REQUIRE(diff >= 1000);
+    REQUIRE(raw->calls == 2);
   }
-  return 0;
 }

@@ -1,8 +1,8 @@
 #include "config.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <fstream>
 
-int main() {
+TEST_CASE("test config loading") {
   {
     std::ofstream f("config.yaml");
     f << "verbose: true\n";
@@ -18,16 +18,16 @@ int main() {
     f.close();
   }
   agpm::Config ycfg = agpm::Config::from_file("config.yaml");
-  assert(ycfg.verbose());
-  assert(ycfg.poll_interval() == 10);
-  assert(ycfg.max_request_rate() == 20);
-  assert(ycfg.log_level() == "debug");
-  assert(ycfg.http_timeout() == 60);
-  assert(ycfg.http_retries() == 7);
-  assert(ycfg.download_limit() == 11);
-  assert(ycfg.upload_limit() == 12);
-  assert(ycfg.max_download() == 13);
-  assert(ycfg.max_upload() == 14);
+  REQUIRE(ycfg.verbose());
+  REQUIRE(ycfg.poll_interval() == 10);
+  REQUIRE(ycfg.max_request_rate() == 20);
+  REQUIRE(ycfg.log_level() == "debug");
+  REQUIRE(ycfg.http_timeout() == 60);
+  REQUIRE(ycfg.http_retries() == 7);
+  REQUIRE(ycfg.download_limit() == 11);
+  REQUIRE(ycfg.upload_limit() == 12);
+  REQUIRE(ycfg.max_download() == 13);
+  REQUIRE(ycfg.max_upload() == 14);
 
   {
     std::ofstream f("config.json");
@@ -46,16 +46,14 @@ int main() {
     f.close();
   }
   agpm::Config jcfg = agpm::Config::from_file("config.json");
-  assert(!jcfg.verbose());
-  assert(jcfg.poll_interval() == 5);
-  assert(jcfg.max_request_rate() == 15);
-  assert(jcfg.log_level() == "warn");
-  assert(jcfg.http_timeout() == 50);
-  assert(jcfg.http_retries() == 4);
-  assert(jcfg.download_limit() == 21);
-  assert(jcfg.upload_limit() == 22);
-  assert(jcfg.max_download() == 23);
-  assert(jcfg.max_upload() == 24);
-
-  return 0;
+  REQUIRE(!jcfg.verbose());
+  REQUIRE(jcfg.poll_interval() == 5);
+  REQUIRE(jcfg.max_request_rate() == 15);
+  REQUIRE(jcfg.log_level() == "warn");
+  REQUIRE(jcfg.http_timeout() == 50);
+  REQUIRE(jcfg.http_retries() == 4);
+  REQUIRE(jcfg.download_limit() == 21);
+  REQUIRE(jcfg.upload_limit() == 22);
+  REQUIRE(jcfg.max_download() == 23);
+  REQUIRE(jcfg.max_upload() == 24);
 }

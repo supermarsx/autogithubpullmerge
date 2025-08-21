@@ -5,7 +5,7 @@
 #include "history.hpp"
 #include "tui.hpp"
 #include <atomic>
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <cstdlib>
 #include <exception>
 #include <fstream>
@@ -13,7 +13,7 @@
 #include <thread>
 #include <vector>
 
-int main() {
+TEST_CASE("test main") {
   agpm::App app;
   std::vector<char *> args;
   char prog[] = "tests";
@@ -24,8 +24,8 @@ int main() {
   args.push_back(verbose);
   args.push_back(include_flag);
   args.push_back(repo_arg);
-  assert(app.run(static_cast<int>(args.size()), args.data()) == 0);
-  assert(app.options().verbose);
+  REQUIRE(app.run(static_cast<int>(args.size()), args.data()) == 0);
+  REQUIRE(app.options().verbose);
 
 #ifdef _WIN32
   _putenv_s("TERM", "xterm");
@@ -78,7 +78,7 @@ int main() {
   poller.start();
   std::this_thread::sleep_for(std::chrono::milliseconds(20));
   poller.stop();
-  assert(count > 0);
+  REQUIRE(count > 0);
 
   agpm::Tui ui(client, poller);
   ui.init();
@@ -95,9 +95,9 @@ int main() {
   args_cfg.push_back(prog2);
   args_cfg.push_back(config_flag);
   args_cfg.push_back(cfg_file);
-  assert(app_cfg.run(static_cast<int>(args_cfg.size()), args_cfg.data()) == 0);
-  assert(app_cfg.options().config_file == "run_config.yaml");
-  assert(app_cfg.config().verbose());
+  REQUIRE(app_cfg.run(static_cast<int>(args_cfg.size()), args_cfg.data()) == 0);
+  REQUIRE(app_cfg.options().config_file == "run_config.yaml");
+  REQUIRE(app_cfg.config().verbose());
 
   agpm::App log_app;
   std::vector<char *> args_log;
@@ -107,8 +107,8 @@ int main() {
   args_log.push_back(prog3);
   args_log.push_back(log_flag);
   args_log.push_back(warn_lvl);
-  assert(log_app.run(static_cast<int>(args_log.size()), args_log.data()) == 0);
-  assert(log_app.options().log_level == "warn");
+  REQUIRE(log_app.run(static_cast<int>(args_log.size()), args_log.data()) == 0);
+  REQUIRE(log_app.options().log_level == "warn");
 
   agpm::App hist_app;
   std::vector<char *> hist_args;
@@ -118,16 +118,16 @@ int main() {
   hist_args.push_back(prog4);
   hist_args.push_back(db_flag);
   hist_args.push_back(hist_file);
-  assert(hist_app.run(static_cast<int>(hist_args.size()), hist_args.data()) ==
-         0);
-  assert(hist_app.options().history_db == "hist.db");
+  REQUIRE(hist_app.run(static_cast<int>(hist_args.size()), hist_args.data()) ==
+          0);
+  REQUIRE(hist_app.options().history_db == "hist.db");
 
   {
     std::ofstream yaml("test_config.yaml");
     yaml << "verbose: true\n";
     yaml.close();
     agpm::Config cfg = agpm::Config::from_file("test_config.yaml");
-    assert(cfg.verbose());
+    REQUIRE(cfg.verbose());
   }
 
   {
@@ -135,7 +135,7 @@ int main() {
     json << "{\"verbose\": true}";
     json.close();
     agpm::Config cfg = agpm::Config::from_file("test_config.json");
-    assert(cfg.verbose());
+    REQUIRE(cfg.verbose());
   }
 
   {
@@ -143,7 +143,7 @@ int main() {
     char prog_err[] = "tests";
     char unknown[] = "--unknown";
     char *args_err[] = {prog_err, unknown};
-    assert(bad_app.run(2, args_err) != 0);
+    REQUIRE(bad_app.run(2, args_err) != 0);
   }
 
   {
@@ -154,8 +154,7 @@ int main() {
     char prog_err2[] = "tests";
     char auto_merge_flag2[] = "--auto-merge";
     char *cancel_args[] = {prog_err2, auto_merge_flag2};
-    assert(cancel_app.run(2, cancel_args) != 0);
+    REQUIRE(cancel_app.run(2, cancel_args) != 0);
     std::cin.rdbuf(cinbuf);
   }
-  return 0;
 }

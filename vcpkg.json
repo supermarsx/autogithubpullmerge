@@ -3,12 +3,19 @@
   "version-string": "0.1.0",
   "dependencies": [
     "c-ares",
+    "catch2",
     "cli11",
     "curl",
     "fmt",
     "libev",
-    { "name": "ncurses", "platform": "!windows" },
-    { "name": "pdcurses", "platform": "windows" },
+    {
+      "name": "ncurses",
+      "platform": "!windows"
+    },
+    {
+      "name": "pdcurses",
+      "platform": "windows"
+    },
     "nlohmann-json",
     "spdlog",
     "sqlite3",

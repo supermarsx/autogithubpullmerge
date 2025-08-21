@@ -1,6 +1,6 @@
 #include "github_poller.hpp"
 #include <atomic>
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <thread>
 
@@ -35,7 +35,7 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test auto merge") {
   auto http = std::make_unique<MergeHttpClient>();
   MergeHttpClient *raw = http.get();
   GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
@@ -44,8 +44,7 @@ int main() {
   poller.start();
   std::this_thread::sleep_for(std::chrono::milliseconds(80));
   poller.stop();
-  assert(raw->merge_calls > 0);
-  assert(raw->last_url.find("/repos/me/repo/pulls/1/merge") !=
-         std::string::npos);
-  return 0;
+  REQUIRE(raw->merge_calls > 0);
+  REQUIRE(raw->last_url.find("/repos/me/repo/pulls/1/merge") !=
+          std::string::npos);
 }

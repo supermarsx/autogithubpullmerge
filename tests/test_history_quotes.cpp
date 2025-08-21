@@ -1,5 +1,5 @@
 #include "history.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <cstdio>
 #include <fstream>
 #include <string>
@@ -7,7 +7,7 @@
 
 using namespace agpm;
 
-int main() {
+TEST_CASE("test history quotes") {
   auto parse_csv = [](const std::string &text) {
     std::vector<std::vector<std::string>> rows;
     std::vector<std::string> row;
@@ -63,24 +63,23 @@ int main() {
   csv.close();
 
   auto rows = parse_csv(content);
-  assert(rows.size() == 4);
-  assert(rows[0][0] == "number");
-  assert(rows[0][1] == "title");
-  assert(rows[0][2] == "merged");
+  REQUIRE(rows.size() == 4);
+  REQUIRE(rows[0][0] == "number");
+  REQUIRE(rows[0][1] == "title");
+  REQUIRE(rows[0][2] == "merged");
 
-  assert(rows[1][0] == "1");
-  assert(rows[1][1] == "Comma, Title");
-  assert(rows[1][2] == "1");
+  REQUIRE(rows[1][0] == "1");
+  REQUIRE(rows[1][1] == "Comma, Title");
+  REQUIRE(rows[1][2] == "1");
 
-  assert(rows[2][0] == "2");
-  assert(rows[2][1] == "Quote \"Title\"");
-  assert(rows[2][2] == "0");
+  REQUIRE(rows[2][0] == "2");
+  REQUIRE(rows[2][1] == "Quote \"Title\"");
+  REQUIRE(rows[2][2] == "0");
 
-  assert(rows[3][0] == "3");
-  assert(rows[3][1] == "Line1\nLine2");
-  assert(rows[3][2] == "1");
+  REQUIRE(rows[3][0] == "3");
+  REQUIRE(rows[3][1] == "Line1\nLine2");
+  REQUIRE(rows[3][2] == "1");
 
   std::remove("test_history_quotes.db");
   std::remove("quotes.csv");
-  return 0;
 }
