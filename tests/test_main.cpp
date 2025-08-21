@@ -12,6 +12,7 @@
 #include <iostream>
 #include <sstream>
 #include <thread>
+#include <unordered_set>
 #include <vector>
 
 TEST_CASE("test main") {
@@ -65,9 +66,13 @@ TEST_CASE("test main") {
 
   std::atomic<int> count{0};
   auto http = std::make_unique<CountHttpClient>(count);
+  std::unordered_set<std::string> include_set(app.include_repos().begin(),
+                                              app.include_repos().end());
+  std::unordered_set<std::string> exclude_set(app.exclude_repos().begin(),
+                                              app.exclude_repos().end());
   agpm::GitHubClient client("tok",
                             std::unique_ptr<agpm::HttpClient>(http.release()),
-                            app.include_repos(), app.exclude_repos(), 0);
+                            include_set, exclude_set, 0);
   std::vector<std::pair<std::string, std::string>> repos;
   for (const auto &r : app.include_repos()) {
     auto pos = r.find('/');

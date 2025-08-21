@@ -7,6 +7,7 @@
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace agpm {
@@ -166,8 +167,8 @@ public:
    */
   explicit GitHubClient(std::string token,
                         std::unique_ptr<HttpClient> http = nullptr,
-                        std::vector<std::string> include_repos = {},
-                        std::vector<std::string> exclude_repos = {},
+                        std::unordered_set<std::string> include_repos = {},
+                        std::unordered_set<std::string> exclude_repos = {},
                         int delay_ms = 0, int timeout_ms = 30000,
                         int max_retries = 3);
 
@@ -219,8 +220,8 @@ public:
 private:
   std::string token_;
   std::unique_ptr<HttpClient> http_;
-  std::vector<std::string> include_repos_;
-  std::vector<std::string> exclude_repos_;
+  std::unordered_set<std::string> include_repos_;
+  std::unordered_set<std::string> exclude_repos_;
 
   int delay_ms_;
   std::chrono::steady_clock::time_point last_request_;
