@@ -1,3 +1,4 @@
+#include "github_poller.hpp"
 #include "history.hpp"
 #include <cassert>
 #include <cstdio>
@@ -5,11 +6,40 @@
 
 using namespace agpm;
 
+class DummyHttpClient : public HttpClient {
+public:
+  std::string get(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
+    return "[{\"number\":1,\"title\":\"Test PR\"}]";
+  }
+  std::string put(const std::string &url, const std::string &data,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)data;
+    (void)headers;
+    return "{}";
+  }
+  std::string del(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
+    return "";
+  }
+};
+
 int main() {
+  auto http = std::make_unique<DummyHttpClient>();
+  GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
   PullRequestHistory hist("test_history.db");
-  hist.insert(1, "Test PR", true);
-  hist.export_csv("out.csv");
-  hist.export_json("out.json");
+  GitHubPoller poller(client, {{"me", "repo"}}, 0, 120, false, false, false, "",
+                      false, false, "", &hist);
+  poller.set_export_callback([&]() {
+    hist.export_csv("out.csv");
+    hist.export_json("out.json");
+  });
+  poller.poll_now();
 
   std::ifstream csv("out.csv");
   std::string line;
@@ -27,8 +57,7 @@ int main() {
   assert(j.size() == 1);
   assert(j[0]["number"] == 1);
   assert(j[0]["title"] == "Test PR");
-  assert(j[0]["merged"] == true);
-
+  assert(j[0]["merged"] == false);
   std::remove("test_history.db");
   std::remove("out.csv");
   std::remove("out.json");

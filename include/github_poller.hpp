@@ -2,6 +2,7 @@
 #define AUTOGITHUBPULLMERGE_GITHUB_POLLER_HPP
 
 #include "github_client.hpp"
+#include "history.hpp"
 #include "poller.hpp"
 #include <functional>
 #include <string>
@@ -26,7 +27,8 @@ public:
                int interval_ms, int max_rate, bool only_poll_prs = false,
                bool only_poll_stray = false, bool reject_dirty = false,
                std::string purge_prefix = "", bool auto_merge = false,
-               bool purge_only = false, std::string sort_mode = "");
+               bool purge_only = false, std::string sort_mode = "",
+               PullRequestHistory *history = nullptr);
 
   /// Start polling in a background thread.
   void start();
@@ -43,6 +45,9 @@ public:
   /// Set a callback invoked for log messages produced during polling.
   void set_log_callback(std::function<void(const std::string &)> cb);
 
+  /// Set a callback invoked after each poll to export stored history.
+  void set_export_callback(std::function<void()> cb);
+
 private:
   void poll();
 
@@ -56,6 +61,10 @@ private:
   bool auto_merge_;
   bool purge_only_;
   std::string sort_mode_;
+
+  PullRequestHistory *history_;
+
+  std::function<void()> export_cb_;
 
   std::function<void(const std::vector<PullRequest> &)> pr_cb_;
   std::function<void(const std::string &)> log_cb_;
