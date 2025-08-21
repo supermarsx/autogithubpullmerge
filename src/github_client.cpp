@@ -12,6 +12,17 @@
 
 namespace agpm {
 
+struct CurlSlist {
+  curl_slist *list{nullptr};
+  ~CurlSlist() { curl_slist_free_all(list); }
+  void append(const std::string &s) {
+    list = curl_slist_append(list, s.c_str());
+  }
+  curl_slist *get() const { return list; }
+  CurlSlist(const CurlSlist &) = delete;
+  CurlSlist &operator=(const CurlSlist &) = delete;
+};
+
 CurlHandle::CurlHandle() {
   static std::once_flag flag;
   std::call_once(flag, []() { curl_global_init(CURL_GLOBAL_DEFAULT); });
@@ -72,13 +83,12 @@ CurlHttpClient::get_with_headers(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
   curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-  struct curl_slist *header_list = nullptr;
+  CurlSlist header_list;
   for (const auto &h : headers) {
-    header_list = curl_slist_append(header_list, h.c_str());
+    header_list.append(h);
   }
-  header_list =
-      curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
+  header_list.append("User-Agent: autogithubpullmerge");
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list.get());
   CURLcode res = curl_easy_perform(curl);
   long http_code = 0;
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
@@ -96,7 +106,6 @@ CurlHttpClient::get_with_headers(const std::string &url,
     spdlog::error("Maximum upload exceeded");
     throw std::runtime_error("Maximum upload exceeded");
   }
-  curl_slist_free_all(header_list);
   if (res != CURLE_OK) {
     std::ostringstream oss;
     oss << "curl GET failed: " << curl_easy_strerror(res);
@@ -144,13 +153,12 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
   curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-  struct curl_slist *header_list = nullptr;
+  CurlSlist header_list;
   for (const auto &h : headers) {
-    header_list = curl_slist_append(header_list, h.c_str());
+    header_list.append(h);
   }
-  header_list =
-      curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
+  header_list.append("User-Agent: autogithubpullmerge");
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list.get());
   CURLcode res = curl_easy_perform(curl);
   long http_code = 0;
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
@@ -168,7 +176,6 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
     spdlog::error("Maximum upload exceeded");
     throw std::runtime_error("Maximum upload exceeded");
   }
-  curl_slist_free_all(header_list);
   if (res != CURLE_OK) {
     std::ostringstream oss;
     oss << "curl PUT failed: " << curl_easy_strerror(res);
@@ -206,13 +213,12 @@ std::string CurlHttpClient::del(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
   curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
-  struct curl_slist *header_list = nullptr;
+  CurlSlist header_list;
   for (const auto &h : headers) {
-    header_list = curl_slist_append(header_list, h.c_str());
+    header_list.append(h);
   }
-  header_list =
-      curl_slist_append(header_list, "User-Agent: autogithubpullmerge");
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
+  header_list.append("User-Agent: autogithubpullmerge");
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list.get());
   CURLcode res = curl_easy_perform(curl);
   long http_code = 0;
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
@@ -230,7 +236,6 @@ std::string CurlHttpClient::del(const std::string &url,
     spdlog::error("Maximum upload exceeded");
     throw std::runtime_error("Maximum upload exceeded");
   }
-  curl_slist_free_all(header_list);
   if (res != CURLE_OK) {
     std::ostringstream oss;
     oss << "curl DELETE failed: " << curl_easy_strerror(res);
