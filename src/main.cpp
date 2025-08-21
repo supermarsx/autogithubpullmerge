@@ -5,6 +5,7 @@
 #include "tui.hpp"
 
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -26,6 +27,8 @@ int main(int argc, char **argv) {
         !opts.include_repos.empty() ? opts.include_repos : cfg.include_repos();
     std::vector<std::string> exclude =
         !opts.exclude_repos.empty() ? opts.exclude_repos : cfg.exclude_repos();
+    std::unordered_set<std::string> include_set(include.begin(), include.end());
+    std::unordered_set<std::string> exclude_set(exclude.begin(), exclude.end());
 
     int max_rate = opts.max_request_rate != 60 ? opts.max_request_rate
                                                : cfg.max_request_rate();
@@ -37,8 +40,8 @@ int main(int argc, char **argv) {
         opts.http_timeout != 30 ? opts.http_timeout : cfg.http_timeout();
     int http_retries =
         opts.http_retries != 3 ? opts.http_retries : cfg.http_retries();
-    agpm::GitHubClient client(token, nullptr, include, exclude, delay_ms,
-                              http_timeout * 1000, http_retries);
+    agpm::GitHubClient client(token, nullptr, include_set, exclude_set,
+                              delay_ms, http_timeout * 1000, http_retries);
 
     int interval =
         opts.poll_interval != 0 ? opts.poll_interval : cfg.poll_interval();

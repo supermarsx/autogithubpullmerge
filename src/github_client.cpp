@@ -1,6 +1,5 @@
 #include "github_client.hpp"
 #include "curl/curl.h"
-#include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <iomanip>
@@ -316,9 +315,9 @@ private:
 } // namespace
 
 GitHubClient::GitHubClient(std::string token, std::unique_ptr<HttpClient> http,
-                           std::vector<std::string> include_repos,
-                           std::vector<std::string> exclude_repos, int delay_ms,
-                           int timeout_ms, int max_retries)
+                           std::unordered_set<std::string> include_repos,
+                           std::unordered_set<std::string> exclude_repos,
+                           int delay_ms, int timeout_ms, int max_retries)
     : token_(std::move(token)),
       http_(std::make_unique<RetryHttpClient>(
           http ? std::move(http) : std::make_unique<CurlHttpClient>(timeout_ms),
@@ -333,13 +332,10 @@ void GitHubClient::set_delay_ms(int delay_ms) { delay_ms_ = delay_ms; }
 bool GitHubClient::repo_allowed(const std::string &owner,
                                 const std::string &repo) const {
   std::string full = owner + "/" + repo;
-  if (!include_repos_.empty() &&
-      std::find(include_repos_.begin(), include_repos_.end(), full) ==
-          include_repos_.end()) {
+  if (!include_repos_.empty() && !include_repos_.contains(full)) {
     return false;
   }
-  if (std::find(exclude_repos_.begin(), exclude_repos_.end(), full) !=
-      exclude_repos_.end()) {
+  if (exclude_repos_.contains(full)) {
     return false;
   }
   return true;
