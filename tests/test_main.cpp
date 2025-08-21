@@ -7,7 +7,9 @@
 #include <atomic>
 #include <cassert>
 #include <cstdlib>
+#include <exception>
 #include <fstream>
+#include <sstream>
 #include <thread>
 #include <vector>
 
@@ -134,6 +136,26 @@ int main() {
     json.close();
     agpm::Config cfg = agpm::Config::from_file("test_config.json");
     assert(cfg.verbose());
+  }
+
+  {
+    agpm::App bad_app;
+    char prog_err[] = "tests";
+    char unknown[] = "--unknown";
+    char *args_err[] = {prog_err, unknown};
+    assert(bad_app.run(2, args_err) != 0);
+  }
+
+  {
+    agpm::App cancel_app;
+    std::istringstream input("n\n");
+    auto *cinbuf = std::cin.rdbuf();
+    std::cin.rdbuf(input.rdbuf());
+    char prog_err2[] = "tests";
+    char auto_merge_flag2[] = "--auto-merge";
+    char *cancel_args[] = {prog_err2, auto_merge_flag2};
+    assert(cancel_app.run(2, cancel_args) != 0);
+    std::cin.rdbuf(cinbuf);
   }
   return 0;
 }

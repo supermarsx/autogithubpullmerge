@@ -254,7 +254,7 @@ CliOptions parse_cli(int argc, char **argv) {
   try {
     app.parse(argc, argv);
   } catch (const CLI::ParseError &e) {
-    exit(app.exit(e));
+    throw std::runtime_error(e.what());
   }
   if (!options.api_key_file.empty()) {
     auto tokens = load_tokens_from_file(options.api_key_file);
@@ -293,8 +293,7 @@ CliOptions parse_cli(int argc, char **argv) {
     std::string resp;
     std::getline(std::cin, resp);
     if (!(resp == "y" || resp == "Y" || resp == "yes" || resp == "YES")) {
-      std::cout << "Aborted.\n";
-      std::exit(1);
+      throw std::runtime_error("Operation cancelled by user");
     }
   }
   return options;

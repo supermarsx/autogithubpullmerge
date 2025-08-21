@@ -3,12 +3,18 @@
 #include "config.hpp"
 #include "log.hpp"
 #include <cstdlib>
+#include <exception>
 #include <spdlog/spdlog.h>
 
 namespace agpm {
 
 int App::run(int argc, char **argv) {
-  options_ = parse_cli(argc, argv);
+  try {
+    options_ = parse_cli(argc, argv);
+  } catch (const std::exception &e) {
+    spdlog::error("{}", e.what());
+    return 1;
+  }
   include_repos_ = options_.include_repos;
   exclude_repos_ = options_.exclude_repos;
   if (!options_.config_file.empty()) {

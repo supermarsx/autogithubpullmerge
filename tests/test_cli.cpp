@@ -2,7 +2,9 @@
 #include <cassert>
 #include <chrono>
 #include <cstdlib>
+#include <exception>
 #include <fstream>
+#include <sstream>
 
 int main() {
   char prog[] = "prog";
@@ -231,6 +233,34 @@ int main() {
   agpm::CliOptions opts_max = agpm::parse_cli(5, argv_max);
   assert(opts_max.max_download == 5000);
   assert(opts_max.max_upload == 6000);
+
+  {
+    char bad[] = "--unknown";
+    char *argv_bad[] = {prog, bad};
+    bool threw = false;
+    try {
+      agpm::parse_cli(2, argv_bad);
+    } catch (const std::exception &) {
+      threw = true;
+    }
+    assert(threw);
+  }
+
+  {
+    std::istringstream input("n\n");
+    auto *cinbuf = std::cin.rdbuf();
+    std::cin.rdbuf(input.rdbuf());
+    char auto_merge_flag2[] = "--auto-merge";
+    char *argv_cancel[] = {prog, auto_merge_flag2};
+    bool threw = false;
+    try {
+      agpm::parse_cli(2, argv_cancel);
+    } catch (const std::exception &) {
+      threw = true;
+    }
+    std::cin.rdbuf(cinbuf);
+    assert(threw);
+  }
 
   return 0;
 }

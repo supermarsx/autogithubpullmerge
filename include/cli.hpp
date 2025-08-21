@@ -50,6 +50,8 @@ struct CliOptions {
  * @param argc Number of arguments
  * @param argv Argument values
  * @return Parsed options structure
+ * @throws std::runtime_error on parse errors or when destructive
+ *         operations are cancelled by the user
  */
 CliOptions parse_cli(int argc, char **argv);
 
