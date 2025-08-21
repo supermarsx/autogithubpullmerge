@@ -7,7 +7,6 @@
     "cli11",
     "curl",
     "fmt",
-    "libev",
     {
       "name": "ncurses",
       "platform": "!windows"
