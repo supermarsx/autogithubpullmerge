@@ -1,5 +1,5 @@
 #include "github_poller.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <string>
 #include <unordered_set>
 
@@ -87,7 +87,7 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test poller branch") {
   // Detect stray branches without cleanup
   {
     auto http = std::make_unique<BranchListClient>();
@@ -97,9 +97,9 @@ int main() {
     std::string msg;
     poller.set_log_callback([&](const std::string &m) { msg = m; });
     poller.poll_now();
-    assert(raw->branch_get_count == 1);
-    assert(msg.find("stray branches: 1") != std::string::npos);
-    assert(raw->last_deleted.empty());
+    REQUIRE(raw->branch_get_count == 1);
+    REQUIRE(msg.find("stray branches: 1") != std::string::npos);
+    REQUIRE(raw->last_deleted.empty());
   }
 
   // Cleanup branches and close dirty ones
@@ -110,9 +110,7 @@ int main() {
     GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, false, true, true,
                         "tmp/");
     poller.poll_now();
-    assert(raw->deleted.count(raw->base + "/git/refs/heads/feature") == 1);
-    assert(raw->deleted.count(raw->base + "/git/refs/heads/tmp/purge") == 1);
+    REQUIRE(raw->deleted.count(raw->base + "/git/refs/heads/feature") == 1);
+    REQUIRE(raw->deleted.count(raw->base + "/git/refs/heads/tmp/purge") == 1);
   }
-
-  return 0;
 }

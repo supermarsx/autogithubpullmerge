@@ -1,8 +1,8 @@
 #include "config_manager.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <fstream>
 
-int main() {
+TEST_CASE("test config manager") {
   agpm::ConfigManager mgr;
   {
     std::ofstream f("cfg.yaml");
@@ -13,10 +13,10 @@ int main() {
     f.close();
   }
   agpm::Config yaml_cfg = mgr.load("cfg.yaml");
-  assert(yaml_cfg.verbose());
-  assert(yaml_cfg.poll_interval() == 4);
-  assert(yaml_cfg.max_request_rate() == 7);
-  assert(yaml_cfg.log_level() == "info");
+  REQUIRE(yaml_cfg.verbose());
+  REQUIRE(yaml_cfg.poll_interval() == 4);
+  REQUIRE(yaml_cfg.max_request_rate() == 7);
+  REQUIRE(yaml_cfg.log_level() == "info");
 
   {
     std::ofstream f("cfg.json");
@@ -29,10 +29,8 @@ int main() {
     f.close();
   }
   agpm::Config json_cfg = mgr.load("cfg.json");
-  assert(!json_cfg.verbose());
-  assert(json_cfg.poll_interval() == 1);
-  assert(json_cfg.max_request_rate() == 3);
-  assert(json_cfg.log_level() == "error");
-
-  return 0;
+  REQUIRE(!json_cfg.verbose());
+  REQUIRE(json_cfg.poll_interval() == 1);
+  REQUIRE(json_cfg.max_request_rate() == 3);
+  REQUIRE(json_cfg.log_level() == "error");
 }

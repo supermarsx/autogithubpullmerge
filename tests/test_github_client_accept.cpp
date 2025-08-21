@@ -1,5 +1,5 @@
 #include "github_client.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <string>
 #include <vector>
 
@@ -29,7 +29,7 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test github client accept") {
   auto http = std::make_unique<HeaderCaptureHttp>();
   HeaderCaptureHttp *raw = http.get();
   GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
@@ -39,7 +39,7 @@ int main() {
     if (h == "Accept: application/vnd.github+json")
       has_accept = true;
   }
-  assert(has_accept);
+  REQUIRE(has_accept);
 
   auto http2 = std::make_unique<HeaderCaptureHttp>();
   HeaderCaptureHttp *raw2 = http2.get();
@@ -50,7 +50,5 @@ int main() {
     if (h == "Accept: application/vnd.github+json")
       has_accept = true;
   }
-  assert(has_accept);
-
-  return 0;
+  REQUIRE(has_accept);
 }

@@ -1,9 +1,9 @@
 #include "config.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <fstream>
 
-int main() {
+TEST_CASE("test config") {
   // YAML config with extended options
   {
     std::ofstream f("cfg.yaml");
@@ -31,29 +31,29 @@ int main() {
     f.close();
   }
   agpm::Config yaml_cfg = agpm::Config::from_file("cfg.yaml");
-  assert(yaml_cfg.verbose());
-  assert(yaml_cfg.poll_interval() == 3);
-  assert(yaml_cfg.max_request_rate() == 10);
-  assert(yaml_cfg.log_level() == "debug");
-  assert(yaml_cfg.include_repos().size() == 2);
-  assert(yaml_cfg.include_repos()[0] == "repoA");
-  assert(yaml_cfg.exclude_repos().size() == 1);
-  assert(yaml_cfg.exclude_repos()[0] == "repoC");
-  assert(yaml_cfg.api_keys().size() == 2);
-  assert(yaml_cfg.include_merged());
-  assert(yaml_cfg.history_db() == "hist.db");
-  assert(yaml_cfg.only_poll_prs());
-  assert(yaml_cfg.reject_dirty());
-  assert(yaml_cfg.auto_merge());
-  assert(yaml_cfg.purge_only());
-  assert(yaml_cfg.purge_prefix() == "tmp/");
-  assert(yaml_cfg.pr_limit() == 25);
-  assert(yaml_cfg.pr_since() == std::chrono::hours(2));
-  assert(yaml_cfg.sort_mode() == "reverse");
-  assert(yaml_cfg.download_limit() == 1000);
-  assert(yaml_cfg.upload_limit() == 2000);
-  assert(yaml_cfg.max_download() == 3000);
-  assert(yaml_cfg.max_upload() == 4000);
+  REQUIRE(yaml_cfg.verbose());
+  REQUIRE(yaml_cfg.poll_interval() == 3);
+  REQUIRE(yaml_cfg.max_request_rate() == 10);
+  REQUIRE(yaml_cfg.log_level() == "debug");
+  REQUIRE(yaml_cfg.include_repos().size() == 2);
+  REQUIRE(yaml_cfg.include_repos()[0] == "repoA");
+  REQUIRE(yaml_cfg.exclude_repos().size() == 1);
+  REQUIRE(yaml_cfg.exclude_repos()[0] == "repoC");
+  REQUIRE(yaml_cfg.api_keys().size() == 2);
+  REQUIRE(yaml_cfg.include_merged());
+  REQUIRE(yaml_cfg.history_db() == "hist.db");
+  REQUIRE(yaml_cfg.only_poll_prs());
+  REQUIRE(yaml_cfg.reject_dirty());
+  REQUIRE(yaml_cfg.auto_merge());
+  REQUIRE(yaml_cfg.purge_only());
+  REQUIRE(yaml_cfg.purge_prefix() == "tmp/");
+  REQUIRE(yaml_cfg.pr_limit() == 25);
+  REQUIRE(yaml_cfg.pr_since() == std::chrono::hours(2));
+  REQUIRE(yaml_cfg.sort_mode() == "reverse");
+  REQUIRE(yaml_cfg.download_limit() == 1000);
+  REQUIRE(yaml_cfg.upload_limit() == 2000);
+  REQUIRE(yaml_cfg.max_download() == 3000);
+  REQUIRE(yaml_cfg.max_upload() == 4000);
 
   // JSON config with extended options
   {
@@ -81,26 +81,24 @@ int main() {
     f.close();
   }
   agpm::Config json_cfg = agpm::Config::from_file("cfg.json");
-  assert(!json_cfg.verbose());
-  assert(json_cfg.poll_interval() == 2);
-  assert(json_cfg.max_request_rate() == 5);
-  assert(json_cfg.log_level() == "warn");
-  assert(json_cfg.include_repos().size() == 1);
-  assert(json_cfg.include_repos()[0] == "x");
-  assert(json_cfg.exclude_repos().size() == 2);
-  assert(json_cfg.exclude_repos()[1] == "z");
-  assert(json_cfg.api_keys().size() == 1);
-  assert(json_cfg.history_db() == "db.sqlite");
-  assert(json_cfg.only_poll_stray());
-  assert(json_cfg.purge_only());
-  assert(json_cfg.purge_prefix() == "test/");
-  assert(json_cfg.pr_limit() == 30);
-  assert(json_cfg.pr_since() == std::chrono::minutes(15));
-  assert(json_cfg.sort_mode() == "alphanum");
-  assert(json_cfg.download_limit() == 500);
-  assert(json_cfg.upload_limit() == 600);
-  assert(json_cfg.max_download() == 700);
-  assert(json_cfg.max_upload() == 800);
-
-  return 0;
+  REQUIRE(!json_cfg.verbose());
+  REQUIRE(json_cfg.poll_interval() == 2);
+  REQUIRE(json_cfg.max_request_rate() == 5);
+  REQUIRE(json_cfg.log_level() == "warn");
+  REQUIRE(json_cfg.include_repos().size() == 1);
+  REQUIRE(json_cfg.include_repos()[0] == "x");
+  REQUIRE(json_cfg.exclude_repos().size() == 2);
+  REQUIRE(json_cfg.exclude_repos()[1] == "z");
+  REQUIRE(json_cfg.api_keys().size() == 1);
+  REQUIRE(json_cfg.history_db() == "db.sqlite");
+  REQUIRE(json_cfg.only_poll_stray());
+  REQUIRE(json_cfg.purge_only());
+  REQUIRE(json_cfg.purge_prefix() == "test/");
+  REQUIRE(json_cfg.pr_limit() == 30);
+  REQUIRE(json_cfg.pr_since() == std::chrono::minutes(15));
+  REQUIRE(json_cfg.sort_mode() == "alphanum");
+  REQUIRE(json_cfg.download_limit() == 500);
+  REQUIRE(json_cfg.upload_limit() == 600);
+  REQUIRE(json_cfg.max_download() == 700);
+  REQUIRE(json_cfg.max_upload() == 800);
 }

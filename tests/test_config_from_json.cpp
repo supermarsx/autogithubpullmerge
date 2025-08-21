@@ -1,9 +1,9 @@
 #include "config.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <nlohmann/json.hpp>
 
-int main() {
+TEST_CASE("test config from json") {
   nlohmann::json j;
   j["verbose"] = true;
   j["poll_interval"] = 12;
@@ -20,18 +20,16 @@ int main() {
 
   agpm::Config cfg = agpm::Config::from_json(j);
 
-  assert(cfg.verbose());
-  assert(cfg.poll_interval() == 12);
-  assert(cfg.max_request_rate() == 42);
-  assert(cfg.log_level() == "debug");
-  assert(cfg.include_repos().size() == 2);
-  assert(cfg.pr_since() == std::chrono::minutes(5));
-  assert(cfg.http_timeout() == 40);
-  assert(cfg.http_retries() == 5);
-  assert(cfg.download_limit() == 123);
-  assert(cfg.upload_limit() == 456);
-  assert(cfg.max_download() == 789);
-  assert(cfg.max_upload() == 1011);
-
-  return 0;
+  REQUIRE(cfg.verbose());
+  REQUIRE(cfg.poll_interval() == 12);
+  REQUIRE(cfg.max_request_rate() == 42);
+  REQUIRE(cfg.log_level() == "debug");
+  REQUIRE(cfg.include_repos().size() == 2);
+  REQUIRE(cfg.pr_since() == std::chrono::minutes(5));
+  REQUIRE(cfg.http_timeout() == 40);
+  REQUIRE(cfg.http_retries() == 5);
+  REQUIRE(cfg.download_limit() == 123);
+  REQUIRE(cfg.upload_limit() == 456);
+  REQUIRE(cfg.max_download() == 789);
+  REQUIRE(cfg.max_upload() == 1011);
 }

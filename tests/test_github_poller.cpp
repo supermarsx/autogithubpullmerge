@@ -1,6 +1,6 @@
 #include "github_poller.hpp"
 #include <atomic>
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <thread>
 
@@ -35,7 +35,7 @@ private:
   std::atomic<int> &counter;
 };
 
-int main() {
+TEST_CASE("test github poller") {
   std::atomic<int> count1{0};
   auto http1 = std::make_unique<CountHttpClient>(count1);
   GitHubClient client1("tok", std::unique_ptr<HttpClient>(http1.release()));
@@ -43,7 +43,7 @@ int main() {
   poller1.start();
   std::this_thread::sleep_for(std::chrono::milliseconds(220));
   poller1.stop();
-  assert(count1 >= 3); // should run ~4 times
+  REQUIRE(count1 >= 3); // should run ~4 times
 
   std::atomic<int> count2{0};
   auto http2 = std::make_unique<CountHttpClient>(count2);
@@ -52,6 +52,5 @@ int main() {
   poller2.start();
   std::this_thread::sleep_for(std::chrono::milliseconds(220));
   poller2.stop();
-  assert(count2 == 1); // rate limited to first token
-  return 0;
+  REQUIRE(count2 == 1); // rate limited to first token
 }

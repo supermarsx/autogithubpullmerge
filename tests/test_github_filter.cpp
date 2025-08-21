@@ -1,5 +1,5 @@
 #include "github_client.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <string>
 
 using namespace agpm;
@@ -35,7 +35,7 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test github filter") {
   auto http = std::make_unique<SpyHttpClient>();
   http->response = "[{\"number\":1,\"title\":\"Test\"}]";
   SpyHttpClient *raw1 = http.get();
@@ -44,8 +44,8 @@ int main() {
 
   // not allowed by include filter
   auto prs = client.list_pull_requests("me", "other");
-  assert(prs.empty());
-  assert(raw1->last_method.empty());
+  REQUIRE(prs.empty());
+  REQUIRE(raw1->last_method.empty());
 
   // allowed repository
   auto http2 = std::make_unique<SpyHttpClient>();
@@ -53,7 +53,7 @@ int main() {
   GitHubClient client2("tok", std::unique_ptr<HttpClient>(http2.release()),
                        {"me/good"}, {});
   auto prs2 = client2.list_pull_requests("me", "good");
-  assert(prs2.size() == 1);
+  REQUIRE(prs2.size() == 1);
 
   // excluded repository
   auto http3 = std::make_unique<SpyHttpClient>();
@@ -61,8 +61,6 @@ int main() {
   GitHubClient client3("tok", std::unique_ptr<HttpClient>(http3.release()), {},
                        {"me/bad"});
   bool merged = client3.merge_pull_request("me", "bad", 1);
-  assert(!merged);
-  assert(raw3->last_method.empty());
-
-  return 0;
+  REQUIRE(!merged);
+  REQUIRE(raw3->last_method.empty());
 }

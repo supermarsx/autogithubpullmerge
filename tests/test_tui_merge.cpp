@@ -1,7 +1,7 @@
 #include "github_client.hpp"
 #include "github_poller.hpp"
 #include "tui.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <cstdlib>
 #include <memory>
 
@@ -36,7 +36,7 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test tui merge") {
 #ifdef _WIN32
   _putenv_s("TERM", "xterm");
 #else
@@ -55,10 +55,9 @@ int main() {
   auto prs = client.list_pull_requests("o", "r");
   ui.update_prs(prs);
   ui.handle_key('m');
-  assert(raw->last_url.find("/repos/o/r/pulls/1/merge") != std::string::npos);
-  assert(!ui.logs().empty());
-  assert(ui.logs().back().find("Merged PR #1") != std::string::npos);
+  REQUIRE(raw->last_url.find("/repos/o/r/pulls/1/merge") != std::string::npos);
+  REQUIRE(!ui.logs().empty());
+  REQUIRE(ui.logs().back().find("Merged PR #1") != std::string::npos);
 
   ui.cleanup();
-  return 0;
 }

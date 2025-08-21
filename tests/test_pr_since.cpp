@@ -1,5 +1,5 @@
 #include "github_client.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <ctime>
 #include <string>
@@ -30,7 +30,7 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test pr since") {
   using namespace std::chrono;
   auto now = system_clock::now();
   auto recent = now - minutes(30);
@@ -51,7 +51,6 @@ int main() {
   http->response = resp;
   GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
   auto prs = client.list_pull_requests("me", "repo", false, 50, hours(1));
-  assert(prs.size() == 1);
-  assert(prs[0].number == 2);
-  return 0;
+  REQUIRE(prs.size() == 1);
+  REQUIRE(prs[0].number == 2);
 }

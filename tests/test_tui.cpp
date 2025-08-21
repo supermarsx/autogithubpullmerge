@@ -1,6 +1,6 @@
 #include "github_poller.hpp"
 #include "tui.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <cstdlib>
 #include <memory>
 
@@ -39,7 +39,7 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test tui") {
 #ifdef _WIN32
   _putenv_s("TERM", "xterm");
 #else
@@ -60,19 +60,18 @@ int main() {
   char buf[80];
   mvwinnstr(stdscr, 1, 1, buf, 79);
   std::string line(buf);
-  assert(line.find("Test PR") != std::string::npos);
-  assert(line.find("o/r") != std::string::npos);
+  REQUIRE(line.find("Test PR") != std::string::npos);
+  REQUIRE(line.find("o/r") != std::string::npos);
 
   int prev_get = raw->get_count;
   ui.handle_key('r');
-  assert(raw->get_count > prev_get);
+  REQUIRE(raw->get_count > prev_get);
 
   ui.handle_key('m');
-  assert(raw->last_method == "PUT");
-  assert(raw->last_url.find("/repos/o/r/pulls/1/merge") != std::string::npos);
-  assert(!ui.logs().empty());
-  assert(ui.logs().back().find("Merged PR #1") != std::string::npos);
+  REQUIRE(raw->last_method == "PUT");
+  REQUIRE(raw->last_url.find("/repos/o/r/pulls/1/merge") != std::string::npos);
+  REQUIRE(!ui.logs().empty());
+  REQUIRE(ui.logs().back().find("Merged PR #1") != std::string::npos);
 
   ui.cleanup();
-  return 0;
 }

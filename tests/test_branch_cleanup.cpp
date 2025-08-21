@@ -1,5 +1,5 @@
 #include "github_client.hpp"
-#include <cassert>
+#include <catch2/catch_test_macros.hpp>
 #include <string>
 #include <unordered_map>
 
@@ -135,7 +135,7 @@ public:
   }
 };
 
-int main() {
+TEST_CASE("test branch cleanup") {
   // Purge branches based on prefix.
   {
     auto http = std::make_unique<CleanupHttpClient>();
@@ -144,9 +144,9 @@ int main() {
     CleanupHttpClient *raw = http.get();
     GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
     client.cleanup_branches("me", "repo", "tmp/");
-    assert(raw->last_url.find("state=closed") != std::string::npos);
-    assert(raw->last_deleted ==
-           "https://api.github.com/repos/me/repo/git/refs/heads/tmp/feature");
+    REQUIRE(raw->last_url.find("state=closed") != std::string::npos);
+    REQUIRE(raw->last_deleted ==
+            "https://api.github.com/repos/me/repo/git/refs/heads/tmp/feature");
   }
 
   // Clean branch should not be deleted.
@@ -161,7 +161,7 @@ int main() {
         "{\"status\":\"identical\"}";
     GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo");
-    assert(raw->last_deleted.empty());
+    REQUIRE(raw->last_deleted.empty());
   }
 
   // Dirty branch should be deleted.
@@ -176,7 +176,7 @@ int main() {
         "{\"status\":\"ahead\",\"ahead_by\":1}";
     GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo");
-    assert(raw->last_deleted == base + "/git/refs/heads/feature");
+    REQUIRE(raw->last_deleted == base + "/git/refs/heads/feature");
   }
 
   // Purge branches across paginated pull request pages.
@@ -185,8 +185,8 @@ int main() {
     PagingCleanupHttpClient *raw = http.get();
     GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
     client.cleanup_branches("me", "repo", "tmp/");
-    assert(raw->last_deleted ==
-           "https://api.github.com/repos/me/repo/git/refs/heads/tmp/paged");
+    REQUIRE(raw->last_deleted ==
+            "https://api.github.com/repos/me/repo/git/refs/heads/tmp/paged");
   }
 
   // Dirty branch discovered on later page should be deleted.
@@ -195,8 +195,6 @@ int main() {
     PagingBranchHttpClient *raw = http.get();
     GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo");
-    assert(raw->last_deleted == raw->base + "/git/refs/heads/feature2");
+    REQUIRE(raw->last_deleted == raw->base + "/git/refs/heads/feature2");
   }
-
-  return 0;
 }
