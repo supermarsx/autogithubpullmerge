@@ -6,30 +6,59 @@
 namespace agpm {
 
 std::chrono::seconds parse_duration(const std::string &str) {
-  if (str.empty())
+  if (str.empty()) {
     return std::chrono::seconds{0};
-  char unit = str.back();
-  std::string num = str;
-  if (!std::isdigit(static_cast<unsigned char>(unit))) {
-    num.pop_back();
-  } else {
-    unit = 's';
   }
-  long value = std::stol(num);
-  switch (std::tolower(static_cast<unsigned char>(unit))) {
-  case 's':
-    return std::chrono::seconds{value};
-  case 'm':
-    return std::chrono::seconds{value * 60};
-  case 'h':
-    return std::chrono::seconds{value * 3600};
-  case 'd':
-    return std::chrono::seconds{value * 86400};
-  case 'w':
-    return std::chrono::seconds{value * 604800};
-  default:
-    throw std::runtime_error("Invalid duration suffix");
+
+  using namespace std::chrono;
+  long total = 0;
+  std::size_t i = 0;
+  bool has_unit = false;
+
+  while (i < str.size()) {
+    if (!std::isdigit(static_cast<unsigned char>(str[i]))) {
+      throw std::runtime_error("Invalid duration string");
+    }
+
+    long value = 0;
+    while (i < str.size() && std::isdigit(static_cast<unsigned char>(str[i]))) {
+      value = value * 10 + (str[i] - '0');
+      ++i;
+    }
+
+    if (i == str.size()) {
+      if (has_unit) {
+        throw std::runtime_error("Missing unit in duration");
+      }
+      total += value; // plain seconds
+      break;
+    }
+
+    char unit = std::tolower(static_cast<unsigned char>(str[i]));
+    ++i;
+    switch (unit) {
+    case 's':
+      total += value;
+      break;
+    case 'm':
+      total += value * 60;
+      break;
+    case 'h':
+      total += value * 3600;
+      break;
+    case 'd':
+      total += value * 86400;
+      break;
+    case 'w':
+      total += value * 604800;
+      break;
+    default:
+      throw std::runtime_error("Invalid duration suffix");
+    }
+    has_unit = true;
   }
+
+  return seconds{total};
 }
 
 } // namespace agpm
