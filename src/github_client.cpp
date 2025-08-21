@@ -332,10 +332,10 @@ void GitHubClient::set_delay_ms(int delay_ms) { delay_ms_ = delay_ms; }
 bool GitHubClient::repo_allowed(const std::string &owner,
                                 const std::string &repo) const {
   std::string full = owner + "/" + repo;
-  if (!include_repos_.empty() && !include_repos_.contains(full)) {
+  if (!include_repos_.empty() && include_repos_.count(full) == 0) {
     return false;
   }
-  if (exclude_repos_.contains(full)) {
+  if (exclude_repos_.count(full) > 0) {
     return false;
   }
   return true;
