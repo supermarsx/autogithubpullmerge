@@ -24,6 +24,8 @@ struct CliOptions {
   std::string api_key_url_password;       ///< Basic auth password
   std::string api_key_file;               ///< File containing tokens
   std::string history_db = "history.db";  ///< SQLite history database path
+  std::string export_csv;                 ///< Path to export CSV file
+  std::string export_json;                ///< Path to export JSON file
   int poll_interval = 0;                  ///< Polling interval in seconds
   int max_request_rate = 60;              ///< Max requests per minute
   int http_timeout = 30;                  ///< HTTP timeout in seconds

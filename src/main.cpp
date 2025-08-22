@@ -67,11 +67,22 @@ int main(int argc, char **argv) {
     std::string history_db =
         !opts.history_db.empty() ? opts.history_db : cfg.history_db();
     agpm::PullRequestHistory history(history_db);
-    (void)history;
 
     agpm::GitHubPoller poller(client, repos, interval_ms, max_rate,
                               only_poll_prs, only_poll_stray, reject_dirty,
-                              purge_prefix, auto_merge, purge_only, sort_mode);
+                              purge_prefix, auto_merge, purge_only, sort_mode,
+                              &history);
+
+    if (!opts.export_csv.empty() || !opts.export_json.empty()) {
+      poller.set_export_callback([&history, &opts]() {
+        if (!opts.export_csv.empty()) {
+          history.export_csv(opts.export_csv);
+        }
+        if (!opts.export_json.empty()) {
+          history.export_json(opts.export_json);
+        }
+      });
+    }
     agpm::Tui ui(client, poller);
     poller.start();
     try {
