@@ -10,6 +10,13 @@
 #error "curses.h not found"
 #endif
 #include <stdexcept>
+#if defined(_WIN32)
+#include <io.h>
+#define isatty _isatty
+#define fileno _fileno
+#else
+#include <unistd.h>
+#endif
 
 namespace agpm {
 
@@ -25,6 +32,9 @@ Tui::Tui(GitHubClient &client, GitHubPoller &poller)
 }
 
 void Tui::init() {
+  if (!isatty(fileno(stdout))) {
+    return;
+  }
   if (initscr() == nullptr) {
     throw std::runtime_error("Failed to initialize curses");
   }
@@ -60,6 +70,8 @@ void Tui::log(const std::string &msg) {
 }
 
 void Tui::draw() {
+  if (!initialized_)
+    return;
   int h, w;
   getmaxyx(stdscr, h, w);
   int log_h = h / 3;
@@ -133,6 +145,8 @@ void Tui::draw() {
 }
 
 void Tui::handle_key(int ch) {
+  if (!initialized_)
+    return;
   switch (ch) {
   case 'q':
     running_ = false;
@@ -162,6 +176,8 @@ void Tui::handle_key(int ch) {
 }
 
 void Tui::run() {
+  if (!initialized_)
+    return;
   running_ = true;
   while (running_) {
     draw();
