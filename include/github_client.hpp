@@ -176,6 +176,15 @@ public:
   /// Set minimum delay between HTTP requests in milliseconds.
   void set_delay_ms(int delay_ms);
 
+  /// Set required approvals before merging.
+  void set_required_approvals(int n) { required_approvals_ = n; }
+
+  /// Set whether successful status checks are required before merging.
+  void set_require_status_success(bool v) { require_status_success_ = v; }
+
+  /// Set whether a PR must be mergeable before merging.
+  void set_require_mergeable_state(bool v) { require_mergeable_state_ = v; }
+
   /**
    * List repositories accessible to the authenticated user.
    *
@@ -236,6 +245,10 @@ private:
   std::unique_ptr<HttpClient> http_;
   std::unordered_set<std::string> include_repos_;
   std::unordered_set<std::string> exclude_repos_;
+
+  int required_approvals_{0};
+  bool require_status_success_{false};
+  bool require_mergeable_state_{false};
 
   int delay_ms_;
   std::chrono::steady_clock::time_point last_request_;

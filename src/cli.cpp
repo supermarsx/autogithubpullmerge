@@ -280,6 +280,16 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("--auto-merge", options.auto_merge,
                "Automatically merge pull requests")
       ->group("Actions");
+  app.add_option("--require-approval", options.required_approvals,
+                 "Minimum number of approvals required before merging")
+      ->type_name("N")
+      ->group("Actions");
+  app.add_flag("--require-status-success", options.require_status_success,
+               "Require all status checks to succeed before merging")
+      ->group("Actions");
+  app.add_flag("--require-mergeable", options.require_mergeable_state,
+               "Require pull request to be mergeable")
+      ->group("Actions");
   app.add_option("--purge-prefix", options.purge_prefix,
                  "Delete branches with this prefix after PR close")
       ->type_name("PREFIX")

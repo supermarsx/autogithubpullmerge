@@ -149,6 +149,15 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("auto_merge")) {
     set_auto_merge(j["auto_merge"].get<bool>());
   }
+  if (j.contains("required_approvals")) {
+    set_required_approvals(j["required_approvals"].get<int>());
+  }
+  if (j.contains("require_status_success")) {
+    set_require_status_success(j["require_status_success"].get<bool>());
+  }
+  if (j.contains("require_mergeable_state")) {
+    set_require_mergeable_state(j["require_mergeable_state"].get<bool>());
+  }
   if (j.contains("purge_prefix")) {
     set_purge_prefix(j["purge_prefix"].get<std::string>());
   }

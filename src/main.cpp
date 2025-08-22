@@ -50,6 +50,17 @@ int main(int argc, char **argv) {
     agpm::GitHubClient client(token, nullptr, include_set, exclude_set,
                               delay_ms, http_timeout * 1000, http_retries);
 
+    int required_approvals = opts.required_approvals != 0
+                                 ? opts.required_approvals
+                                 : cfg.required_approvals();
+    bool require_status_success =
+        opts.require_status_success || cfg.require_status_success();
+    bool require_mergeable_state =
+        opts.require_mergeable_state || cfg.require_mergeable_state();
+    client.set_required_approvals(required_approvals);
+    client.set_require_status_success(require_status_success);
+    client.set_require_mergeable_state(require_mergeable_state);
+
     int interval =
         opts.poll_interval != 0 ? opts.poll_interval : cfg.poll_interval();
     int interval_ms = interval * 1000;

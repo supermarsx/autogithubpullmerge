@@ -14,6 +14,9 @@ public:
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override {
     (void)headers;
+    if (url.find("/pulls/") != std::string::npos) {
+      return "{}";
+    }
     if (url.find("/pulls") != std::string::npos) {
       return "[{\"number\":1,\"title\":\"PR\"}]";
     }

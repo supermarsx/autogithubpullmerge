@@ -27,6 +27,9 @@ public:
     (void)headers;
     last_url = url;
     ++get_count;
+    if (url.find("/pulls/") != std::string::npos) {
+      return "{}";
+    }
     return get_response;
   }
   std::string put(const std::string &url, const std::string &data,
