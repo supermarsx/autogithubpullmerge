@@ -63,6 +63,9 @@ int main(int argc, char **argv) {
         repos.emplace_back(r.substr(0, pos), r.substr(pos + 1));
       }
     }
+    if (repos.empty()) {
+      repos = client.list_repositories();
+    }
 
     std::string history_db =
         !opts.history_db.empty() ? opts.history_db : cfg.history_db();

@@ -8,6 +8,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace agpm {
@@ -174,6 +175,13 @@ public:
 
   /// Set minimum delay between HTTP requests in milliseconds.
   void set_delay_ms(int delay_ms);
+
+  /**
+   * List repositories accessible to the authenticated user.
+   *
+   * @return List of repository owner/name pairs
+   */
+  std::vector<std::pair<std::string, std::string>> list_repositories();
 
   /**
    * List pull requests for a repository.
