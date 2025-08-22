@@ -17,7 +17,9 @@ struct CliOptions {
   std::vector<std::string> include_repos; ///< Repositories to include
   std::vector<std::string> exclude_repos; ///< Repositories to exclude
   std::vector<std::string>
-      protected_branches;                ///< Protected branch patterns to skip
+      protected_branches; ///< Protected branch patterns to skip
+  std::vector<std::string>
+      protected_branch_excludes;         ///< Patterns that remove protection
   bool include_merged{false};            ///< Include merged pull requests
   std::vector<std::string> api_keys;     ///< Personal access tokens
   bool api_key_from_stream = false;      ///< Read tokens from stdin

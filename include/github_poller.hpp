@@ -28,7 +28,9 @@ public:
                bool only_poll_stray = false, bool reject_dirty = false,
                std::string purge_prefix = "", bool auto_merge = false,
                bool purge_only = false, std::string sort_mode = "",
-               PullRequestHistory *history = nullptr);
+               PullRequestHistory *history = nullptr,
+               std::vector<std::string> protected_branches = {},
+               std::vector<std::string> protected_branch_excludes = {});
 
   /// Start polling in a background thread.
   void start();
@@ -61,6 +63,9 @@ private:
   bool auto_merge_;
   bool purge_only_;
   std::string sort_mode_;
+
+  std::vector<std::string> protected_branches_;
+  std::vector<std::string> protected_branch_excludes_;
 
   PullRequestHistory *history_;
 

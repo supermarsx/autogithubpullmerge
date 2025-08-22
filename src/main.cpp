@@ -27,6 +27,13 @@ int main(int argc, char **argv) {
         !opts.include_repos.empty() ? opts.include_repos : cfg.include_repos();
     std::vector<std::string> exclude =
         !opts.exclude_repos.empty() ? opts.exclude_repos : cfg.exclude_repos();
+    std::vector<std::string> protected_branches =
+        !opts.protected_branches.empty() ? opts.protected_branches
+                                         : cfg.protected_branches();
+    std::vector<std::string> protected_branch_excludes =
+        !opts.protected_branch_excludes.empty()
+            ? opts.protected_branch_excludes
+            : cfg.protected_branch_excludes();
     std::unordered_set<std::string> include_set(include.begin(), include.end());
     std::unordered_set<std::string> exclude_set(exclude.begin(), exclude.end());
 
@@ -71,10 +78,10 @@ int main(int argc, char **argv) {
         !opts.history_db.empty() ? opts.history_db : cfg.history_db();
     agpm::PullRequestHistory history(history_db);
 
-    agpm::GitHubPoller poller(client, repos, interval_ms, max_rate,
-                              only_poll_prs, only_poll_stray, reject_dirty,
-                              purge_prefix, auto_merge, purge_only, sort_mode,
-                              &history);
+    agpm::GitHubPoller poller(
+        client, repos, interval_ms, max_rate, only_poll_prs, only_poll_stray,
+        reject_dirty, purge_prefix, auto_merge, purge_only, sort_mode, &history,
+        protected_branches, protected_branch_excludes);
 
     if (!opts.export_csv.empty() || !opts.export_json.empty()) {
       poller.set_export_callback([&history, &opts]() {

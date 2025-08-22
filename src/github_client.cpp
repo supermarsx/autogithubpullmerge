@@ -69,6 +69,19 @@ bool matches_pattern(const std::string &name,
   return false;
 }
 
+bool is_protected_branch(const std::string &name,
+                         const std::vector<std::string> &protected_patterns,
+                         const std::vector<std::string> &exclude_patterns) {
+  if (!protected_patterns.empty() &&
+      matches_pattern(name, protected_patterns)) {
+    if (!exclude_patterns.empty() && matches_pattern(name, exclude_patterns)) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
 } // namespace
 
 struct CurlSlist {
@@ -667,7 +680,8 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
 void GitHubClient::cleanup_branches(
     const std::string &owner, const std::string &repo,
     const std::string &prefix,
-    const std::vector<std::string> &protected_branches) {
+    const std::vector<std::string> &protected_branches,
+    const std::vector<std::string> &protected_branch_excludes) {
   if (!repo_allowed(owner, repo) || prefix.empty()) {
     return;
   }
@@ -698,7 +712,8 @@ void GitHubClient::cleanup_branches(
       if (item.contains("head") && item["head"].contains("ref")) {
         std::string branch = item["head"]["ref"].get<std::string>();
         if (branch.rfind(prefix, 0) == 0 &&
-            !matches_pattern(branch, protected_branches)) {
+            !is_protected_branch(branch, protected_branches,
+                                 protected_branch_excludes)) {
           enforce_delay();
           std::string del_url = "https://api.github.com/repos/" + owner + "/" +
                                 repo + "/git/refs/heads/" + branch;
@@ -735,7 +750,8 @@ void GitHubClient::cleanup_branches(
 
 void GitHubClient::close_dirty_branches(
     const std::string &owner, const std::string &repo,
-    const std::vector<std::string> &protected_branches) {
+    const std::vector<std::string> &protected_branches,
+    const std::vector<std::string> &protected_branch_excludes) {
   if (!repo_allowed(owner, repo)) {
     return;
   }
@@ -791,7 +807,8 @@ void GitHubClient::close_dirty_branches(
       }
       std::string branch = b["name"].get<std::string>();
       if (branch == default_branch ||
-          matches_pattern(branch, protected_branches)) {
+          is_protected_branch(branch, protected_branches,
+                              protected_branch_excludes)) {
         continue;
       }
       // Compare branch with default branch to detect divergence.

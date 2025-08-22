@@ -164,8 +164,14 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("REPO")
       ->expected(-1)
       ->group("Repositories");
-  app.add_option("--protected-branch", options.protected_branches,
+  app.add_option("--protect-branch,--protected-branch",
+                 options.protected_branches,
                  "Branch pattern to protect from deletion; repeatable")
+      ->type_name("PATTERN")
+      ->expected(-1)
+      ->group("Repositories");
+  app.add_option("--protect-branch-exclude", options.protected_branch_excludes,
+                 "Branch pattern to remove protection; repeatable")
       ->type_name("PATTERN")
       ->expected(-1)
       ->group("Repositories");
