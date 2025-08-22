@@ -341,6 +341,67 @@ bool GitHubClient::repo_allowed(const std::string &owner,
   return true;
 }
 
+std::vector<std::pair<std::string, std::string>>
+GitHubClient::list_repositories() {
+  std::vector<std::pair<std::string, std::string>> repos;
+  std::string url = "https://api.github.com/user/repos?per_page=100";
+  std::vector<std::string> headers = {"Authorization: token " + token_,
+                                      "Accept: application/vnd.github+json"};
+  while (true) {
+    enforce_delay();
+    HttpResponse res;
+    try {
+      res = http_->get_with_headers(url, headers);
+    } catch (const std::exception &e) {
+      spdlog::error("HTTP GET failed: {}", e.what());
+      break;
+    }
+    if (handle_rate_limit(res))
+      continue;
+    if (res.status_code < 200 || res.status_code >= 300) {
+      spdlog::error("HTTP GET {} failed with HTTP code {}", url,
+                    res.status_code);
+      break;
+    }
+    nlohmann::json j;
+    try {
+      j = nlohmann::json::parse(res.body);
+    } catch (const std::exception &e) {
+      spdlog::error("Failed to parse repository list: {}", e.what());
+      break;
+    }
+    for (const auto &item : j) {
+      if (!item.contains("name") || !item.contains("owner"))
+        continue;
+      std::string owner = item["owner"]["login"].get<std::string>();
+      std::string name = item["name"].get<std::string>();
+      if (repo_allowed(owner, name))
+        repos.emplace_back(owner, name);
+    }
+    std::string next_url;
+    for (const auto &h : res.headers) {
+      if (h.rfind("Link:", 0) == 0) {
+        std::string links = h.substr(5);
+        std::stringstream ss(links);
+        std::string part;
+        while (std::getline(ss, part, ',')) {
+          if (part.find("rel=\"next\"") != std::string::npos) {
+            auto start = part.find('<');
+            auto end = part.find('>', start);
+            if (start != std::string::npos && end != std::string::npos) {
+              next_url = part.substr(start + 1, end - start - 1);
+            }
+          }
+        }
+      }
+    }
+    if (next_url.empty())
+      break;
+    url = next_url;
+  }
+  return repos;
+}
+
 std::vector<PullRequest>
 GitHubClient::list_pull_requests(const std::string &owner,
                                  const std::string &repo, bool include_merged,
