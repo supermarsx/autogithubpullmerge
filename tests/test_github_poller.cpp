@@ -54,3 +54,65 @@ TEST_CASE("test github poller") {
   poller2.stop();
   REQUIRE(count2 == 1); // rate limited to first token
 }
+
+class JsonHttpClient : public HttpClient {
+public:
+  explicit JsonHttpClient(std::string b) : body(std::move(b)) {}
+  std::string get(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
+    return body;
+  }
+  std::string put(const std::string &url, const std::string &data,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)data;
+    (void)headers;
+    return "{}";
+  }
+  std::string del(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
+    return "";
+  }
+
+private:
+  std::string body;
+};
+
+TEST_CASE("github poller sorts pull requests") {
+  const std::string json =
+      "[{\"number\":1,\"title\":\"PR2\"},{\"number\":2,\"title\":\"PR10\"},{"
+      "\"number\":3,\"title\":\"PR1\"}]";
+  std::vector<std::pair<std::string, std::string>> repos = {{"me", "repo"}};
+
+  SECTION("alphanum") {
+    auto http = std::make_unique<JsonHttpClient>(json);
+    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubPoller poller(client, repos, 0, 60, true, false, false, "", false,
+                        false, "alphanum");
+    std::vector<std::string> titles;
+    poller.set_pr_callback([&](const std::vector<PullRequest> &prs) {
+      for (const auto &pr : prs)
+        titles.push_back(pr.title);
+    });
+    poller.poll_now();
+    REQUIRE(titles == std::vector<std::string>{"PR1", "PR2", "PR10"});
+  }
+
+  SECTION("reverse") {
+    auto http = std::make_unique<JsonHttpClient>(json);
+    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubPoller poller(client, repos, 0, 60, true, false, false, "", false,
+                        false, "reverse");
+    std::vector<std::string> titles;
+    poller.set_pr_callback([&](const std::vector<PullRequest> &prs) {
+      for (const auto &pr : prs)
+        titles.push_back(pr.title);
+    });
+    poller.poll_now();
+    REQUIRE(titles == std::vector<std::string>{"PR2", "PR10", "PR1"});
+  }
+}
