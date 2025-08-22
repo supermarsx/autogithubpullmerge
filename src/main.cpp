@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
         !opts.purge_prefix.empty() ? opts.purge_prefix : cfg.purge_prefix();
     bool auto_merge = opts.auto_merge || cfg.auto_merge();
     bool purge_only = opts.purge_only || cfg.purge_only();
+    std::string sort_mode = !opts.sort.empty() ? opts.sort : cfg.sort_mode();
 
     std::vector<std::pair<std::string, std::string>> repos;
     for (const auto &r : include) {
@@ -70,7 +71,7 @@ int main(int argc, char **argv) {
 
     agpm::GitHubPoller poller(client, repos, interval_ms, max_rate,
                               only_poll_prs, only_poll_stray, reject_dirty,
-                              purge_prefix, auto_merge, purge_only);
+                              purge_prefix, auto_merge, purge_only, sort_mode);
     agpm::Tui ui(client, poller);
     poller.start();
     try {
