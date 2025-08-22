@@ -3,7 +3,15 @@
 #include "tui.hpp"
 #undef private
 #include <catch2/catch_test_macros.hpp>
+#include <cstdio>
 #include <cstdlib>
+#if defined(_WIN32)
+#include <io.h>
+#define isatty _isatty
+#define fileno _fileno
+#else
+#include <unistd.h>
+#endif
 #include <memory>
 
 using namespace agpm;
@@ -37,6 +45,11 @@ TEST_CASE("test tui resize") {
 #else
   setenv("TERM", "xterm", 1);
 #endif
+
+  if (!isatty(fileno(stdout))) {
+    WARN("Skipping TUI test: no TTY available");
+    return;
+  }
 
   auto mock = std::make_unique<MockHttpClient>();
   GitHubClient client("token", std::move(mock));
