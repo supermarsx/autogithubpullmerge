@@ -27,8 +27,10 @@ inline bool alphanum_less(const std::string &a, const std::string &b) {
       i = i1;
       j = j1;
     } else {
-      char c1 = std::tolower(static_cast<unsigned char>(a[i]));
-      char c2 = std::tolower(static_cast<unsigned char>(b[j]));
+      char c1 =
+          static_cast<char>(std::tolower(static_cast<unsigned char>(a[i])));
+      char c2 =
+          static_cast<char>(std::tolower(static_cast<unsigned char>(b[j])));
       if (c1 != c2)
         return c1 < c2;
       ++i;

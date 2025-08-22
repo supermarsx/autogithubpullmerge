@@ -116,6 +116,23 @@ static std::vector<std::string> load_tokens_from_url(const std::string &url,
   return tokens;
 }
 
+// Fetches an environment variable in a cross-platform, secure manner.
+static std::string get_env_var(const char *name) {
+#ifdef _WIN32
+  char *buf = nullptr;
+  size_t sz = 0;
+  if (_dupenv_s(&buf, &sz, name) == 0 && buf) {
+    std::string value(buf);
+    std::free(buf);
+    return value;
+  }
+  return {};
+#else
+  const char *env = std::getenv(name);
+  return env ? std::string(env) : std::string();
+#endif
+}
+
 CliOptions parse_cli(int argc, char **argv) {
   CLI::App app{"autogithubpullmerge command line"};
   CliOptions options;
@@ -277,11 +294,11 @@ CliOptions parse_cli(int argc, char **argv) {
     }
   }
   if (options.api_keys.empty()) {
-    const char *env = std::getenv("GITHUB_TOKEN");
-    if (!env || env[0] == '\0') {
-      env = std::getenv("AGPM_API_KEY");
+    auto env = get_env_var("GITHUB_TOKEN");
+    if (env.empty()) {
+      env = get_env_var("AGPM_API_KEY");
     }
-    if (env && env[0] != '\0') {
+    if (!env.empty()) {
       options.api_keys.emplace_back(env);
     }
   }
