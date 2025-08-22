@@ -4,12 +4,72 @@
 #include <ctime>
 #include <iomanip>
 #include <mutex>
+#include <regex>
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <stdexcept>
 #include <thread>
 
 namespace agpm {
+
+namespace {
+
+std::regex glob_to_regex(const std::string &glob) {
+  std::string rx = "^";
+  for (char c : glob) {
+    switch (c) {
+    case '*':
+      rx += ".*";
+      break;
+    case '?':
+      rx += '.';
+      break;
+    case '.':
+    case '+':
+    case '(':
+    case ')':
+    case '{':
+    case '}':
+    case '^':
+    case '$':
+    case '|':
+    case '\\':
+    case '[':
+    case ']':
+      rx += '\\';
+      rx += c;
+      break;
+    default:
+      rx += c;
+    }
+  }
+  rx += '$';
+  return std::regex(rx);
+}
+
+bool matches_pattern(const std::string &name,
+                     const std::vector<std::string> &patterns) {
+  for (const auto &p : patterns) {
+    try {
+      if (p.find_first_of("*?") != std::string::npos) {
+        if (std::regex_match(name, glob_to_regex(p))) {
+          return true;
+        }
+      } else {
+        if (std::regex_match(name, std::regex(p))) {
+          return true;
+        }
+      }
+    } catch (const std::regex_error &) {
+      if (name == p) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+} // namespace
 
 struct CurlSlist {
   curl_slist *list{nullptr};
@@ -604,9 +664,10 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
   return branches;
 }
 
-void GitHubClient::cleanup_branches(const std::string &owner,
-                                    const std::string &repo,
-                                    const std::string &prefix) {
+void GitHubClient::cleanup_branches(
+    const std::string &owner, const std::string &repo,
+    const std::string &prefix,
+    const std::vector<std::string> &protected_branches) {
   if (!repo_allowed(owner, repo) || prefix.empty()) {
     return;
   }
@@ -636,7 +697,8 @@ void GitHubClient::cleanup_branches(const std::string &owner,
     for (const auto &item : j) {
       if (item.contains("head") && item["head"].contains("ref")) {
         std::string branch = item["head"]["ref"].get<std::string>();
-        if (branch.rfind(prefix, 0) == 0) {
+        if (branch.rfind(prefix, 0) == 0 &&
+            !matches_pattern(branch, protected_branches)) {
           enforce_delay();
           std::string del_url = "https://api.github.com/repos/" + owner + "/" +
                                 repo + "/git/refs/heads/" + branch;
@@ -671,8 +733,9 @@ void GitHubClient::cleanup_branches(const std::string &owner,
   }
 }
 
-void GitHubClient::close_dirty_branches(const std::string &owner,
-                                        const std::string &repo) {
+void GitHubClient::close_dirty_branches(
+    const std::string &owner, const std::string &repo,
+    const std::vector<std::string> &protected_branches) {
   if (!repo_allowed(owner, repo)) {
     return;
   }
@@ -727,7 +790,8 @@ void GitHubClient::close_dirty_branches(const std::string &owner,
         continue;
       }
       std::string branch = b["name"].get<std::string>();
-      if (branch == default_branch) {
+      if (branch == default_branch ||
+          matches_pattern(branch, protected_branches)) {
         continue;
       }
       // Compare branch with default branch to detect divergence.

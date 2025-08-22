@@ -16,29 +16,31 @@ struct CliOptions {
   bool assume_yes{false};         ///< Skip confirmation prompts
   std::vector<std::string> include_repos; ///< Repositories to include
   std::vector<std::string> exclude_repos; ///< Repositories to exclude
-  bool include_merged{false};             ///< Include merged pull requests
-  std::vector<std::string> api_keys;      ///< Personal access tokens
-  bool api_key_from_stream = false;       ///< Read tokens from stdin
-  std::string api_key_url;                ///< Remote URL with tokens
-  std::string api_key_url_user;           ///< Basic auth user
-  std::string api_key_url_password;       ///< Basic auth password
-  std::string api_key_file;               ///< File containing tokens
-  std::string history_db = "history.db";  ///< SQLite history database path
-  std::string export_csv;                 ///< Path to export CSV file
-  std::string export_json;                ///< Path to export JSON file
-  int poll_interval = 0;                  ///< Polling interval in seconds
-  int max_request_rate = 60;              ///< Max requests per minute
-  int http_timeout = 30;                  ///< HTTP timeout in seconds
-  int http_retries = 3;                   ///< Number of HTTP retries
-  long long download_limit = 0;           ///< Download rate limit (bytes/sec)
-  long long upload_limit = 0;             ///< Upload rate limit (bytes/sec)
-  long long max_download = 0;             ///< Max cumulative download bytes
-  long long max_upload = 0;               ///< Max cumulative upload bytes
-  bool only_poll_prs = false;             ///< Only poll pull requests
-  bool only_poll_stray = false;           ///< Only poll stray branches
-  bool reject_dirty = false;              ///< Auto close dirty branches
-  bool auto_merge{false};                 ///< Automatically merge pull requests
-  std::string purge_prefix;               ///< Delete branches with this prefix
+  std::vector<std::string>
+      protected_branches;                ///< Protected branch patterns to skip
+  bool include_merged{false};            ///< Include merged pull requests
+  std::vector<std::string> api_keys;     ///< Personal access tokens
+  bool api_key_from_stream = false;      ///< Read tokens from stdin
+  std::string api_key_url;               ///< Remote URL with tokens
+  std::string api_key_url_user;          ///< Basic auth user
+  std::string api_key_url_password;      ///< Basic auth password
+  std::string api_key_file;              ///< File containing tokens
+  std::string history_db = "history.db"; ///< SQLite history database path
+  std::string export_csv;                ///< Path to export CSV file
+  std::string export_json;               ///< Path to export JSON file
+  int poll_interval = 0;                 ///< Polling interval in seconds
+  int max_request_rate = 60;             ///< Max requests per minute
+  int http_timeout = 30;                 ///< HTTP timeout in seconds
+  int http_retries = 3;                  ///< Number of HTTP retries
+  long long download_limit = 0;          ///< Download rate limit (bytes/sec)
+  long long upload_limit = 0;            ///< Upload rate limit (bytes/sec)
+  long long max_download = 0;            ///< Max cumulative download bytes
+  long long max_upload = 0;              ///< Max cumulative upload bytes
+  bool only_poll_prs = false;            ///< Only poll pull requests
+  bool only_poll_stray = false;          ///< Only poll stray branches
+  bool reject_dirty = false;             ///< Auto close dirty branches
+  bool auto_merge{false};                ///< Automatically merge pull requests
+  std::string purge_prefix;              ///< Delete branches with this prefix
   bool purge_only = false; ///< Only purge branches, skip PR polling
   int pr_limit{50};        ///< Number of pull requests to fetch
   std::chrono::seconds pr_since{

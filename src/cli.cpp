@@ -164,6 +164,11 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("REPO")
       ->expected(-1)
       ->group("Repositories");
+  app.add_option("--protected-branch", options.protected_branches,
+                 "Branch pattern to protect from deletion; repeatable")
+      ->type_name("PATTERN")
+      ->expected(-1)
+      ->group("Repositories");
   app.add_flag("--include-merged", options.include_merged,
                "Include merged pull requests")
       ->group("Repositories");
