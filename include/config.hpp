@@ -209,6 +209,24 @@ public:
   /// Set auto merge flag.
   void set_auto_merge(bool v) { auto_merge_ = v; }
 
+  /// Required number of approvals before merging.
+  int required_approvals() const { return required_approvals_; }
+
+  /// Set required approvals.
+  void set_required_approvals(int n) { required_approvals_ = n; }
+
+  /// Require successful status checks before merging.
+  bool require_status_success() const { return require_status_success_; }
+
+  /// Set require status checks flag.
+  void set_require_status_success(bool v) { require_status_success_ = v; }
+
+  /// Require pull request to be mergeable.
+  bool require_mergeable_state() const { return require_mergeable_state_; }
+
+  /// Set require mergeable state flag.
+  void set_require_mergeable_state(bool v) { require_mergeable_state_ = v; }
+
   /// Prefix of branches to purge after merge.
   const std::string &purge_prefix() const { return purge_prefix_; }
 
@@ -266,6 +284,9 @@ private:
   bool purge_only_ = false;
   bool reject_dirty_ = false;
   bool auto_merge_ = false;
+  int required_approvals_ = 0;
+  bool require_status_success_ = false;
+  bool require_mergeable_state_ = false;
   std::string purge_prefix_;
   int pr_limit_ = 50;
   std::chrono::seconds pr_since_{0};

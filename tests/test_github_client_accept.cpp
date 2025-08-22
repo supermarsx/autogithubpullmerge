@@ -10,8 +10,10 @@ public:
   std::vector<std::string> last_headers;
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override {
-    (void)url;
     last_headers = headers;
+    if (url.find("/pulls/") != std::string::npos) {
+      return "{}";
+    }
     return "[]";
   }
   std::string put(const std::string &url, const std::string &data,

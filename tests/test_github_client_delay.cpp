@@ -10,8 +10,10 @@ class DelayHttpClient : public HttpClient {
 public:
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override {
-    (void)url;
     (void)headers;
+    if (url.find("/pulls/") != std::string::npos) {
+      return "{}";
+    }
     return "[]";
   }
   std::string put(const std::string &url, const std::string &data,

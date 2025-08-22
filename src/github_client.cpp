@@ -580,11 +580,36 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   if (!repo_allowed(owner, repo)) {
     return false;
   }
+  std::vector<std::string> headers = {"Authorization: token " + token_,
+                                      "Accept: application/vnd.github+json"};
+  // Fetch pull request metadata
+  enforce_delay();
+  std::string pr_url = "https://api.github.com/repos/" + owner + "/" + repo +
+                       "/pulls/" + std::to_string(pr_number);
+  nlohmann::json meta;
+  try {
+    std::string pr_resp = http_->get(pr_url, headers);
+    meta = nlohmann::json::parse(pr_resp);
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to fetch pull request metadata: {}", e.what());
+    return false;
+  }
+  if (!meta.is_object()) {
+    return false;
+  }
+  if (required_approvals_ > 0 &&
+      meta.value("approvals", 0) < required_approvals_) {
+    return false;
+  }
+  if (require_status_success_ && meta.value("mergeable_state", "") != "clean") {
+    return false;
+  }
+  if (require_mergeable_state_ && !meta.value("mergeable", false)) {
+    return false;
+  }
   enforce_delay();
   std::string url = "https://api.github.com/repos/" + owner + "/" + repo +
                     "/pulls/" + std::to_string(pr_number) + "/merge";
-  std::vector<std::string> headers = {"Authorization: token " + token_,
-                                      "Accept: application/vnd.github+json"};
   try {
     std::string resp = http_->put(url, "{}", headers);
     nlohmann::json j = nlohmann::json::parse(resp);

@@ -7,13 +7,16 @@ using namespace agpm;
 
 class DummyHttp : public HttpClient {
 public:
-  std::string resp_get;
+  std::string resp_list;
+  std::string resp_pr;
   std::string resp_put;
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override {
-    (void)url;
     (void)headers;
-    return resp_get;
+    if (url.find("/pulls/") != std::string::npos) {
+      return resp_pr;
+    }
+    return resp_list;
   }
   std::string put(const std::string &url, const std::string &data,
                   const std::vector<std::string> &headers) override {
@@ -32,8 +35,9 @@ public:
 
 TEST_CASE("test history merge") {
   auto http = std::make_unique<DummyHttp>();
-  http->resp_get =
+  http->resp_list =
       "[{\"number\":1,\"title\":\"One\"},{\"number\":2,\"title\":\"Two\"}]";
+  http->resp_pr = "{}";
   http->resp_put = "{\"merged\":true}";
   DummyHttp *raw = http.get();
   (void)raw;
