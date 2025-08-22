@@ -65,6 +65,17 @@ TEST_CASE("test cli") {
   REQUIRE(opts7b.exclude_repos[0] == "repoD");
   REQUIRE(opts7b.exclude_repos[1] == "repoE");
 
+  char protect_flag[] = "--protect-branch";
+  char protect_ex_flag[] = "--protect-branch-exclude";
+  char pat_a[] = "main";
+  char pat_b[] = "main-temp";
+  char *argv_protect[] = {prog, protect_flag, pat_a, protect_ex_flag, pat_b};
+  agpm::CliOptions opts_protect = agpm::parse_cli(5, argv_protect);
+  REQUIRE(opts_protect.protected_branches.size() == 1);
+  REQUIRE(opts_protect.protected_branches[0] == "main");
+  REQUIRE(opts_protect.protected_branch_excludes.size() == 1);
+  REQUIRE(opts_protect.protected_branch_excludes[0] == "main-temp");
+
   char api_flag[] = "--api-key";
   char key1[] = "abc";
   char key2[] = "def";

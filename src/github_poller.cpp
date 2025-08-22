@@ -8,13 +8,17 @@ GitHubPoller::GitHubPoller(
     std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
     int max_rate, bool only_poll_prs, bool only_poll_stray, bool reject_dirty,
     std::string purge_prefix, bool auto_merge, bool purge_only,
-    std::string sort_mode, PullRequestHistory *history)
+    std::string sort_mode, PullRequestHistory *history,
+    std::vector<std::string> protected_branches,
+    std::vector<std::string> protected_branch_excludes)
     : client_(client), repos_(std::move(repos)),
       poller_([this] { poll(); }, interval_ms, max_rate),
       only_poll_prs_(only_poll_prs), only_poll_stray_(only_poll_stray),
       reject_dirty_(reject_dirty), purge_prefix_(std::move(purge_prefix)),
       auto_merge_(auto_merge), purge_only_(purge_only),
-      sort_mode_(std::move(sort_mode)), history_(history) {}
+      sort_mode_(std::move(sort_mode)), history_(history),
+      protected_branches_(std::move(protected_branches)),
+      protected_branch_excludes_(std::move(protected_branch_excludes)) {}
 
 void GitHubPoller::start() { poller_.start(); }
 
@@ -41,7 +45,9 @@ void GitHubPoller::poll() {
   for (const auto &r : repos_) {
     if (purge_only_) {
       if (!purge_prefix_.empty()) {
-        client_.cleanup_branches(r.first, r.second, purge_prefix_);
+        client_.cleanup_branches(r.first, r.second, purge_prefix_,
+                                 protected_branches_,
+                                 protected_branch_excludes_);
       }
       continue;
     }
@@ -68,10 +74,12 @@ void GitHubPoller::poll() {
       }
     }
     if (!purge_prefix_.empty()) {
-      client_.cleanup_branches(r.first, r.second, purge_prefix_);
+      client_.cleanup_branches(r.first, r.second, purge_prefix_,
+                               protected_branches_, protected_branch_excludes_);
     }
     if (!only_poll_prs_ && reject_dirty_) {
-      client_.close_dirty_branches(r.first, r.second);
+      client_.close_dirty_branches(r.first, r.second, protected_branches_,
+                                   protected_branch_excludes_);
     }
   }
   sort_pull_requests(all_prs, sort_mode_);

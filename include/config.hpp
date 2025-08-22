@@ -113,6 +113,16 @@ public:
     protected_branches_ = branches;
   }
 
+  /// Branch patterns to explicitly unprotect.
+  const std::vector<std::string> &protected_branch_excludes() const {
+    return protected_branch_excludes_;
+  }
+
+  /// Set branch patterns to explicitly unprotect.
+  void set_protected_branch_excludes(const std::vector<std::string> &branches) {
+    protected_branch_excludes_ = branches;
+  }
+
   /// Whether to include merged pull requests.
   bool include_merged() const { return include_merged_; }
 
@@ -242,6 +252,7 @@ private:
   std::vector<std::string> include_repos_;
   std::vector<std::string> exclude_repos_;
   std::vector<std::string> protected_branches_;
+  std::vector<std::string> protected_branch_excludes_;
   bool include_merged_ = false;
   std::vector<std::string> api_keys_;
   bool api_key_from_stream_ = false;
