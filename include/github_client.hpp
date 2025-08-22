@@ -216,14 +216,18 @@ public:
    * Delete branches whose associated pull request was closed or merged and
    * whose name begins with the given prefix.
    */
-  void cleanup_branches(const std::string &owner, const std::string &repo,
-                        const std::string &prefix);
+  void
+  cleanup_branches(const std::string &owner, const std::string &repo,
+                   const std::string &prefix,
+                   const std::vector<std::string> &protected_branches = {});
 
   /**
    * Close or delete branches that have diverged from the repository's default
    * branch.
    */
-  void close_dirty_branches(const std::string &owner, const std::string &repo);
+  void
+  close_dirty_branches(const std::string &owner, const std::string &repo,
+                       const std::vector<std::string> &protected_branches = {});
 
 private:
   std::string token_;

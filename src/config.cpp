@@ -102,6 +102,10 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("exclude_repos")) {
     set_exclude_repos(j["exclude_repos"].get<std::vector<std::string>>());
   }
+  if (j.contains("protected_branches")) {
+    set_protected_branches(
+        j["protected_branches"].get<std::vector<std::string>>());
+  }
   if (j.contains("include_merged")) {
     set_include_merged(j["include_merged"].get<bool>());
   }

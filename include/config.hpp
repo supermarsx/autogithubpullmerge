@@ -103,6 +103,16 @@ public:
     exclude_repos_ = repos;
   }
 
+  /// Branch patterns to protect from deletion.
+  const std::vector<std::string> &protected_branches() const {
+    return protected_branches_;
+  }
+
+  /// Set protected branch patterns.
+  void set_protected_branches(const std::vector<std::string> &branches) {
+    protected_branches_ = branches;
+  }
+
   /// Whether to include merged pull requests.
   bool include_merged() const { return include_merged_; }
 
@@ -231,6 +241,7 @@ private:
   std::string log_file_;
   std::vector<std::string> include_repos_;
   std::vector<std::string> exclude_repos_;
+  std::vector<std::string> protected_branches_;
   bool include_merged_ = false;
   std::vector<std::string> api_keys_;
   bool api_key_from_stream_ = false;
