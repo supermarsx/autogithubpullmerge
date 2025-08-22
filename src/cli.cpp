@@ -196,6 +196,14 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("FILE")
       ->default_val("history.db")
       ->group("General");
+  app.add_option("--export-csv", options.export_csv,
+                 "Export pull request history to CSV file after each poll")
+      ->type_name("FILE")
+      ->group("General");
+  app.add_option("--export-json", options.export_json,
+                 "Export pull request history to JSON file after each poll")
+      ->type_name("FILE")
+      ->group("General");
   app.add_option("--poll-interval", options.poll_interval,
                  "Polling interval in seconds")
       ->type_name("SECONDS")

@@ -235,6 +235,16 @@ TEST_CASE("test cli") {
   REQUIRE(opts_max.max_download == 5000);
   REQUIRE(opts_max.max_upload == 6000);
 
+  char export_csv_flag[] = "--export-csv";
+  char csv_path[] = "out.csv";
+  char export_json_flag[] = "--export-json";
+  char json_path[] = "out.json";
+  char *argv_export[] = {prog, export_csv_flag, csv_path, export_json_flag,
+                         json_path};
+  agpm::CliOptions opts_export = agpm::parse_cli(5, argv_export);
+  REQUIRE(opts_export.export_csv == "out.csv");
+  REQUIRE(opts_export.export_json == "out.json");
+
   {
     char bad[] = "--unknown";
     char *argv_bad[] = {prog, bad};
