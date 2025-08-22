@@ -59,6 +59,7 @@ private:
   WINDOW *log_win_{nullptr};
   WINDOW *help_win_{nullptr};
   bool running_{false};
+  bool initialized_{false};
   int last_h_{0}; ///< Cached terminal height for resize detection.
   int last_w_{0}; ///< Cached terminal width for resize detection.
 };
