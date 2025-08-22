@@ -9,6 +9,7 @@
 #else
 #error "curses.h not found"
 #endif
+#include <stdexcept>
 
 namespace agpm {
 
@@ -24,7 +25,9 @@ Tui::Tui(GitHubClient &client, GitHubPoller &poller)
 }
 
 void Tui::init() {
-  initscr();
+  if (initscr() == nullptr) {
+    throw std::runtime_error("Failed to initialize curses");
+  }
   cbreak();
   noecho();
   keypad(stdscr, TRUE);
@@ -39,6 +42,7 @@ void Tui::init() {
     init_pair(3, COLOR_GREEN, -1);  // help text
   }
   refresh();
+  initialized_ = true;
 }
 
 void Tui::update_prs(const std::vector<PullRequest> &prs) {
@@ -167,6 +171,8 @@ void Tui::run() {
 }
 
 void Tui::cleanup() {
+  if (!initialized_)
+    return;
   if (pr_win_)
     delwin(pr_win_);
   if (log_win_)
@@ -174,6 +180,7 @@ void Tui::cleanup() {
   if (help_win_)
     delwin(help_win_);
   endwin();
+  initialized_ = false;
 }
 
 } // namespace agpm
