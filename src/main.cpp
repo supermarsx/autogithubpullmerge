@@ -73,6 +73,9 @@ int main(int argc, char **argv) {
     bool auto_merge = opts.auto_merge || cfg.auto_merge();
     bool purge_only = opts.purge_only || cfg.purge_only();
     std::string sort_mode = !opts.sort.empty() ? opts.sort : cfg.sort_mode();
+    int workers = opts.workers != 0 ? opts.workers : cfg.workers();
+    if (workers <= 0)
+      workers = 1;
 
     std::vector<std::pair<std::string, std::string>> repos;
     for (const auto &r : include) {
@@ -90,9 +93,9 @@ int main(int argc, char **argv) {
     agpm::PullRequestHistory history(history_db);
 
     agpm::GitHubPoller poller(
-        client, repos, interval_ms, max_rate, only_poll_prs, only_poll_stray,
-        reject_dirty, purge_prefix, auto_merge, purge_only, sort_mode, &history,
-        protected_branches, protected_branch_excludes);
+        client, repos, interval_ms, max_rate, workers, only_poll_prs,
+        only_poll_stray, reject_dirty, purge_prefix, auto_merge, purge_only,
+        sort_mode, &history, protected_branches, protected_branch_excludes);
 
     if (!opts.export_csv.empty() || !opts.export_json.empty()) {
       poller.set_export_callback([&history, &opts]() {

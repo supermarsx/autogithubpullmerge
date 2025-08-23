@@ -32,6 +32,7 @@ struct CliOptions {
   std::string export_json;               ///< Path to export JSON file
   int poll_interval = 0;                 ///< Polling interval in seconds
   int max_request_rate = 60;             ///< Max requests per minute
+  int workers = 0;                       ///< Number of worker threads
   int http_timeout = 30;                 ///< HTTP timeout in seconds
   int http_retries = 3;                  ///< Number of HTTP retries
   long long download_limit = 0;          ///< Download rate limit (bytes/sec)

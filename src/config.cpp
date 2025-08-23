@@ -70,6 +70,9 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("max_request_rate")) {
     set_max_request_rate(j["max_request_rate"].get<int>());
   }
+  if (j.contains("workers")) {
+    set_workers(j["workers"].get<int>());
+  }
   if (j.contains("http_timeout")) {
     set_http_timeout(j["http_timeout"].get<int>());
   }

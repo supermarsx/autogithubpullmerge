@@ -3,44 +3,56 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <functional>
+#include <future>
+#include <mutex>
+#include <queue>
 #include <thread>
+#include <vector>
 
 namespace agpm {
 
 /**
- * Simple polling helper running a callback in a worker thread and
- * enforcing a maximum request rate using a token bucket.
+ * Thread pool executing submitted tasks while enforcing a maximum request
+ * rate using a token bucket.
  */
 class Poller {
 public:
   /**
-   * Construct a poller.
+   * Construct a thread pool.
    *
-   * @param task Function to invoke periodically
-   * @param interval_ms Poll interval in milliseconds
-   * @param max_rate Maximum allowed requests per minute
+   * @param workers Number of worker threads
+   * @param max_rate Maximum allowed requests per minute (0 = unlimited)
    */
-  Poller(std::function<void()> task, int interval_ms, int max_rate);
+  Poller(int workers, int max_rate);
 
-  /// Destructor stops the polling thread.
+  /// Destructor stops the worker threads.
   ~Poller();
 
-  /// Start the polling thread.
+  /// Start the worker threads.
   void start();
 
-  /// Stop the polling thread.
+  /// Stop the worker threads.
   void stop();
 
-private:
-  void run();
+  /// Submit a task for execution.
+  std::future<void> submit(std::function<void()> job);
 
-  std::function<void()> task_;
-  int interval_ms_;
+private:
+  void worker();
+  void acquire_token();
+
+  int workers_;
   int max_rate_;
   std::atomic<bool> running_{false};
-  std::thread thread_;
+  std::vector<std::thread> threads_;
+  std::queue<std::function<void()>> jobs_;
+  std::mutex mutex_;
+  std::condition_variable cv_;
 
+  // Token bucket
+  std::mutex rate_mutex_;
   double tokens_;
   double capacity_;
   double fill_rate_;
@@ -50,3 +62,4 @@ private:
 } // namespace agpm
 
 #endif // AUTOGITHUBPULLMERGE_POLLER_HPP
+

@@ -4,8 +4,10 @@
 #include "github_client.hpp"
 #include "history.hpp"
 #include "poller.hpp"
+#include <atomic>
 #include <functional>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -35,8 +37,9 @@ public:
    */
   GitHubPoller(GitHubClient &client,
                std::vector<std::pair<std::string, std::string>> repos,
-               int interval_ms, int max_rate, bool only_poll_prs = false,
-               bool only_poll_stray = false, bool reject_dirty = false,
+               int interval_ms, int max_rate, int workers = 1,
+               bool only_poll_prs = false, bool only_poll_stray = false,
+               bool reject_dirty = false,
                std::string purge_prefix = "", bool auto_merge = false,
                bool purge_only = false, std::string sort_mode = "",
                PullRequestHistory *history = nullptr,
@@ -79,6 +82,9 @@ private:
   GitHubClient &client_;
   std::vector<std::pair<std::string, std::string>> repos_;
   Poller poller_;
+  int interval_ms_;
+  std::thread thread_;
+  std::atomic<bool> running_{false};
   bool only_poll_prs_;
   bool only_poll_stray_;
   bool reject_dirty_;
