@@ -65,11 +65,19 @@ void GitHubPoller::poll() {
       // Fetch pull requests and optionally merge them when allowed.
       auto prs = client_.list_pull_requests(r.first, r.second);
       all_prs.insert(all_prs.end(), prs.begin(), prs.end());
+      if (history_) {
+        for (const auto &pr : prs) {
+          history_->insert(pr.number, pr.title, pr.merged);
+        }
+      }
       if (auto_merge_) {
         for (const auto &pr : prs) {
           bool merged =
               client_.merge_pull_request(pr.owner, pr.repo, pr.number);
           if (merged) {
+            if (history_) {
+              history_->update_merged(pr.number);
+            }
             if (log_cb_) {
               log_cb_("Merged PR #" + std::to_string(pr.number));
             }
@@ -104,11 +112,6 @@ void GitHubPoller::poll() {
     }
   }
   sort_pull_requests(all_prs, sort_mode_);
-  if (history_) {
-    for (const auto &pr : all_prs) {
-      history_->insert(pr.number, pr.title, false);
-    }
-  }
   if (pr_cb_) {
     pr_cb_(all_prs);
   }

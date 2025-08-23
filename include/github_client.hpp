@@ -148,6 +148,7 @@ private:
 struct PullRequest {
   int number;          ///< PR number
   std::string title;   ///< PR title
+  bool merged{};       ///< Whether the PR has been merged
   std::string owner{}; ///< Repository owner
   std::string repo{};  ///< Repository name
 };
