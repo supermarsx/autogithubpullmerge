@@ -51,6 +51,20 @@ void PullRequestHistory::insert(int number, const std::string &title,
   sqlite3_finalize(stmt);
 }
 
+void PullRequestHistory::update_merged(int number) {
+  sqlite3_stmt *stmt = nullptr;
+  const char *sql = "UPDATE pull_requests SET merged=1 WHERE number=?";
+  if (sqlite3_prepare_v2(db_, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+    throw std::runtime_error("Failed to prepare update");
+  }
+  sqlite3_bind_int(stmt, 1, number);
+  if (sqlite3_step(stmt) != SQLITE_DONE) {
+    sqlite3_finalize(stmt);
+    throw std::runtime_error("Failed to execute update");
+  }
+  sqlite3_finalize(stmt);
+}
+
 void PullRequestHistory::export_csv(const std::string &path) {
   std::ofstream out(path);
   if (!out) {

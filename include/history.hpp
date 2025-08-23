@@ -30,6 +30,13 @@ public:
    */
   void insert(int number, const std::string &title, bool merged);
 
+  /**
+   * Mark a pull request as merged.
+   *
+   * @param number Pull request number
+   */
+  void update_merged(int number);
+
   /// Export the database contents to a CSV file.
   void export_csv(const std::string &path);
 

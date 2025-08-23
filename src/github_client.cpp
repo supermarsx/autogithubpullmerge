@@ -555,8 +555,9 @@ GitHubClient::list_pull_requests(const std::string &owner,
       }
       if (since.count() > 0 && created < cutoff)
         continue;
+      bool merged = item.contains("merged_at") && !item["merged_at"].is_null();
       PullRequest pr{item["number"].get<int>(),
-                     item["title"].get<std::string>(), owner, repo};
+                     item["title"].get<std::string>(), merged, owner, repo};
       prs.push_back(pr);
       if (static_cast<int>(prs.size()) >= limit)
         break;
