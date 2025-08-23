@@ -149,6 +149,7 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("auto_merge")) {
     set_auto_merge(j["auto_merge"].get<bool>());
   }
+  // Merge rule settings
   if (j.contains("required_approvals")) {
     set_required_approvals(j["required_approvals"].get<int>());
   }

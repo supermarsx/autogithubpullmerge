@@ -209,6 +209,7 @@ public:
   /// Set auto merge flag.
   void set_auto_merge(bool v) { auto_merge_ = v; }
 
+  /// Merge rule configuration
   /// Required number of approvals before merging.
   int required_approvals() const { return required_approvals_; }
 

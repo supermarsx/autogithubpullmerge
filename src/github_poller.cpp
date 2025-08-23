@@ -56,10 +56,15 @@ void GitHubPoller::poll() {
       all_prs.insert(all_prs.end(), prs.begin(), prs.end());
       if (auto_merge_) {
         for (const auto &pr : prs) {
-          if (client_.merge_pull_request(pr.owner, pr.repo, pr.number)) {
+          bool merged =
+              client_.merge_pull_request(pr.owner, pr.repo, pr.number);
+          if (merged) {
             if (log_cb_) {
               log_cb_("Merged PR #" + std::to_string(pr.number));
             }
+          } else if (log_cb_) {
+            log_cb_("PR #" + std::to_string(pr.number) +
+                    " did not meet merge requirements");
           }
         }
       }
