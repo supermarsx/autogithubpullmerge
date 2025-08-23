@@ -13,5 +13,5 @@ if [[ -z "${VCPKG_ROOT}" ]]; then
 	exit 1
 fi
 
-cmake --preset vcpkg --fresh -DBUILD_TESTING=OFF
+cmake --preset vcpkg --fresh -DBUILD_TESTING=OFF -DCMAKE_CXX_STANDARD=23
 cmake --build --preset vcpkg --target autogithubpullmerge

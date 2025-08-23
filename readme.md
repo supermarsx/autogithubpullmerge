@@ -5,7 +5,7 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 ## Features
 - Cross-platform build using CMake
 - Linux, macOS and Windows install/build scripts
-- Placeholder TUI application in C++20
+- Placeholder TUI application in C++23
 - Dependencies managed with vcpkg
 - Requires a curses development package for the TUI (`libncurses-dev` on
   Linux/macOS or `pdcurses` on Windows)
@@ -13,7 +13,9 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - SQLite-based history storage with CSV/JSON export
 - Configurable logging with `--log-level` and optional `--log-file`
 - Uses spdlog for colored console and rotating file logging
-- Cross-platform compile scripts (MSVC on Windows, g++ on Linux/macOS)
+- Cross-platform compile scripts (MSVC on Windows, g++ on Linux/macOS) with
+  C++23 support
+- Dependencies verified to build with C++23 via vcpkg
 - CLI options for GitHub API keys (`--api-key`, `--api-key-from-stream`,
   `--api-key-url`, `--api-key-url-user`, `--api-key-url-password`,
   `--api-key-file`)
