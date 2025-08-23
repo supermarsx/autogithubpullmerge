@@ -23,7 +23,12 @@ namespace agpm {
  */
 class Tui {
 public:
-  /// Construct a TUI bound to a GitHub client and poller.
+  /**
+   * Construct a TUI bound to a GitHub client and poller.
+   *
+   * @param client GitHub API client used for interactive actions
+   * @param poller Poller providing periodic updates
+   */
   Tui(GitHubClient &client, GitHubPoller &poller);
 
   /// Initialize the curses library and windows.
@@ -35,13 +40,21 @@ public:
   /// Clean up curses state.
   void cleanup();
 
-  /// Update the displayed pull requests.
+  /**
+   * Update the displayed pull requests.
+   *
+   * @param prs Latest list of pull requests to render
+   */
   void update_prs(const std::vector<PullRequest> &prs);
 
   /// Draw the interface once.
   void draw();
 
-  /// Handle a single key press.
+  /**
+   * Handle a single key press.
+   *
+   * @param ch Character code received from curses
+   */
   void handle_key(int ch);
 
   /// Access collected log messages.

@@ -52,6 +52,7 @@ void GitHubPoller::poll() {
   std::vector<PullRequest> all_prs;
   for (const auto &r : repos_) {
     if (purge_only_) {
+      // In purge-only mode skip all polling and just delete branches.
       spdlog::debug("purge_only set - skipping repo {}/{}", r.first, r.second);
       if (!purge_prefix_.empty()) {
         client_.cleanup_branches(r.first, r.second, purge_prefix_,
@@ -61,6 +62,7 @@ void GitHubPoller::poll() {
       continue;
     }
     if (!only_poll_stray_) {
+      // Fetch pull requests and optionally merge them when allowed.
       auto prs = client_.list_pull_requests(r.first, r.second);
       all_prs.insert(all_prs.end(), prs.begin(), prs.end());
       if (auto_merge_) {
@@ -79,6 +81,7 @@ void GitHubPoller::poll() {
       }
     }
     if (!only_poll_prs_) {
+      // Gather stray branches not matching the purge prefix for logging.
       auto branches = client_.list_branches(r.first, r.second);
       std::vector<std::string> stray;
       for (const auto &b : branches) {
