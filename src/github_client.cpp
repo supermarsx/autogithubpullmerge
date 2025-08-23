@@ -14,6 +14,7 @@ namespace agpm {
 
 namespace {
 
+/// Convert a shell-style glob pattern to a std::regex for comparison.
 std::regex glob_to_regex(const std::string &glob) {
   std::string rx = "^";
   for (char c : glob) {
@@ -47,6 +48,7 @@ std::regex glob_to_regex(const std::string &glob) {
   return std::regex(rx);
 }
 
+/// Return true if `name` matches any glob or regex in `patterns`.
 bool matches_pattern(const std::string &name,
                      const std::vector<std::string> &patterns) {
   for (const auto &p : patterns) {
@@ -69,6 +71,8 @@ bool matches_pattern(const std::string &name,
   return false;
 }
 
+// Determine whether a branch name should be considered protected based on
+// include and exclude pattern lists. Excludes take precedence.
 bool is_protected_branch(const std::string &name,
                          const std::vector<std::string> &protected_patterns,
                          const std::vector<std::string> &exclude_patterns) {
@@ -327,6 +331,9 @@ std::string CurlHttpClient::del(const std::string &url,
 }
 
 namespace {
+// HTTP client wrapper that retries requests with exponential backoff on
+// transient failures. Uses the wrapped `HttpClient` to perform actual
+// requests.
 class RetryHttpClient : public agpm::HttpClient {
 public:
   RetryHttpClient(std::unique_ptr<agpm::HttpClient> inner, int max_retries,
@@ -364,6 +371,7 @@ private:
       } catch (const std::exception &e) {
         if (attempt >= max_retries_ || !is_transient(e))
           throw;
+        // Exponential backoff: 2^attempt * backoff_ms between retries.
         std::this_thread::sleep_for(
             std::chrono::milliseconds(backoff_ms_ * (1 << attempt)));
         ++attempt;
@@ -718,6 +726,9 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
   return branches;
 }
 
+// Remove merged branches with the specified prefix. The implementation pages
+// through closed pull requests and deletes the associated head branch when the
+// name matches `prefix` and is not protected by user-specified patterns.
 void GitHubClient::cleanup_branches(
     const std::string &owner, const std::string &repo,
     const std::string &prefix,
@@ -793,6 +804,9 @@ void GitHubClient::cleanup_branches(
   }
 }
 
+// Detect branches that have drifted from the default branch and remove or
+// close them if they are not protected. This prevents accumulation of stale
+// development branches.
 void GitHubClient::close_dirty_branches(
     const std::string &owner, const std::string &repo,
     const std::vector<std::string> &protected_branches,

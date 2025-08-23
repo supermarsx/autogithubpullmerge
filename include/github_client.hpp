@@ -197,6 +197,9 @@ public:
    *
    * @param owner Repository owner
    * @param repo Repository name
+   * @param include_merged Include merged pull requests when true
+   * @param per_page Number of pull requests to fetch per page
+   * @param since Only include pull requests updated since this time
    * @return List of pull request summaries
    */
   std::vector<PullRequest>
@@ -217,6 +220,10 @@ public:
 
   /**
    * List branch names for a repository excluding the default branch.
+   *
+   * @param owner Repository owner
+   * @param repo Repository name
+   * @return All non-default branch names
    */
   std::vector<std::string> list_branches(const std::string &owner,
                                          const std::string &repo);
@@ -224,6 +231,13 @@ public:
   /**
    * Delete branches whose associated pull request was closed or merged and
    * whose name begins with the given prefix.
+   *
+   * @param owner Repository owner
+   * @param repo Repository name
+   * @param prefix Branch name prefix to match for deletion
+   * @param protected_branches Glob patterns for branches that must not be
+   *        deleted
+   * @param protected_branch_excludes Patterns that override protections
    */
   void cleanup_branches(
       const std::string &owner, const std::string &repo,
@@ -234,6 +248,12 @@ public:
   /**
    * Close or delete branches that have diverged from the repository's default
    * branch.
+   *
+   * @param owner Repository owner
+   * @param repo Repository name
+   * @param protected_branches Glob patterns for branches that must not be
+   *        removed
+   * @param protected_branch_excludes Patterns that override protections
    */
   void close_dirty_branches(
       const std::string &owner, const std::string &repo,
