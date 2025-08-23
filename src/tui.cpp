@@ -9,6 +9,7 @@
 #else
 #error "curses.h not found"
 #endif
+#include <spdlog/spdlog.h>
 #include <stdexcept>
 #if defined(_WIN32)
 #include <io.h>
@@ -150,30 +151,39 @@ void Tui::draw() {
 void Tui::handle_key(int ch) {
   if (!initialized_)
     return;
+  spdlog::debug("Key pressed: {}", ch);
   switch (ch) {
   case 'q':
+    spdlog::info("Quit requested");
     running_ = false;
     break;
   case 'r':
+    spdlog::info("Manual refresh requested");
     poller_.poll_now();
     break;
   case 'm':
     if (selected_ < static_cast<int>(prs_.size())) {
       const auto &pr = prs_[selected_];
+      spdlog::info("Merge requested for PR #{}", pr.number);
       if (client_.merge_pull_request(pr.owner, pr.repo, pr.number)) {
         log("Merged PR #" + std::to_string(pr.number));
       }
     }
     break;
   case KEY_UP:
-    if (selected_ > 0)
+    if (selected_ > 0) {
       --selected_;
+      spdlog::debug("Moved selection up to {}", selected_);
+    }
     break;
   case KEY_DOWN:
-    if (selected_ + 1 < static_cast<int>(prs_.size()))
+    if (selected_ + 1 < static_cast<int>(prs_.size())) {
       ++selected_;
+      spdlog::debug("Moved selection down to {}", selected_);
+    }
     break;
   default:
+    spdlog::debug("Unhandled key: {}", ch);
     break;
   }
 }

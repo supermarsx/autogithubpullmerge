@@ -5,6 +5,7 @@
 #include <string>
 
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
 namespace agpm {
@@ -180,26 +181,37 @@ Config Config::from_json(const nlohmann::json &j) {
 }
 
 Config Config::from_file(const std::string &path) {
+  spdlog::debug("Loading config from {}", path);
   auto pos = path.find_last_of('.');
   if (pos == std::string::npos) {
+    spdlog::error("Unknown config file extension for {}", path);
     throw std::runtime_error("Unknown config file extension");
   }
   std::string ext = path.substr(pos + 1);
+  spdlog::debug("Detected config file type: {}", ext);
   nlohmann::json j;
-  if (ext == "yaml" || ext == "yml") {
-    YAML::Node node = YAML::LoadFile(path);
-    j = yaml_to_json(node);
-  } else if (ext == "json") {
-    std::ifstream f(path);
-    if (!f) {
-      throw std::runtime_error("Failed to open config file");
+  try {
+    if (ext == "yaml" || ext == "yml") {
+      YAML::Node node = YAML::LoadFile(path);
+      j = yaml_to_json(node);
+    } else if (ext == "json") {
+      std::ifstream f(path);
+      if (!f) {
+        spdlog::error("Failed to open config file {}", path);
+        throw std::runtime_error("Failed to open config file");
+      }
+      f >> j;
+    } else {
+      spdlog::error("Unsupported config format: {}", ext);
+      throw std::runtime_error("Unsupported config format");
     }
-    f >> j;
-  } else {
-    throw std::runtime_error("Unsupported config format");
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to load config {}: {}", path, e.what());
+    throw;
   }
   Config cfg;
   cfg.load_json(j);
+  spdlog::info("Config loaded successfully from {}", path);
   return cfg;
 }
 
