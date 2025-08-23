@@ -166,9 +166,51 @@ API keys can be provided in several ways:
 Destructive options (`--reject-dirty`, `--auto-merge`, `--purge-prefix`,
 `--purge-only`) prompt for confirmation unless `--yes` is supplied.
 
+## Networking
+
+- `--http-timeout` sets the HTTP request timeout in seconds (default `30`).
+- `--http-retries` sets how many times failed HTTP requests are retried (default `3`).
+- `--download-limit` caps the download rate in bytes per second (0 = unlimited).
+- `--upload-limit` caps the upload rate in bytes per second (0 = unlimited).
+- `--max-download` limits total downloaded bytes (0 = unlimited).
+- `--max-upload` limits total uploaded bytes (0 = unlimited).
+
+These options may also be specified in JSON or YAML configuration files as
+`http_timeout`, `http_retries`, `download_limit`, `upload_limit`,
+`max_download` and `max_upload`.
+
+## TUI Hotkeys
+
+The terminal interface supports the following key bindings:
+
+- `r` refreshes the pull request list.
+- `m` merges the selected pull request.
+- `q` quits the interface.
+- Arrow keys navigate between pull requests.
+
 ## Examples
 
 Example configuration files can be found in the `examples` directory:
 
 - `config.yaml`
 - `config.json`
+
+You can combine configuration files with CLI flags:
+
+```yaml
+# config.yaml
+http_timeout: 45
+download_limit: 1048576
+```
+
+```bash
+autogithubpullmerge --config config.yaml --http-retries 5 --upload-limit 512000
+```
+
+Or configure everything directly on the command line:
+
+```bash
+autogithubpullmerge --http-timeout 60 --http-retries 5 \
+  --download-limit 1048576 --upload-limit 512000 \
+  --max-download 10485760 --max-upload 5242880
+```
