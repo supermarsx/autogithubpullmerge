@@ -283,6 +283,7 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_option("--require-approval", options.required_approvals,
                  "Minimum number of approvals required before merging")
       ->type_name("N")
+      ->default_val("0")
       ->group("Actions");
   app.add_flag("--require-status-success", options.require_status_success,
                "Require all status checks to succeed before merging")

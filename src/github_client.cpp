@@ -597,14 +597,18 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   if (!meta.is_object()) {
     return false;
   }
-  if (required_approvals_ > 0 &&
-      meta.value("approvals", 0) < required_approvals_) {
+  int approvals = meta.value("approvals", 0);
+  if (required_approvals_ > 0 && approvals < required_approvals_) {
+    spdlog::info("PR #{} requires {} approvals but has {}", pr_number,
+                 required_approvals_, approvals);
     return false;
   }
   if (require_status_success_ && meta.value("mergeable_state", "") != "clean") {
+    spdlog::info("PR #{} status checks not successful", pr_number);
     return false;
   }
   if (require_mergeable_state_ && !meta.value("mergeable", false)) {
+    spdlog::info("PR #{} is not mergeable", pr_number);
     return false;
   }
   enforce_delay();

@@ -93,3 +93,13 @@ TEST_CASE("merge rules block mergeable") {
   REQUIRE_FALSE(merged);
   REQUIRE(raw->put_calls == 0);
 }
+TEST_CASE("merge rules ignored when disabled") {
+  auto http = std::make_unique<RuleHttpClient>();
+  http->meta_response =
+      "{\"approvals\":0,\"mergeable\":false,\"mergeable_state\":\"dirty\"}";
+  RuleHttpClient *raw = http.get();
+  GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+  bool merged = client.merge_pull_request("o", "r", 1);
+  REQUIRE(merged);
+  REQUIRE(raw->put_calls == 1);
+}
