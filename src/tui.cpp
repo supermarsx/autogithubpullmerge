@@ -32,7 +32,10 @@ Tui::Tui(GitHubClient &client, GitHubPoller &poller)
 }
 
 void Tui::init() {
-  if (!isatty(fileno(stdout))) {
+  // Ensure both input and output are attached to a real terminal. macOS
+  // builds in CI environments may have one of these redirected which can
+  // cause ncurses to crash with a bus error when initializing.
+  if (!isatty(fileno(stdout)) || !isatty(fileno(stdin))) {
     return;
   }
   if (initscr() == nullptr) {
