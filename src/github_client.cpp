@@ -417,6 +417,7 @@ bool GitHubClient::repo_allowed(const std::string &owner,
 std::vector<std::pair<std::string, std::string>>
 GitHubClient::list_repositories() {
   std::vector<std::pair<std::string, std::string>> repos;
+  spdlog::info("Listing repositories");
   std::string url = "https://api.github.com/user/repos?per_page=100";
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
@@ -448,8 +449,10 @@ GitHubClient::list_repositories() {
         continue;
       std::string owner = item["owner"]["login"].get<std::string>();
       std::string name = item["name"].get<std::string>();
-      if (repo_allowed(owner, name))
+      if (repo_allowed(owner, name)) {
+        spdlog::debug("Found repo {}/{}", owner, name);
         repos.emplace_back(owner, name);
+      }
     }
     std::string next_url;
     for (const auto &h : res.headers) {
@@ -472,6 +475,7 @@ GitHubClient::list_repositories() {
       break;
     url = next_url;
   }
+  spdlog::info("Found {} repositories", repos.size());
   return repos;
 }
 
@@ -578,8 +582,10 @@ GitHubClient::list_pull_requests(const std::string &owner,
 bool GitHubClient::merge_pull_request(const std::string &owner,
                                       const std::string &repo, int pr_number) {
   if (!repo_allowed(owner, repo)) {
+    spdlog::debug("Skipping merge for disallowed repo {}/{}", owner, repo);
     return false;
   }
+  spdlog::info("Attempting to merge PR #{} in {}/{}", pr_number, owner, repo);
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
   // Fetch pull request metadata
@@ -617,7 +623,13 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   try {
     std::string resp = http_->put(url, "{}", headers);
     nlohmann::json j = nlohmann::json::parse(resp);
-    return j.contains("merged") && j["merged"].get<bool>();
+    bool merged = j.contains("merged") && j["merged"].get<bool>();
+    if (merged) {
+      spdlog::info("Merged PR #{} in {}/{}", pr_number, owner, repo);
+    } else {
+      spdlog::info("PR #{} in {}/{} was not merged", pr_number, owner, repo);
+    }
+    return merged;
   } catch (const std::exception &e) {
     spdlog::error("Failed to merge pull request: {}", e.what());
     return false;
@@ -712,8 +724,11 @@ void GitHubClient::cleanup_branches(
     const std::vector<std::string> &protected_branches,
     const std::vector<std::string> &protected_branch_excludes) {
   if (!repo_allowed(owner, repo) || prefix.empty()) {
+    spdlog::debug("Skipping branch cleanup for {}/{}", owner, repo);
     return;
   }
+  spdlog::info("Cleaning up branches in {}/{} with prefix {}", owner, repo,
+               prefix);
   std::string url = "https://api.github.com/repos/" + owner + "/" + repo +
                     "/pulls?state=closed";
   std::vector<std::string> headers = {"Authorization: token " + token_,
@@ -748,6 +763,7 @@ void GitHubClient::cleanup_branches(
                                 repo + "/git/refs/heads/" + branch;
           try {
             (void)http_->del(del_url, headers);
+            spdlog::info("Deleted branch {}", branch);
           } catch (const std::exception &e) {
             spdlog::error("Failed to delete branch {}: {}", branch, e.what());
           }

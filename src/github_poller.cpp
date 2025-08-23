@@ -1,5 +1,6 @@
 #include "github_poller.hpp"
 #include "sort.hpp"
+#include <spdlog/spdlog.h>
 
 namespace agpm {
 
@@ -20,9 +21,15 @@ GitHubPoller::GitHubPoller(
       protected_branches_(std::move(protected_branches)),
       protected_branch_excludes_(std::move(protected_branch_excludes)) {}
 
-void GitHubPoller::start() { poller_.start(); }
+void GitHubPoller::start() {
+  spdlog::info("Starting GitHub poller");
+  poller_.start();
+}
 
-void GitHubPoller::stop() { poller_.stop(); }
+void GitHubPoller::stop() {
+  spdlog::info("Stopping GitHub poller");
+  poller_.stop();
+}
 
 void GitHubPoller::poll_now() { poll(); }
 
@@ -41,9 +48,11 @@ void GitHubPoller::set_export_callback(std::function<void()> cb) {
 }
 
 void GitHubPoller::poll() {
+  spdlog::debug("Polling repositories");
   std::vector<PullRequest> all_prs;
   for (const auto &r : repos_) {
     if (purge_only_) {
+      spdlog::debug("purge_only set - skipping repo {}/{}", r.first, r.second);
       if (!purge_prefix_.empty()) {
         client_.cleanup_branches(r.first, r.second, purge_prefix_,
                                  protected_branches_,
@@ -101,6 +110,7 @@ void GitHubPoller::poll() {
     pr_cb_(all_prs);
   }
   if (export_cb_) {
+    spdlog::info("Running export callback");
     export_cb_();
   }
   if (log_cb_) {
