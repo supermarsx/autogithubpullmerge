@@ -13,6 +13,6 @@ if [[ -z "${VCPKG_ROOT}" ]]; then
 	exit 1
 fi
 
-cmake --preset vcpkg --fresh
+cmake --preset vcpkg --fresh -DCMAKE_CXX_STANDARD=23
 cmake --build --preset vcpkg
 ctest --preset vcpkg

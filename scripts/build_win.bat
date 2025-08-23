@@ -64,6 +64,7 @@ echo [5/8] Configuring project with CMake...
 cmake -S . -B build\vcpkg -G "Ninja Multi-Config" ^
   -DCMAKE_TOOLCHAIN_FILE="%CD%\vcpkg\scripts\buildsystems\vcpkg.cmake" ^
   -DVCPKG_TARGET_TRIPLET=x64-windows-static ^
+  -DCMAKE_CXX_STANDARD=23 ^
   -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl || exit /b 1
 
 echo [6/8] Building project...
