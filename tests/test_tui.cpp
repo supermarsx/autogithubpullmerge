@@ -1,5 +1,6 @@
 #include "github_poller.hpp"
 #include "tui.hpp"
+#include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstdio>
 #include <cstdlib>
@@ -73,9 +74,9 @@ TEST_CASE("test tui") {
 
   ui.update_prs({{1, "Test PR", "o", "r"}});
   ui.draw();
-  char buf[80];
-  mvwinnstr(stdscr, 1, 1, buf, 79);
-  std::string line(buf);
+  std::array<char, 80> buf{};
+  mvwinnstr(stdscr, 1, 1, buf.data(), 79);
+  std::string line(buf.data());
   REQUIRE(line.find("Test PR") != std::string::npos);
   REQUIRE(line.find("o/r") != std::string::npos);
 
