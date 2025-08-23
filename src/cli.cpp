@@ -225,6 +225,11 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("RATE")
       ->default_val("60")
       ->group("Polling");
+  app.add_option("--workers", options.workers,
+                 "Number of worker threads")
+      ->type_name("N")
+      ->default_val("0")
+      ->group("Polling");
   app.add_option("--http-timeout", options.http_timeout,
                  "HTTP request timeout in seconds")
       ->type_name("SECONDS")

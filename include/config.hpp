@@ -29,6 +29,12 @@ public:
   /// Set maximum request rate.
   void set_max_request_rate(int rate) { max_request_rate_ = rate; }
 
+  /// Number of worker threads.
+  int workers() const { return workers_; }
+
+  /// Set worker thread count.
+  void set_workers(int w) { workers_ = w; }
+
   /// HTTP request timeout in seconds.
   int http_timeout() const { return http_timeout_; }
 
@@ -265,6 +271,7 @@ private:
   bool verbose_ = false;
   int poll_interval_ = 0;
   int max_request_rate_ = 60;
+  int workers_ = 4;
   std::string log_level_ = "info";
   std::string log_pattern_;
   std::string log_file_;

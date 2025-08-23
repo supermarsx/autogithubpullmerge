@@ -6,18 +6,26 @@
 
 using namespace agpm;
 
-TEST_CASE("test poller") {
-  std::atomic<int> count{0};
-  Poller p([&] { ++count; }, 50, 120); // high rate
+TEST_CASE("thread pool runs tasks concurrently") {
+  Poller p(2, 0); // no rate limiting
   p.start();
-  std::this_thread::sleep_for(std::chrono::milliseconds(220));
+  std::atomic<int> count{0};
+  auto start = std::chrono::steady_clock::now();
+  auto f1 = p.submit([&] {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    ++count;
+  });
+  auto f2 = p.submit([&] {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    ++count;
+  });
+  f1.get();
+  f2.get();
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                     std::chrono::steady_clock::now() - start)
+                     .count();
   p.stop();
-  REQUIRE(count >= 3); // roughly 4 iterations expected
-
-  count = 0;
-  Poller p2([&] { ++count; }, 50, 1); // rate limited to 1/min
-  p2.start();
-  std::this_thread::sleep_for(std::chrono::milliseconds(220));
-  p2.stop();
-  REQUIRE(count == 1); // first token only
+  REQUIRE(count == 2);
+  REQUIRE(elapsed < 180);
 }
+
