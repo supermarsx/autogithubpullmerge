@@ -63,7 +63,7 @@ TEST_CASE("test tui merge") {
   mock->get_response = "[{\"number\":1,\"title\":\"PR\"}]";
   mock->put_response = "{\"merged\":true}";
   MockHttpClient *raw = mock.get();
-  GitHubClient client("token", std::unique_ptr<HttpClient>(mock.release()));
+  GitHubClient client({"token"}, std::unique_ptr<HttpClient>(mock.release()));
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
   Tui ui(client, poller);
   ui.init();

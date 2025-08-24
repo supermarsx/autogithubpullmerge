@@ -61,7 +61,7 @@ TEST_CASE("test github client retry") {
   {
     auto http = std::make_unique<FlakyHttpClient>();
     auto *raw = http.get();
-    GitHubClient client("token", std::move(http));
+    GitHubClient client({"token"}, std::move(http));
     auto prs = client.list_pull_requests("o", "r");
     REQUIRE(prs.size() == 1);
     REQUIRE(raw->calls == 3);
@@ -69,7 +69,7 @@ TEST_CASE("test github client retry") {
   {
     auto http = std::make_unique<BadRequestHttpClient>();
     auto *raw = http.get();
-    GitHubClient client("token", std::move(http));
+    GitHubClient client({"token"}, std::move(http));
     auto prs = client.list_pull_requests("o", "r");
     REQUIRE(prs.empty());
     REQUIRE(raw->calls == 1);

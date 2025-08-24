@@ -142,7 +142,7 @@ TEST_CASE("test branch cleanup") {
     http->response =
         "[{\"head\":{\"ref\":\"tmp/feature\"}},{\"head\":{\"ref\":\"keep\"}}]";
     CleanupHttpClient *raw = http.get();
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.cleanup_branches("me", "repo", "tmp/");
     REQUIRE(raw->last_url.find("state=closed") != std::string::npos);
     REQUIRE(raw->last_deleted ==
@@ -154,7 +154,7 @@ TEST_CASE("test branch cleanup") {
     auto http = std::make_unique<CleanupHttpClient>();
     http->response = "[{\"head\":{\"ref\":\"tmp/protected\"}}]";
     CleanupHttpClient *raw = http.get();
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.cleanup_branches("me", "repo", "tmp/", {"tmp/*"});
     REQUIRE(raw->last_deleted.empty());
   }
@@ -169,7 +169,7 @@ TEST_CASE("test branch cleanup") {
         "[{\"name\":\"main\"},{\"name\":\"feature\"}]";
     raw->responses[base + "/compare/main...feature"] =
         "{\"status\":\"identical\"}";
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo");
     REQUIRE(raw->last_deleted.empty());
   }
@@ -184,7 +184,7 @@ TEST_CASE("test branch cleanup") {
         "[{\"name\":\"main\"},{\"name\":\"feature\"}]";
     raw->responses[base + "/compare/main...feature"] =
         "{\"status\":\"ahead\",\"ahead_by\":1}";
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo");
     REQUIRE(raw->last_deleted == base + "/git/refs/heads/feature");
   }
@@ -199,7 +199,7 @@ TEST_CASE("test branch cleanup") {
         "[{\"name\":\"main\"},{\"name\":\"feature\"}]";
     raw->responses[base + "/compare/main...feature"] =
         "{\"status\":\"ahead\",\"ahead_by\":1}";
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo", {"feat*"});
     REQUIRE(raw->last_deleted.empty());
   }
@@ -208,7 +208,7 @@ TEST_CASE("test branch cleanup") {
   {
     auto http = std::make_unique<PagingCleanupHttpClient>();
     PagingCleanupHttpClient *raw = http.get();
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.cleanup_branches("me", "repo", "tmp/");
     REQUIRE(raw->last_deleted ==
             "https://api.github.com/repos/me/repo/git/refs/heads/tmp/paged");
@@ -218,7 +218,7 @@ TEST_CASE("test branch cleanup") {
   {
     auto http = std::make_unique<PagingBranchHttpClient>();
     PagingBranchHttpClient *raw = http.get();
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo");
     REQUIRE(raw->last_deleted == raw->base + "/git/refs/heads/feature2");
   }

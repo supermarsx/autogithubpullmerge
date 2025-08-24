@@ -68,7 +68,7 @@ public:
 TEST_CASE("test github client behavior") {
   auto dummy = std::make_unique<DummyHttpClient>();
   dummy->response = "[{\"number\":2,\"title\":\"Another\"}]";
-  GitHubClient client("token", std::unique_ptr<HttpClient>(dummy.release()));
+  GitHubClient client({"token"}, std::unique_ptr<HttpClient>(dummy.release()));
   auto prs = client.list_pull_requests("octocat", "hello");
   REQUIRE(prs.size() == 1);
   REQUIRE(prs[0].number == 2);
@@ -76,7 +76,8 @@ TEST_CASE("test github client behavior") {
 
   auto dummy2 = std::make_unique<DummyHttpClient>();
   dummy2->response = "{\"merged\":false}";
-  GitHubClient client2("token", std::unique_ptr<HttpClient>(dummy2.release()));
+  GitHubClient client2({"token"},
+                       std::unique_ptr<HttpClient>(dummy2.release()));
   bool merged = client2.merge_pull_request("octocat", "hello", 5);
   REQUIRE(!merged);
 
@@ -90,7 +91,7 @@ TEST_CASE("test github client behavior") {
         "[{\"name\":\"main\"},{\"name\":\"feature\"}]";
     raw->responses[base + "/compare/main...feature"] =
         "{\"status\":\"identical\",\"ahead_by\":0}";
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo");
     REQUIRE(raw->last_deleted.empty());
   }
@@ -105,7 +106,7 @@ TEST_CASE("test github client behavior") {
         "[{\"name\":\"main\"},{\"name\":\"feature\"}]";
     raw->responses[base + "/compare/main...feature"] =
         "{\"status\":\"ahead\",\"ahead_by\":1}";
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo");
     REQUIRE(raw->last_deleted == base + "/git/refs/heads/feature");
   }

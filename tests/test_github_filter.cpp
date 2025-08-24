@@ -39,7 +39,7 @@ TEST_CASE("test github filter") {
   auto http = std::make_unique<SpyHttpClient>();
   http->response = "[{\"number\":1,\"title\":\"Test\"}]";
   SpyHttpClient *raw1 = http.get();
-  GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()),
+  GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()),
                       {"me/allowed"}, {"me/skip"});
 
   // not allowed by include filter
@@ -50,7 +50,7 @@ TEST_CASE("test github filter") {
   // allowed repository
   auto http2 = std::make_unique<SpyHttpClient>();
   http2->response = "[{\"number\":2,\"title\":\"Good\"}]";
-  GitHubClient client2("tok", std::unique_ptr<HttpClient>(http2.release()),
+  GitHubClient client2({"tok"}, std::unique_ptr<HttpClient>(http2.release()),
                        {"me/good"}, {});
   auto prs2 = client2.list_pull_requests("me", "good");
   REQUIRE(prs2.size() == 1);
@@ -58,8 +58,8 @@ TEST_CASE("test github filter") {
   // excluded repository
   auto http3 = std::make_unique<SpyHttpClient>();
   SpyHttpClient *raw3 = http3.get();
-  GitHubClient client3("tok", std::unique_ptr<HttpClient>(http3.release()), {},
-                       {"me/bad"});
+  GitHubClient client3({"tok"}, std::unique_ptr<HttpClient>(http3.release()),
+                       {}, {"me/bad"});
   bool merged = client3.merge_pull_request("me", "bad", 1);
   REQUIRE(!merged);
   REQUIRE(raw3->last_method.empty());

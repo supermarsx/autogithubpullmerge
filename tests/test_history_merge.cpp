@@ -46,7 +46,7 @@ TEST_CASE("test history merge") {
   http->resp_puts = {"{\"merged\":true}", "{\"merged\":false}"};
   DummyHttp *raw = http.get();
   (void)raw;
-  GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+  GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   auto prs = client.list_pull_requests("me", "repo");
   PullRequestHistory hist("merge_test.db");
   for (const auto &pr : prs) {

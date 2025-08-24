@@ -69,7 +69,7 @@ TEST_CASE("test github rate limit") {
   {
     auto http = std::make_unique<ResetHttpClient>();
     auto *raw = http.get();
-    GitHubClient client("tok", std::move(http));
+    GitHubClient client({"tok"}, std::move(http));
     auto start = std::chrono::steady_clock::now();
     client.list_pull_requests("o", "r");
     auto end = std::chrono::steady_clock::now();
@@ -82,7 +82,7 @@ TEST_CASE("test github rate limit") {
   {
     auto http = std::make_unique<RetryAfterHttpClient>();
     auto *raw = http.get();
-    GitHubClient client("tok", std::move(http));
+    GitHubClient client({"tok"}, std::move(http));
     auto start = std::chrono::steady_clock::now();
     client.list_pull_requests("o", "r");
     auto end = std::chrono::steady_clock::now();

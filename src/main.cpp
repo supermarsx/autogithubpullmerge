@@ -16,11 +16,11 @@ int main(int argc, char **argv) {
     const auto &opts = app.options();
     const auto &cfg = app.config();
 
-    std::string token;
+    std::vector<std::string> tokens;
     if (!opts.api_keys.empty()) {
-      token = opts.api_keys.front();
+      tokens = opts.api_keys;
     } else if (!cfg.api_keys().empty()) {
-      token = cfg.api_keys().front();
+      tokens = cfg.api_keys();
     }
 
     std::vector<std::string> include =
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
         opts.http_retries != 3 ? opts.http_retries : cfg.http_retries();
     std::string api_base =
         !opts.api_base.empty() ? opts.api_base : cfg.api_base();
-    agpm::GitHubClient client(token, nullptr, include_set, exclude_set,
+    agpm::GitHubClient client(tokens, nullptr, include_set, exclude_set,
                               delay_ms, http_timeout * 1000, http_retries,
                               api_base);
 

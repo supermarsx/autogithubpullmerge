@@ -32,7 +32,7 @@ public:
 
 TEST_CASE("test history") {
   auto http = std::make_unique<DummyHttpClient>();
-  GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+  GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   PullRequestHistory hist("test_history.db");
 
   char prog[] = "tests";

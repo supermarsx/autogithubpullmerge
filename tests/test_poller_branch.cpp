@@ -92,7 +92,7 @@ TEST_CASE("test poller branch") {
   {
     auto http = std::make_unique<BranchListClient>();
     BranchListClient *raw = http.get();
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, false, true);
     std::string msg;
     poller.set_log_callback([&](const std::string &m) { msg = m; });
@@ -106,7 +106,7 @@ TEST_CASE("test poller branch") {
   {
     auto http = std::make_unique<BranchCleanupClient>();
     BranchCleanupClient *raw = http.get();
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, false, true, true,
                         "tmp/");
     poller.poll_now();

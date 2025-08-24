@@ -32,7 +32,7 @@ public:
 TEST_CASE("github client uses custom api base") {
   auto http = std::make_unique<UrlHttpClient>();
   UrlHttpClient *raw = http.get();
-  GitHubClient client("tok", std::move(http), {}, {}, 0, 30000, 3,
+  GitHubClient client({"tok"}, std::move(http), {}, {}, 0, 30000, 3,
                       "https://example.com");
   (void)client.list_repositories();
   REQUIRE(raw->last_url.rfind("https://example.com/", 0) == 0);

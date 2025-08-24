@@ -34,7 +34,7 @@ public:
 TEST_CASE("test github client accept") {
   auto http = std::make_unique<HeaderCaptureHttp>();
   HeaderCaptureHttp *raw = http.get();
-  GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+  GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   client.list_pull_requests("octocat", "hello");
   bool has_accept = false;
   for (const auto &h : raw->last_headers) {
@@ -45,7 +45,7 @@ TEST_CASE("test github client accept") {
 
   auto http2 = std::make_unique<HeaderCaptureHttp>();
   HeaderCaptureHttp *raw2 = http2.get();
-  GitHubClient client2("tok2", std::unique_ptr<HttpClient>(http2.release()));
+  GitHubClient client2({"tok2"}, std::unique_ptr<HttpClient>(http2.release()));
   client2.merge_pull_request("octocat", "hello", 1);
   has_accept = false;
   for (const auto &h : raw2->last_headers) {
