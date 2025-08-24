@@ -202,6 +202,10 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Path to JSON/YAML file with API key(s)")
       ->type_name("FILE")
       ->group("Authentication");
+  app.add_option("--api-base", options.api_base,
+                 "Base URL for GitHub API (default: https://api.github.com)")
+      ->type_name("URL")
+      ->group("Networking");
   app.add_option("--history-db", options.history_db,
                  "Path to SQLite history database")
       ->type_name("FILE")

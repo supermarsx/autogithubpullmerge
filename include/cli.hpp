@@ -28,6 +28,7 @@ struct CliOptions {
   std::string api_key_url_password;      ///< Basic auth password
   std::string api_key_file;              ///< File containing tokens
   std::string history_db = "history.db"; ///< SQLite history database path
+  std::string api_base;                  ///< Base URL for GitHub API
   std::string export_csv;                ///< Path to export CSV file
   std::string export_json;               ///< Path to export JSON file
   int poll_interval = 0;                 ///< Polling interval in seconds

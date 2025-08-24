@@ -47,8 +47,11 @@ int main(int argc, char **argv) {
         opts.http_timeout != 30 ? opts.http_timeout : cfg.http_timeout();
     int http_retries =
         opts.http_retries != 3 ? opts.http_retries : cfg.http_retries();
+    std::string api_base =
+        !opts.api_base.empty() ? opts.api_base : cfg.api_base();
     agpm::GitHubClient client(token, nullptr, include_set, exclude_set,
-                              delay_ms, http_timeout * 1000, http_retries);
+                              delay_ms, http_timeout * 1000, http_retries,
+                              api_base);
 
     int required_approvals = opts.required_approvals != 0
                                  ? opts.required_approvals

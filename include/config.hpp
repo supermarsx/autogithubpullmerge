@@ -47,6 +47,12 @@ public:
   /// Set number of HTTP retry attempts.
   void set_http_retries(int r) { http_retries_ = r; }
 
+  /// Base URL for the GitHub API.
+  const std::string &api_base() const { return api_base_; }
+
+  /// Set base URL for the GitHub API.
+  void set_api_base(const std::string &base) { api_base_ = base; }
+
   /// Download rate limit in bytes per second (0 = unlimited).
   long long download_limit() const { return download_limit_; }
 
@@ -301,6 +307,7 @@ private:
   std::string sort_mode_;
   int http_timeout_ = 30;
   int http_retries_ = 3;
+  std::string api_base_ = "https://api.github.com";
   long long download_limit_ = 0;
   long long upload_limit_ = 0;
   long long max_download_ = 0;
