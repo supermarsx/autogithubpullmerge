@@ -6,7 +6,7 @@
 namespace agpm {
 
 Poller::Poller(int workers, int max_rate)
-    : workers_(workers), max_rate_(max_rate), tokens_(max_rate),
+    : workers_(std::max(1, workers)), max_rate_(max_rate), tokens_(max_rate),
       capacity_(max_rate),
       fill_rate_(max_rate > 0 ? static_cast<double>(max_rate) / 60.0 : 0.0) {}
 
@@ -17,6 +17,7 @@ void Poller::start() {
     return;
   running_ = true;
   last_fill_ = std::chrono::steady_clock::now();
+  threads_.reserve(workers_);
   for (int i = 0; i < workers_; ++i) {
     threads_.emplace_back(&Poller::worker, this);
   }
@@ -90,4 +91,3 @@ void Poller::worker() {
 }
 
 } // namespace agpm
-

@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include "util/duration.hpp"
+#include <algorithm>
 #include <fstream>
 #include <stdexcept>
 #include <string>
@@ -71,7 +72,7 @@ void Config::load_json(const nlohmann::json &j) {
     set_max_request_rate(j["max_request_rate"].get<int>());
   }
   if (j.contains("workers")) {
-    set_workers(j["workers"].get<int>());
+    set_workers(std::max(1, j["workers"].get<int>()));
   }
   if (j.contains("http_timeout")) {
     set_http_timeout(j["http_timeout"].get<int>());
