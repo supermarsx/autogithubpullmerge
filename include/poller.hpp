@@ -14,8 +14,8 @@
 namespace agpm {
 
 /**
- * Thread pool executing submitted tasks while enforcing a maximum request
- * rate using a token bucket.
+ * Thread pool executing submitted polling tasks across multiple workers while
+ * enforcing a maximum request rate using a token bucket.
  */
 class Poller {
 public:
@@ -62,4 +62,3 @@ private:
 } // namespace agpm
 
 #endif // AUTOGITHUBPULLMERGE_POLLER_HPP
-
