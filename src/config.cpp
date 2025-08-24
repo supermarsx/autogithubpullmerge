@@ -80,6 +80,9 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("http_retries")) {
     set_http_retries(j["http_retries"].get<int>());
   }
+  if (j.contains("api_base")) {
+    set_api_base(j["api_base"].get<std::string>());
+  }
   if (j.contains("download_limit")) {
     set_download_limit(j["download_limit"].get<long long>());
   }

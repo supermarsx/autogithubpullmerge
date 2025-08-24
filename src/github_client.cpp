@@ -398,15 +398,16 @@ private:
 GitHubClient::GitHubClient(std::string token, std::unique_ptr<HttpClient> http,
                            std::unordered_set<std::string> include_repos,
                            std::unordered_set<std::string> exclude_repos,
-                           int delay_ms, int timeout_ms, int max_retries)
+                           int delay_ms, int timeout_ms, int max_retries,
+                           std::string api_base)
     : token_(std::move(token)),
       http_(std::make_unique<RetryHttpClient>(
           http ? std::move(http) : std::make_unique<CurlHttpClient>(timeout_ms),
           max_retries, 100)),
       include_repos_(std::move(include_repos)),
-      exclude_repos_(std::move(exclude_repos)), delay_ms_(delay_ms),
-      last_request_(std::chrono::steady_clock::now() -
-                    std::chrono::milliseconds(delay_ms)) {}
+      exclude_repos_(std::move(exclude_repos)), api_base_(std::move(api_base)),
+      delay_ms_(delay_ms), last_request_(std::chrono::steady_clock::now() -
+                                         std::chrono::milliseconds(delay_ms)) {}
 
 void GitHubClient::set_delay_ms(int delay_ms) { delay_ms_ = delay_ms; }
 
@@ -426,7 +427,7 @@ std::vector<std::pair<std::string, std::string>>
 GitHubClient::list_repositories() {
   std::vector<std::pair<std::string, std::string>> repos;
   spdlog::info("Listing repositories");
-  std::string url = "https://api.github.com/user/repos?per_page=100";
+  std::string url = api_base_ + "/user/repos?per_page=100";
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
   while (true) {
@@ -495,8 +496,7 @@ GitHubClient::list_pull_requests(const std::string &owner,
     return {};
   }
   int limit = per_page > 0 ? per_page : 50;
-  std::string url =
-      "https://api.github.com/repos/" + owner + "/" + repo + "/pulls";
+  std::string url = api_base_ + "/repos/" + owner + "/" + repo + "/pulls";
   std::string query;
   if (include_merged) {
     query += "state=all";
@@ -599,8 +599,8 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
                                       "Accept: application/vnd.github+json"};
   // Fetch pull request metadata
   enforce_delay();
-  std::string pr_url = "https://api.github.com/repos/" + owner + "/" + repo +
-                       "/pulls/" + std::to_string(pr_number);
+  std::string pr_url = api_base_ + "/repos/" + owner + "/" + repo + "/pulls/" +
+                       std::to_string(pr_number);
   nlohmann::json meta;
   try {
     std::string pr_resp = http_->get(pr_url, headers);
@@ -627,8 +627,8 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
     return false;
   }
   enforce_delay();
-  std::string url = "https://api.github.com/repos/" + owner + "/" + repo +
-                    "/pulls/" + std::to_string(pr_number) + "/merge";
+  std::string url = api_base_ + "/repos/" + owner + "/" + repo + "/pulls/" +
+                    std::to_string(pr_number) + "/merge";
   try {
     std::string resp = http_->put(url, "{}", headers);
     nlohmann::json j = nlohmann::json::parse(resp);
@@ -654,7 +654,7 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
   enforce_delay();
-  std::string repo_url = "https://api.github.com/repos/" + owner + "/" + repo;
+  std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
   std::string repo_resp;
   try {
     repo_resp = http_->get(repo_url, headers);
@@ -741,8 +741,8 @@ void GitHubClient::cleanup_branches(
   }
   spdlog::info("Cleaning up branches in {}/{} with prefix {}", owner, repo,
                prefix);
-  std::string url = "https://api.github.com/repos/" + owner + "/" + repo +
-                    "/pulls?state=closed";
+  std::string url =
+      api_base_ + "/repos/" + owner + "/" + repo + "/pulls?state=closed";
   std::vector<std::string> headers = {"Authorization: token " + token_,
                                       "Accept: application/vnd.github+json"};
   while (true) {
@@ -771,8 +771,8 @@ void GitHubClient::cleanup_branches(
             !is_protected_branch(branch, protected_branches,
                                  protected_branch_excludes)) {
           enforce_delay();
-          std::string del_url = "https://api.github.com/repos/" + owner + "/" +
-                                repo + "/git/refs/heads/" + branch;
+          std::string del_url = api_base_ + "/repos/" + owner + "/" + repo +
+                                "/git/refs/heads/" + branch;
           try {
             (void)http_->del(del_url, headers);
             spdlog::info("Deleted branch {}", branch);
@@ -820,7 +820,7 @@ void GitHubClient::close_dirty_branches(
 
   // Fetch repository metadata to determine the default branch.
   enforce_delay();
-  std::string repo_url = "https://api.github.com/repos/" + owner + "/" + repo;
+  std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
   std::string repo_resp;
   try {
     repo_resp = http_->get(repo_url, headers);
