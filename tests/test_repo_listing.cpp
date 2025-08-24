@@ -41,7 +41,7 @@ public:
 TEST_CASE("list repositories and poll when none included") {
   auto http = std::make_unique<RepoHttpClient>();
   auto *raw = http.get();
-  GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+  GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   std::vector<std::pair<std::string, std::string>> repos;
   if (repos.empty())
     repos = client.list_repositories();

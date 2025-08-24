@@ -38,7 +38,7 @@ private:
 TEST_CASE("test github poller") {
   std::atomic<int> count1{0};
   auto http1 = std::make_unique<CountHttpClient>(count1);
-  GitHubClient client1("tok", std::unique_ptr<HttpClient>(http1.release()));
+  GitHubClient client1({"tok"}, std::unique_ptr<HttpClient>(http1.release()));
   GitHubPoller poller1(client1, {{"me", "repo"}}, 50, 120);
   poller1.start();
   std::this_thread::sleep_for(std::chrono::milliseconds(220));
@@ -47,7 +47,7 @@ TEST_CASE("test github poller") {
 
   std::atomic<int> count2{0};
   auto http2 = std::make_unique<CountHttpClient>(count2);
-  GitHubClient client2("tok", std::unique_ptr<HttpClient>(http2.release()));
+  GitHubClient client2({"tok"}, std::unique_ptr<HttpClient>(http2.release()));
   GitHubPoller poller2(client2, {{"me", "repo"}}, 50, 1);
   poller2.start();
   std::this_thread::sleep_for(std::chrono::milliseconds(220));
@@ -90,7 +90,7 @@ TEST_CASE("github poller sorts pull requests") {
 
   SECTION("alphanum") {
     auto http = std::make_unique<JsonHttpClient>(json);
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     GitHubPoller poller(client, repos, 0, 60, true, false, false, "", false,
                         false, "alphanum");
     std::vector<std::string> titles;
@@ -104,7 +104,7 @@ TEST_CASE("github poller sorts pull requests") {
 
   SECTION("reverse") {
     auto http = std::make_unique<JsonHttpClient>(json);
-    GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     GitHubPoller poller(client, repos, 0, 60, true, false, false, "", false,
                         false, "reverse");
     std::vector<std::string> titles;

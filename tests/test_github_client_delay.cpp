@@ -35,7 +35,7 @@ TEST_CASE("test github client delay") {
   auto http = std::make_unique<DelayHttpClient>();
   DelayHttpClient *raw = http.get();
   (void)raw;
-  GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()), {},
+  GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()), {},
                       {}, 100);
   client.list_pull_requests("owner", "repo");
   auto t2 = std::chrono::steady_clock::now();

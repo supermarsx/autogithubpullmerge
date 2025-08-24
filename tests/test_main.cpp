@@ -70,7 +70,7 @@ TEST_CASE("test main") {
                                               app.include_repos().end());
   std::unordered_set<std::string> exclude_set(app.exclude_repos().begin(),
                                               app.exclude_repos().end());
-  agpm::GitHubClient client("tok",
+  agpm::GitHubClient client({"tok"},
                             std::unique_ptr<agpm::HttpClient>(http.release()),
                             include_set, exclude_set, 0);
   std::vector<std::pair<std::string, std::string>> repos;

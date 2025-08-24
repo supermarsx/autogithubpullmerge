@@ -395,12 +395,13 @@ private:
 };
 } // namespace
 
-GitHubClient::GitHubClient(std::string token, std::unique_ptr<HttpClient> http,
+GitHubClient::GitHubClient(std::vector<std::string> tokens,
+                           std::unique_ptr<HttpClient> http,
                            std::unordered_set<std::string> include_repos,
                            std::unordered_set<std::string> exclude_repos,
                            int delay_ms, int timeout_ms, int max_retries,
                            std::string api_base)
-    : token_(std::move(token)),
+    : tokens_(std::move(tokens)), token_index_(0),
       http_(std::make_unique<RetryHttpClient>(
           http ? std::move(http) : std::make_unique<CurlHttpClient>(timeout_ms),
           max_retries, 100)),
@@ -428,8 +429,10 @@ GitHubClient::list_repositories() {
   std::vector<std::pair<std::string, std::string>> repos;
   spdlog::info("Listing repositories");
   std::string url = api_base_ + "/user/repos?per_page=100";
-  std::vector<std::string> headers = {"Authorization: token " + token_,
-                                      "Accept: application/vnd.github+json"};
+  std::vector<std::string> headers;
+  if (!tokens_.empty())
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  headers.push_back("Accept: application/vnd.github+json");
   while (true) {
     enforce_delay();
     HttpResponse res;
@@ -509,8 +512,10 @@ GitHubClient::list_pull_requests(const std::string &owner,
   if (!query.empty()) {
     url += "?" + query;
   }
-  std::vector<std::string> headers = {"Authorization: token " + token_,
-                                      "Accept: application/vnd.github+json"};
+  std::vector<std::string> headers;
+  if (!tokens_.empty())
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  headers.push_back("Accept: application/vnd.github+json");
   auto cutoff = std::chrono::system_clock::now() - since;
   std::vector<PullRequest> prs;
   while (true) {
@@ -595,8 +600,10 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
     return false;
   }
   spdlog::info("Attempting to merge PR #{} in {}/{}", pr_number, owner, repo);
-  std::vector<std::string> headers = {"Authorization: token " + token_,
-                                      "Accept: application/vnd.github+json"};
+  std::vector<std::string> headers;
+  if (!tokens_.empty())
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  headers.push_back("Accept: application/vnd.github+json");
   // Fetch pull request metadata
   enforce_delay();
   std::string pr_url = api_base_ + "/repos/" + owner + "/" + repo + "/pulls/" +
@@ -651,8 +658,10 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
   if (!repo_allowed(owner, repo)) {
     return branches;
   }
-  std::vector<std::string> headers = {"Authorization: token " + token_,
-                                      "Accept: application/vnd.github+json"};
+  std::vector<std::string> headers;
+  if (!tokens_.empty())
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  headers.push_back("Accept: application/vnd.github+json");
   enforce_delay();
   std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
   std::string repo_resp;
@@ -743,8 +752,10 @@ void GitHubClient::cleanup_branches(
                prefix);
   std::string url =
       api_base_ + "/repos/" + owner + "/" + repo + "/pulls?state=closed";
-  std::vector<std::string> headers = {"Authorization: token " + token_,
-                                      "Accept: application/vnd.github+json"};
+  std::vector<std::string> headers;
+  if (!tokens_.empty())
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  headers.push_back("Accept: application/vnd.github+json");
   while (true) {
     enforce_delay();
     HttpResponse res;
@@ -815,8 +826,10 @@ void GitHubClient::close_dirty_branches(
   if (!repo_allowed(owner, repo)) {
     return;
   }
-  std::vector<std::string> headers = {"Authorization: token " + token_,
-                                      "Accept: application/vnd.github+json"};
+  std::vector<std::string> headers;
+  if (!tokens_.empty())
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  headers.push_back("Accept: application/vnd.github+json");
 
   // Fetch repository metadata to determine the default branch.
   enforce_delay();
@@ -941,6 +954,14 @@ bool GitHubClient::handle_rate_limit(const HttpResponse &resp) {
     } else if (h.rfind("Retry-After:", 0) == 0) {
       retry_after = std::stol(h.substr(12));
     }
+  }
+  if ((resp.status_code == 403 || resp.status_code == 429) &&
+      tokens_.size() > 1) {
+    token_index_ = (token_index_ + 1) % tokens_.size();
+    spdlog::warn("Rate limit hit, switching to next token (index {})",
+                 token_index_);
+    last_request_ = std::chrono::steady_clock::now();
+    return true;
   }
   if (resp.status_code == 403 || resp.status_code == 429 || remaining == 0) {
     std::chrono::milliseconds wait{0};

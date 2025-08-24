@@ -167,7 +167,7 @@ public:
    * @param timeout_ms HTTP request timeout in milliseconds
    * @param max_retries Number of retry attempts for transient failures
    */
-  explicit GitHubClient(std::string token,
+  explicit GitHubClient(std::vector<std::string> tokens,
                         std::unique_ptr<HttpClient> http = nullptr,
                         std::unordered_set<std::string> include_repos = {},
                         std::unordered_set<std::string> exclude_repos = {},
@@ -263,7 +263,8 @@ public:
       const std::vector<std::string> &protected_branch_excludes = {});
 
 private:
-  std::string token_;
+  std::vector<std::string> tokens_;
+  size_t token_index_{0};
   std::unique_ptr<HttpClient> http_;
   std::unordered_set<std::string> include_repos_;
   std::unordered_set<std::string> exclude_repos_;

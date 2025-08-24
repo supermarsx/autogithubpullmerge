@@ -37,7 +37,8 @@ TEST_CASE("test github client headers") {
   auto http = std::make_unique<HeaderHttpClient>();
   http->response = "[]";
   HeaderHttpClient *raw = http.get();
-  GitHubClient client("token123", std::unique_ptr<HttpClient>(http.release()));
+  GitHubClient client({"token123"},
+                      std::unique_ptr<HttpClient>(http.release()));
   client.list_pull_requests("owner", "repo");
   bool found_auth = false;
   bool found_agent = false;
@@ -53,7 +54,7 @@ TEST_CASE("test github client headers") {
   auto http2 = std::make_unique<HeaderHttpClient>();
   http2->response = "{\"merged\":true}";
   HeaderHttpClient *raw2 = http2.get();
-  GitHubClient client2("tok", std::unique_ptr<HttpClient>(http2.release()));
+  GitHubClient client2({"tok"}, std::unique_ptr<HttpClient>(http2.release()));
   bool merged = client2.merge_pull_request("owner", "repo", 1);
   REQUIRE(merged);
   found_auth = false;

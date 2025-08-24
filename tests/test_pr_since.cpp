@@ -49,7 +49,7 @@ TEST_CASE("test pr since") {
       recent_buf + "\"}]";
   auto http = std::make_unique<TimeHttpClient>();
   http->response = resp;
-  GitHubClient client("tok", std::unique_ptr<HttpClient>(http.release()));
+  GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   auto prs = client.list_pull_requests("me", "repo", false, 50, hours(1));
   REQUIRE(prs.size() == 1);
   REQUIRE(prs[0].number == 2);

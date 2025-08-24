@@ -162,7 +162,7 @@ TEST_CASE("test github client") {
   // Test listing pull requests
   auto mock = std::make_unique<MockHttpClient>();
   mock->response = "[{\"number\":1,\"title\":\"Test\"}]";
-  GitHubClient client("token", std::unique_ptr<HttpClient>(mock.release()));
+  GitHubClient client({"token"}, std::unique_ptr<HttpClient>(mock.release()));
   auto prs = client.list_pull_requests("owner", "repo");
   REQUIRE(prs.size() == 1);
   REQUIRE(prs[0].number == 1);
@@ -173,7 +173,7 @@ TEST_CASE("test github client") {
   auto mock_include = std::make_unique<MockHttpClient>();
   mock_include->response = "[]";
   MockHttpClient *raw_inc = mock_include.get();
-  GitHubClient client_inc("token",
+  GitHubClient client_inc({"token"},
                           std::unique_ptr<HttpClient>(mock_include.release()));
   client_inc.list_pull_requests("owner", "repo", true);
   REQUIRE(raw_inc->last_url.find("state=all") != std::string::npos);
@@ -181,7 +181,7 @@ TEST_CASE("test github client") {
   auto mock_limit = std::make_unique<MockHttpClient>();
   mock_limit->response = "[]";
   MockHttpClient *raw_limit = mock_limit.get();
-  GitHubClient client_limit("token",
+  GitHubClient client_limit({"token"},
                             std::unique_ptr<HttpClient>(mock_limit.release()));
   client_limit.list_pull_requests("owner", "repo", false, 10);
   REQUIRE(raw_limit->last_url.find("per_page=10") != std::string::npos);
@@ -206,7 +206,7 @@ TEST_CASE("test github client") {
   auto multi_http = std::make_unique<MultiPageHttpClient>(
       std::string(old_buf), std::string(recent_buf1), std::string(recent_buf2));
   MultiPageHttpClient *raw_multi = multi_http.get();
-  GitHubClient client_multi("tok",
+  GitHubClient client_multi({"tok"},
                             std::unique_ptr<HttpClient>(multi_http.release()));
   auto multi_prs =
       client_multi.list_pull_requests("me", "repo", false, 2, hours(1));
@@ -218,13 +218,13 @@ TEST_CASE("test github client") {
   // Test merging pull requests
   auto mock2 = std::make_unique<MockHttpClient>();
   mock2->response = "{\"merged\":true}";
-  GitHubClient client2("token", std::unique_ptr<HttpClient>(mock2.release()));
+  GitHubClient client2({"token"}, std::unique_ptr<HttpClient>(mock2.release()));
   bool merged = client2.merge_pull_request("owner", "repo", 1);
   REQUIRE(merged);
 
   // Invalid JSON should return empty results / false
   auto invalid = std::make_unique<InvalidJsonHttpClient>();
-  GitHubClient client_invalid("token",
+  GitHubClient client_invalid({"token"},
                               std::unique_ptr<HttpClient>(invalid.release()));
   auto bad_prs = client_invalid.list_pull_requests("owner", "repo");
   REQUIRE(bad_prs.empty());
@@ -233,7 +233,7 @@ TEST_CASE("test github client") {
 
   // HTTP errors should be swallowed and result in defaults
   auto throwing = std::make_unique<ErrorHttpClient>();
-  GitHubClient client_throw("token",
+  GitHubClient client_throw({"token"},
                             std::unique_ptr<HttpClient>(throwing.release()));
   auto none_prs = client_throw.list_pull_requests("owner", "repo");
   REQUIRE(none_prs.empty());
@@ -242,7 +242,7 @@ TEST_CASE("test github client") {
 
   // Timeouts should also be handled gracefully
   auto timeout = std::make_unique<TimeoutHttpClient>();
-  GitHubClient client_timeout("token",
+  GitHubClient client_timeout({"token"},
                               std::unique_ptr<HttpClient>(timeout.release()));
   auto timeout_prs = client_timeout.list_pull_requests("owner", "repo");
   REQUIRE(timeout_prs.empty());
