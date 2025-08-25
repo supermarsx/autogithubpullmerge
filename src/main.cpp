@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
         !opts.api_base.empty() ? opts.api_base : cfg.api_base();
     agpm::GitHubClient client(tokens, nullptr, include_set, exclude_set,
                               delay_ms, http_timeout * 1000, http_retries,
-                              api_base);
+                              api_base, opts.dry_run);
 
     int required_approvals = opts.required_approvals != 0
                                  ? opts.required_approvals
@@ -95,10 +95,11 @@ int main(int argc, char **argv) {
         !opts.history_db.empty() ? opts.history_db : cfg.history_db();
     agpm::PullRequestHistory history(history_db);
 
-    agpm::GitHubPoller poller(
-        client, repos, interval_ms, max_rate, workers, only_poll_prs,
-        only_poll_stray, reject_dirty, purge_prefix, auto_merge, purge_only,
-        sort_mode, &history, protected_branches, protected_branch_excludes);
+    agpm::GitHubPoller poller(client, repos, interval_ms, max_rate, workers,
+                              only_poll_prs, only_poll_stray, reject_dirty,
+                              purge_prefix, auto_merge, purge_only, sort_mode,
+                              &history, protected_branches,
+                              protected_branch_excludes, opts.dry_run);
 
     if (!opts.export_csv.empty() || !opts.export_json.empty()) {
       poller.set_export_callback([&history, &opts]() {

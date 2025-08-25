@@ -154,6 +154,9 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("-y,--yes", options.assume_yes,
                "Assume yes to confirmation prompts")
       ->group("General");
+  app.add_flag("--dry-run", options.dry_run,
+               "Perform a trial run with no changes")
+      ->group("General");
   app.add_option("--include", options.include_repos,
                  "Repository to include; repeatable")
       ->type_name("REPO")
@@ -342,8 +345,9 @@ CliOptions parse_cli(int argc, char **argv) {
     }
   }
   options.pr_since = parse_duration(pr_since_str);
-  bool destructive = options.reject_dirty || options.auto_merge ||
-                     !options.purge_prefix.empty() || options.purge_only;
+  bool destructive = (options.reject_dirty || options.auto_merge ||
+                      !options.purge_prefix.empty() || options.purge_only) &&
+                     !options.dry_run;
   if (destructive && !options.assume_yes) {
     std::cout << "Destructive options enabled. Continue? [y/N]: ";
     std::string resp;

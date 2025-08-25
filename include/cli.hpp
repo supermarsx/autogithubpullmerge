@@ -14,6 +14,7 @@ struct CliOptions {
   std::string log_level = "info"; ///< Logging verbosity level
   std::string log_file;           ///< Optional path to rotating log file
   bool assume_yes{false};         ///< Skip confirmation prompts
+  bool dry_run{false};            ///< Simulate operations without changes
   std::vector<std::string> include_repos; ///< Repositories to include
   std::vector<std::string> exclude_repos; ///< Repositories to exclude
   std::vector<std::string>

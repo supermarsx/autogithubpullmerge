@@ -41,6 +41,9 @@ int App::run(int argc, char **argv) {
   if (options_.verbose) {
     spdlog::debug("Verbose mode enabled");
   }
+  if (options_.dry_run) {
+    spdlog::info("Dry run mode enabled");
+  }
   spdlog::info("Running agpm app");
 
   // Application logic goes here
