@@ -9,6 +9,7 @@
 #else
 #error "curses.h not found"
 #endif
+#include <cstdlib>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #if defined(_WIN32)
@@ -27,6 +28,16 @@ constexpr std::size_t kMaxLogs = 200;
 
 Tui::Tui(GitHubClient &client, GitHubPoller &poller)
     : client_(client), poller_(poller) {
+  open_cmd_ = [](const std::string &url) {
+#if defined(_WIN32)
+    std::string cmd = "start \"\" \"" + url + "\"";
+#elif defined(__APPLE__)
+    std::string cmd = "open \"" + url + "\"";
+#else
+    std::string cmd = "xdg-open \"" + url + "\"";
+#endif
+    return std::system(cmd.c_str());
+  };
   poller_.set_pr_callback(
       [this](const std::vector<PullRequest> &prs) { update_prs(prs); });
   poller_.set_log_callback([this](const std::string &msg) { log(msg); });
@@ -92,6 +103,10 @@ void Tui::draw() {
     pr_win_ = newwin(h - log_h, w, 0, 0);
     log_win_ = newwin(log_h, w - help_w, h - log_h, 0);
     help_win_ = newwin(log_h, help_w, h - log_h, w - help_w);
+    if (detail_win_) {
+      delwin(detail_win_);
+      detail_win_ = nullptr;
+    }
   }
   if (has_colors()) {
     wbkgd(pr_win_, COLOR_PAIR(0));
@@ -142,10 +157,31 @@ void Tui::draw() {
     wattron(help_win_, COLOR_PAIR(3));
   mvwprintw(help_win_, 1, 1, "r - Refresh");
   mvwprintw(help_win_, 2, 1, "m - Merge");
-  mvwprintw(help_win_, 3, 1, "q - Quit");
+  mvwprintw(help_win_, 3, 1, "o - Open PR");
+  mvwprintw(help_win_, 4, 1, "ENTER/d - Details");
+  mvwprintw(help_win_, 5, 1, "q - Quit");
   if (has_colors())
     wattroff(help_win_, COLOR_PAIR(3));
   wrefresh(help_win_);
+
+  if (detail_visible_) {
+    int dh = h / 2;
+    int dw = w / 2;
+    if (!detail_win_)
+      detail_win_ = newwin(dh, dw, (h - dh) / 2, (w - dw) / 2);
+    werase(detail_win_);
+    box(detail_win_, 0, 0);
+    mvwprintw(detail_win_, 0, 2, "PR Details");
+    const auto &pr = prs_[selected_];
+    mvwprintw(detail_win_, 1, 1, "%s/%s #%d", pr.owner.c_str(), pr.repo.c_str(),
+              pr.number);
+    mvwprintw(detail_win_, 2, 1, "%s", detail_text_.c_str());
+    mvwprintw(detail_win_, dh - 2, 1, "Press ENTER or d to close");
+    wrefresh(detail_win_);
+  } else if (detail_win_) {
+    delwin(detail_win_);
+    detail_win_ = nullptr;
+  }
 }
 
 void Tui::handle_key(int ch) {
@@ -168,6 +204,24 @@ void Tui::handle_key(int ch) {
       if (client_.merge_pull_request(pr.owner, pr.repo, pr.number)) {
         log("Merged PR #" + std::to_string(pr.number));
       }
+    }
+    break;
+  case 'o':
+    if (selected_ < static_cast<int>(prs_.size())) {
+      const auto &pr = prs_[selected_];
+      std::string url = "https://github.com/" + pr.owner + "/" + pr.repo +
+                        "/pull/" + std::to_string(pr.number);
+      open_cmd_(url);
+    }
+    break;
+  case 'd':
+  case '\n':
+    if (detail_visible_) {
+      detail_visible_ = false;
+    } else if (selected_ < static_cast<int>(prs_.size())) {
+      const auto &pr = prs_[selected_];
+      detail_text_ = pr.title;
+      detail_visible_ = true;
     }
     break;
   case KEY_UP:
@@ -208,6 +262,8 @@ void Tui::cleanup() {
     delwin(log_win_);
   if (help_win_)
     delwin(help_win_);
+  if (detail_win_)
+    delwin(detail_win_);
   endwin();
   initialized_ = false;
 }
