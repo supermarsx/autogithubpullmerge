@@ -1,5 +1,7 @@
 #include "github_poller.hpp"
+#define private public
 #include "tui.hpp"
+#undef private
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstdio>
@@ -79,6 +81,13 @@ TEST_CASE("test tui") {
   std::string line(buf.data());
   REQUIRE(line.find("Test PR") != std::string::npos);
   REQUIRE(line.find("o/r") != std::string::npos);
+
+  mvwinnstr(ui.help_win_, 3, 1, buf.data(), 79);
+  std::string help_line(buf.data());
+  REQUIRE(help_line.find("o - Open PR") != std::string::npos);
+  mvwinnstr(ui.help_win_, 4, 1, buf.data(), 79);
+  std::string help_line2(buf.data());
+  REQUIRE(help_line2.find("ENTER/d - Details") != std::string::npos);
 
   int prev_get = raw->get_count;
   ui.handle_key('r');

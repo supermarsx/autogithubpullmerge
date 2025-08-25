@@ -13,6 +13,7 @@
 
 #include "github_client.hpp"
 #include "github_poller.hpp"
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -71,6 +72,10 @@ private:
   WINDOW *pr_win_{nullptr};
   WINDOW *log_win_{nullptr};
   WINDOW *help_win_{nullptr};
+  WINDOW *detail_win_{nullptr};
+  bool detail_visible_{false};
+  std::string detail_text_;
+  std::function<int(const std::string &)> open_cmd_;
   bool running_{false};
   bool initialized_{false};
   int last_h_{0}; ///< Cached terminal height for resize detection.
