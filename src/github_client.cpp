@@ -113,10 +113,12 @@ CurlHandle::~CurlHandle() { curl_easy_cleanup(handle_); }
 
 CurlHttpClient::CurlHttpClient(long timeout_ms, curl_off_t download_limit,
                                curl_off_t upload_limit, curl_off_t max_download,
-                               curl_off_t max_upload)
+                               curl_off_t max_upload, std::string http_proxy,
+                               std::string https_proxy)
     : timeout_ms_(timeout_ms), download_limit_(download_limit),
       upload_limit_(upload_limit), max_download_(max_download),
-      max_upload_(max_upload) {}
+      max_upload_(max_upload), http_proxy_(std::move(http_proxy)),
+      https_proxy_(std::move(https_proxy)) {}
 
 static size_t write_callback(void *contents, size_t size, size_t nmemb,
                              void *userp) {
@@ -137,6 +139,30 @@ static size_t header_callback(char *buffer, size_t size, size_t nitems,
   return total;
 }
 
+void CurlHttpClient::apply_proxy(CURL *curl, const std::string &url) {
+  const std::string *proxy = nullptr;
+  if (url.rfind("https://", 0) == 0) {
+    if (!https_proxy_.empty()) {
+      proxy = &https_proxy_;
+    } else if (!http_proxy_.empty()) {
+      proxy = &http_proxy_;
+    }
+    if (proxy) {
+      curl_easy_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 1L);
+    }
+  } else if (url.rfind("http://", 0) == 0) {
+    if (!http_proxy_.empty()) {
+      proxy = &http_proxy_;
+    }
+    if (proxy) {
+      curl_easy_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 0L);
+    }
+  }
+  if (proxy) {
+    curl_easy_setopt(curl, CURLOPT_PROXY, proxy->c_str());
+  }
+}
+
 HttpResponse
 CurlHttpClient::get_with_headers(const std::string &url,
                                  const std::vector<std::string> &headers) {
@@ -145,6 +171,7 @@ CurlHttpClient::get_with_headers(const std::string &url,
   std::string response;
   std::vector<std::string> resp_headers;
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+  apply_proxy(curl, url);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
@@ -215,6 +242,7 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   curl_easy_reset(curl);
   std::string response;
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+  apply_proxy(curl, url);
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
@@ -276,6 +304,7 @@ std::string CurlHttpClient::del(const std::string &url,
   curl_easy_reset(curl);
   std::string response;
   curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+  apply_proxy(curl, url);
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);

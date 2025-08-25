@@ -15,6 +15,8 @@ TEST_CASE("test config loading") {
     f << "upload_limit: 12\n";
     f << "max_download: 13\n";
     f << "max_upload: 14\n";
+    f << "http_proxy: http://proxy\n";
+    f << "https_proxy: http://secureproxy\n";
     f.close();
   }
   agpm::Config ycfg = agpm::Config::from_file("config.yaml");
@@ -28,6 +30,8 @@ TEST_CASE("test config loading") {
   REQUIRE(ycfg.upload_limit() == 12);
   REQUIRE(ycfg.max_download() == 13);
   REQUIRE(ycfg.max_upload() == 14);
+  REQUIRE(ycfg.http_proxy() == "http://proxy");
+  REQUIRE(ycfg.https_proxy() == "http://secureproxy");
 
   {
     std::ofstream f("config.json");
@@ -41,7 +45,9 @@ TEST_CASE("test config loading") {
     f << "\"download_limit\":21,";
     f << "\"upload_limit\":22,";
     f << "\"max_download\":23,";
-    f << "\"max_upload\":24";
+    f << "\"max_upload\":24,";
+    f << "\"http_proxy\":\"http://proxy\",";
+    f << "\"https_proxy\":\"http://secureproxy\"";
     f << "}";
     f.close();
   }
@@ -56,4 +62,6 @@ TEST_CASE("test config loading") {
   REQUIRE(jcfg.upload_limit() == 22);
   REQUIRE(jcfg.max_download() == 23);
   REQUIRE(jcfg.max_upload() == 24);
+  REQUIRE(jcfg.http_proxy() == "http://proxy");
+  REQUIRE(jcfg.https_proxy() == "http://secureproxy");
 }

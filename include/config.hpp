@@ -77,6 +77,18 @@ public:
   /// Set maximum cumulative upload.
   void set_max_upload(long long bytes) { max_upload_ = bytes; }
 
+  /// Proxy URL for HTTP requests.
+  const std::string &http_proxy() const { return http_proxy_; }
+
+  /// Set proxy URL for HTTP requests.
+  void set_http_proxy(const std::string &proxy) { http_proxy_ = proxy; }
+
+  /// Proxy URL for HTTPS requests.
+  const std::string &https_proxy() const { return https_proxy_; }
+
+  /// Set proxy URL for HTTPS requests.
+  void set_https_proxy(const std::string &proxy) { https_proxy_ = proxy; }
+
   /// Get logging verbosity level.
   const std::string &log_level() const { return log_level_; }
 
@@ -312,6 +324,8 @@ private:
   long long upload_limit_ = 0;
   long long max_download_ = 0;
   long long max_upload_ = 0;
+  std::string http_proxy_;
+  std::string https_proxy_;
 };
 
 } // namespace agpm

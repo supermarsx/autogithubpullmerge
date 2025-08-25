@@ -95,6 +95,12 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("max_upload")) {
     set_max_upload(j["max_upload"].get<long long>());
   }
+  if (j.contains("http_proxy")) {
+    set_http_proxy(j["http_proxy"].get<std::string>());
+  }
+  if (j.contains("https_proxy")) {
+    set_https_proxy(j["https_proxy"].get<std::string>());
+  }
   if (j.contains("log_level")) {
     set_log_level(j["log_level"].get<std::string>());
   }
