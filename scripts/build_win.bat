@@ -1,6 +1,12 @@
 @echo off
 setlocal
 
+rem Clear any preset compiler variables that may interfere with MSVC detection
+set "CC="
+set "CXX="
+set "CC_COMPILER="
+set "CXX_COMPILER="
+
 echo ============================================================
 echo   AutoGitHubPullMerge Windows Build and Test
 echo ============================================================
@@ -65,7 +71,8 @@ cmake -S . -B build\vcpkg -G "Ninja Multi-Config" ^
   -DCMAKE_TOOLCHAIN_FILE="%CD%\vcpkg\scripts\buildsystems\vcpkg.cmake" ^
   -DVCPKG_TARGET_TRIPLET=x64-windows-static ^
   -DCMAKE_CXX_STANDARD=23 ^
-  -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl || exit /b 1
+  -DCMAKE_C_COMPILER=cl ^
+  -DCMAKE_CXX_COMPILER=cl || exit /b 1
 
 echo [6/8] Building project...
 cmake --build build\vcpkg --config Release || exit /b 1
