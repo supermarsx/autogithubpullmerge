@@ -72,7 +72,7 @@ TEST_CASE("test tui") {
   Tui ui(client, poller);
   ui.init();
 
-  ui.update_prs({{1, "Test PR", "o", "r"}});
+  ui.update_prs({{1, "Test PR", false, "o", "r"}});
   ui.draw();
   std::array<char, 80> buf{};
   mvwinnstr(stdscr, 1, 1, buf.data(), 79);

@@ -66,7 +66,7 @@ TEST_CASE("test tui log limit") {
   Tui ui(client, poller);
 
   for (int i = 0; i < 205; ++i) {
-    ui.update_prs({{i, "PR", "o", "r"}});
+    ui.update_prs({{i, "PR", false, "o", "r"}});
     ui.handle_key('m');
   }
 
