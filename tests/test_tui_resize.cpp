@@ -57,7 +57,7 @@ TEST_CASE("test tui resize") {
   Tui ui(client, poller);
   ui.init();
 
-  ui.update_prs({{1, "PR", "o", "r"}});
+  ui.update_prs({{1, "PR", false, "o", "r"}});
   ui.draw();
   WINDOW *before = ui.pr_win_;
   int h, w;
