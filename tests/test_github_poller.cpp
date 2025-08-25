@@ -91,7 +91,7 @@ TEST_CASE("github poller sorts pull requests") {
   SECTION("alphanum") {
     auto http = std::make_unique<JsonHttpClient>(json);
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    GitHubPoller poller(client, repos, 0, 60, true, false, false, "", false,
+    GitHubPoller poller(client, repos, 0, 60, 1, true, false, false, "", false,
                         false, "alphanum");
     std::vector<std::string> titles;
     poller.set_pr_callback([&](const std::vector<PullRequest> &prs) {
@@ -105,7 +105,7 @@ TEST_CASE("github poller sorts pull requests") {
   SECTION("reverse") {
     auto http = std::make_unique<JsonHttpClient>(json);
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    GitHubPoller poller(client, repos, 0, 60, true, false, false, "", false,
+    GitHubPoller poller(client, repos, 0, 60, 1, true, false, false, "", false,
                         false, "reverse");
     std::vector<std::string> titles;
     poller.set_pr_callback([&](const std::vector<PullRequest> &prs) {
