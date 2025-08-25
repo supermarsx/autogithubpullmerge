@@ -17,6 +17,8 @@ TEST_CASE("test config from json") {
   j["upload_limit"] = 456;
   j["max_download"] = 789;
   j["max_upload"] = 1011;
+  j["http_proxy"] = "http://proxy";
+  j["https_proxy"] = "http://secureproxy";
 
   agpm::Config cfg = agpm::Config::from_json(j);
 
@@ -32,4 +34,6 @@ TEST_CASE("test config from json") {
   REQUIRE(cfg.upload_limit() == 456);
   REQUIRE(cfg.max_download() == 789);
   REQUIRE(cfg.max_upload() == 1011);
+  REQUIRE(cfg.http_proxy() == "http://proxy");
+  REQUIRE(cfg.https_proxy() == "http://secureproxy");
 }

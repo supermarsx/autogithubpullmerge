@@ -103,12 +103,16 @@ public:
    * @param upload_limit Maximum upload rate in bytes per second (0 = unlimited)
    * @param max_download Maximum cumulative download in bytes (0 = unlimited)
    * @param max_upload Maximum cumulative upload in bytes (0 = unlimited)
+   * @param http_proxy Proxy URL for HTTP requests
+   * @param https_proxy Proxy URL for HTTPS requests
    */
   explicit CurlHttpClient(long timeout_ms = 30000,
                           curl_off_t download_limit = 0,
                           curl_off_t upload_limit = 0,
                           curl_off_t max_download = 0,
-                          curl_off_t max_upload = 0);
+                          curl_off_t max_upload = 0,
+                          std::string http_proxy = {},
+                          std::string https_proxy = {});
 
   /// @copydoc HttpClient::get()
   std::string get(const std::string &url,
@@ -134,12 +138,15 @@ public:
   curl_off_t total_uploaded() const { return total_uploaded_; }
 
 private:
+  void apply_proxy(CURL *curl, const std::string &url);
   CurlHandle curl_;
   long timeout_ms_;
   curl_off_t download_limit_;
   curl_off_t upload_limit_;
   curl_off_t max_download_;
   curl_off_t max_upload_;
+  std::string http_proxy_;
+  std::string https_proxy_;
   curl_off_t total_downloaded_{0};
   curl_off_t total_uploaded_{0};
 };

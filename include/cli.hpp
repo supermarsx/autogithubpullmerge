@@ -41,6 +41,8 @@ struct CliOptions {
   long long upload_limit = 0;            ///< Upload rate limit (bytes/sec)
   long long max_download = 0;            ///< Max cumulative download bytes
   long long max_upload = 0;              ///< Max cumulative upload bytes
+  std::string http_proxy;                ///< Proxy URL for HTTP requests
+  std::string https_proxy;               ///< Proxy URL for HTTPS requests
   bool only_poll_prs = false;            ///< Only poll pull requests
   bool only_poll_stray = false;          ///< Only poll stray branches
   bool reject_dirty = false;             ///< Auto close dirty branches

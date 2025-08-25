@@ -28,6 +28,8 @@ TEST_CASE("test config") {
     f << "upload_limit: 2000\n";
     f << "max_download: 3000\n";
     f << "max_upload: 4000\n";
+    f << "http_proxy: http://proxy\n";
+    f << "https_proxy: http://secureproxy\n";
     f.close();
   }
   agpm::Config yaml_cfg = agpm::Config::from_file("cfg.yaml");
@@ -54,6 +56,8 @@ TEST_CASE("test config") {
   REQUIRE(yaml_cfg.upload_limit() == 2000);
   REQUIRE(yaml_cfg.max_download() == 3000);
   REQUIRE(yaml_cfg.max_upload() == 4000);
+  REQUIRE(yaml_cfg.http_proxy() == "http://proxy");
+  REQUIRE(yaml_cfg.https_proxy() == "http://secureproxy");
 
   // JSON config with extended options
   {
@@ -76,7 +80,9 @@ TEST_CASE("test config") {
     f << "\"download_limit\":500,";
     f << "\"upload_limit\":600,";
     f << "\"max_download\":700,";
-    f << "\"max_upload\":800";
+    f << "\"max_upload\":800,";
+    f << "\"http_proxy\":\"http://proxy\",";
+    f << "\"https_proxy\":\"http://secureproxy\"";
     f << "}";
     f.close();
   }
@@ -101,4 +107,6 @@ TEST_CASE("test config") {
   REQUIRE(json_cfg.upload_limit() == 600);
   REQUIRE(json_cfg.max_download() == 700);
   REQUIRE(json_cfg.max_upload() == 800);
+  REQUIRE(json_cfg.http_proxy() == "http://proxy");
+  REQUIRE(json_cfg.https_proxy() == "http://secureproxy");
 }

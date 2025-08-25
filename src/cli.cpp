@@ -263,6 +263,14 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Maximum total upload in bytes")
       ->type_name("BYTES")
       ->group("Networking");
+  app.add_option("--http-proxy", options.http_proxy,
+                 "Proxy URL for HTTP requests")
+      ->type_name("URL")
+      ->group("Networking");
+  app.add_option("--https-proxy", options.https_proxy,
+                 "Proxy URL for HTTPS requests")
+      ->type_name("URL")
+      ->group("Networking");
   app.add_option("--pr-limit", options.pr_limit,
                  "Number of pull requests to fetch")
       ->type_name("N")

@@ -256,6 +256,16 @@ TEST_CASE("test cli") {
   REQUIRE(opts_export.export_csv == "out.csv");
   REQUIRE(opts_export.export_json == "out.json");
 
+  char http_proxy_flag[] = "--http-proxy";
+  char http_proxy_val[] = "http://proxy";
+  char https_proxy_flag[] = "--https-proxy";
+  char https_proxy_val[] = "http://secureproxy";
+  char *argv_proxy[] = {prog, http_proxy_flag, http_proxy_val, https_proxy_flag,
+                        https_proxy_val};
+  agpm::CliOptions opts_proxy = agpm::parse_cli(5, argv_proxy);
+  REQUIRE(opts_proxy.http_proxy == "http://proxy");
+  REQUIRE(opts_proxy.https_proxy == "http://secureproxy");
+
   {
     char bad[] = "--unknown";
     char *argv_bad[] = {prog, bad};
