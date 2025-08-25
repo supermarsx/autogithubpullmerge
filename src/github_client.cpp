@@ -400,15 +400,16 @@ GitHubClient::GitHubClient(std::vector<std::string> tokens,
                            std::unordered_set<std::string> include_repos,
                            std::unordered_set<std::string> exclude_repos,
                            int delay_ms, int timeout_ms, int max_retries,
-                           std::string api_base)
+                           std::string api_base, bool dry_run)
     : tokens_(std::move(tokens)), token_index_(0),
       http_(std::make_unique<RetryHttpClient>(
           http ? std::move(http) : std::make_unique<CurlHttpClient>(timeout_ms),
           max_retries, 100)),
       include_repos_(std::move(include_repos)),
       exclude_repos_(std::move(exclude_repos)), api_base_(std::move(api_base)),
-      delay_ms_(delay_ms), last_request_(std::chrono::steady_clock::now() -
-                                         std::chrono::milliseconds(delay_ms)) {}
+      dry_run_(dry_run), delay_ms_(delay_ms),
+      last_request_(std::chrono::steady_clock::now() -
+                    std::chrono::milliseconds(delay_ms)) {}
 
 void GitHubClient::set_delay_ms(int delay_ms) { delay_ms_ = delay_ms; }
 
@@ -636,6 +637,11 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   enforce_delay();
   std::string url = api_base_ + "/repos/" + owner + "/" + repo + "/pulls/" +
                     std::to_string(pr_number) + "/merge";
+  if (dry_run_) {
+    spdlog::info("[dry-run] Would merge PR #{} in {}/{}", pr_number, owner,
+                 repo);
+    return true;
+  }
   try {
     std::string resp = http_->put(url, "{}", headers);
     nlohmann::json j = nlohmann::json::parse(resp);
@@ -784,11 +790,15 @@ void GitHubClient::cleanup_branches(
           enforce_delay();
           std::string del_url = api_base_ + "/repos/" + owner + "/" + repo +
                                 "/git/refs/heads/" + branch;
-          try {
-            (void)http_->del(del_url, headers);
-            spdlog::info("Deleted branch {}", branch);
-          } catch (const std::exception &e) {
-            spdlog::error("Failed to delete branch {}: {}", branch, e.what());
+          if (dry_run_) {
+            spdlog::info("[dry-run] Would delete branch {}", branch);
+          } else {
+            try {
+              (void)http_->del(del_url, headers);
+              spdlog::info("Deleted branch {}", branch);
+            } catch (const std::exception &e) {
+              spdlog::error("Failed to delete branch {}: {}", branch, e.what());
+            }
           }
         }
       }
@@ -912,10 +922,14 @@ void GitHubClient::close_dirty_branches(
         // Branch has unmerged commits; delete it to reject dirty branch.
         enforce_delay();
         std::string del_url = repo_url + "/git/refs/heads/" + branch;
-        try {
-          (void)http_->del(del_url, headers);
-        } catch (const std::exception &e) {
-          spdlog::error("Failed to delete branch {}: {}", branch, e.what());
+        if (dry_run_) {
+          spdlog::info("[dry-run] Would delete dirty branch {}", branch);
+        } else {
+          try {
+            (void)http_->del(del_url, headers);
+          } catch (const std::exception &e) {
+            spdlog::error("Failed to delete branch {}: {}", branch, e.what());
+          }
         }
       }
     }

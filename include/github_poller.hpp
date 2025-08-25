@@ -39,12 +39,13 @@ public:
                std::vector<std::pair<std::string, std::string>> repos,
                int interval_ms, int max_rate, int workers = 1,
                bool only_poll_prs = false, bool only_poll_stray = false,
-               bool reject_dirty = false,
-               std::string purge_prefix = "", bool auto_merge = false,
-               bool purge_only = false, std::string sort_mode = "",
+               bool reject_dirty = false, std::string purge_prefix = "",
+               bool auto_merge = false, bool purge_only = false,
+               std::string sort_mode = "",
                PullRequestHistory *history = nullptr,
                std::vector<std::string> protected_branches = {},
-               std::vector<std::string> protected_branch_excludes = {});
+               std::vector<std::string> protected_branch_excludes = {},
+               bool dry_run = false);
 
   /// Start polling in a background thread.
   void start();
@@ -92,6 +93,7 @@ private:
   bool auto_merge_;
   bool purge_only_;
   std::string sort_mode_;
+  bool dry_run_;
 
   std::vector<std::string> protected_branches_;
   std::vector<std::string> protected_branch_excludes_;

@@ -173,7 +173,8 @@ public:
                         std::unordered_set<std::string> exclude_repos = {},
                         int delay_ms = 0, int timeout_ms = 30000,
                         int max_retries = 3,
-                        std::string api_base = "https://api.github.com");
+                        std::string api_base = "https://api.github.com",
+                        bool dry_run = false);
 
   /// Set minimum delay between HTTP requests in milliseconds.
   void set_delay_ms(int delay_ms);
@@ -269,6 +270,7 @@ private:
   std::unordered_set<std::string> include_repos_;
   std::unordered_set<std::string> exclude_repos_;
   std::string api_base_;
+  bool dry_run_{false};
 
   int required_approvals_{0};
   bool require_status_success_{false};
