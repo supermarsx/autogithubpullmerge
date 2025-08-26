@@ -80,7 +80,7 @@ void Poller::worker() {
     {
       std::unique_lock<std::mutex> lock(mutex_);
       cv_.wait(lock, [this] { return !running_ || !jobs_.empty(); });
-      if (!running_ && jobs_.empty())
+      if (!running_)
         return;
       job = std::move(jobs_.front());
       jobs_.pop();
