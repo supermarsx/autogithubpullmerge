@@ -291,6 +291,37 @@ private:
   bool handle_rate_limit(const HttpResponse &resp);
 };
 
+/**
+ * Minimal GitHub GraphQL API client used for querying pull requests.
+ */
+class GitHubGraphQLClient {
+public:
+  /// Construct a client using the provided tokens.
+  explicit GitHubGraphQLClient(std::vector<std::string> tokens,
+                               int timeout_ms = 30000,
+                               std::string api_base = "https://api.github.com");
+
+  /**
+   * List pull requests for a repository using GraphQL.
+   *
+   * @param owner Repository owner
+   * @param repo Repository name
+   * @param include_merged Include merged pull requests when true
+   * @param per_page Number of pull requests to fetch
+   * @return List of pull request summaries
+   */
+  std::vector<PullRequest> list_pull_requests(const std::string &owner,
+                                              const std::string &repo,
+                                              bool include_merged = false,
+                                              int per_page = 50);
+
+private:
+  std::vector<std::string> tokens_;
+  size_t token_index_{0};
+  int timeout_ms_;
+  std::string api_base_;
+};
+
 } // namespace agpm
 
 #endif // AUTOGITHUBPULLMERGE_GITHUB_CLIENT_HPP

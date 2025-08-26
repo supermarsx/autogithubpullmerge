@@ -45,7 +45,8 @@ public:
                PullRequestHistory *history = nullptr,
                std::vector<std::string> protected_branches = {},
                std::vector<std::string> protected_branch_excludes = {},
-               bool dry_run = false);
+               bool dry_run = false,
+               GitHubGraphQLClient *graphql_client = nullptr);
 
   /// Start polling in a background thread.
   void start();
@@ -94,6 +95,7 @@ private:
   bool purge_only_;
   std::string sort_mode_;
   bool dry_run_;
+  GitHubGraphQLClient *graphql_client_;
 
   std::vector<std::string> protected_branches_;
   std::vector<std::string> protected_branch_excludes_;
