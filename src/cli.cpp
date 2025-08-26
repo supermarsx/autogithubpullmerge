@@ -271,6 +271,9 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Proxy URL for HTTPS requests")
       ->type_name("URL")
       ->group("Networking");
+  app.add_flag("--use-graphql", options.use_graphql,
+               "Use GraphQL API for pull requests")
+      ->group("Networking");
   app.add_option("--pr-limit", options.pr_limit,
                  "Number of pull requests to fetch")
       ->type_name("N")

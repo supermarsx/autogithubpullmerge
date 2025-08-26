@@ -1040,4 +1040,67 @@ void GitHubClient::enforce_delay() {
   last_request_ = std::chrono::steady_clock::now();
 }
 
+GitHubGraphQLClient::GitHubGraphQLClient(std::vector<std::string> tokens,
+                                         int timeout_ms, std::string api_base)
+    : tokens_(std::move(tokens)), timeout_ms_(timeout_ms),
+      api_base_(std::move(api_base)) {}
+
+std::vector<PullRequest>
+GitHubGraphQLClient::list_pull_requests(const std::string &owner,
+                                        const std::string &repo,
+                                        bool include_merged, int per_page) {
+  std::vector<PullRequest> prs;
+  if (tokens_.empty()) {
+    return prs;
+  }
+  std::string url = api_base_ + "/graphql";
+  std::string states = include_merged ? "OPEN,MERGED" : "OPEN";
+  std::string query = "query($owner:String!,$name:String!,$first:Int!){"
+                      "repository(owner:$owner,";
+  query += "name:$name){pullRequests(states:[" + states +
+           "],first:$first,orderBy:{field:UPDATED_AT,direction:DESC})";
+  query += "{nodes{number title mergedAt} pageInfo{hasNextPage endCursor}}}}";
+  nlohmann::json payload{
+      {"query", query},
+      {"variables", {{"owner", owner}, {"name", repo}, {"first", per_page}}}};
+  std::string data = payload.dump();
+
+  CurlHandle curl;
+  std::string response;
+  curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
+  curl_easy_setopt(curl.get(), CURLOPT_POST, 1L);
+  curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, data.c_str());
+  curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDSIZE, data.size());
+  curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT_MS, timeout_ms_);
+  curl_easy_setopt(curl.get(), CURLOPT_USERAGENT, "agpm");
+  curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, write_callback);
+  curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &response);
+  CurlSlist headers;
+  headers.append("Content-Type: application/json");
+  std::string auth = "Authorization: bearer " + tokens_[token_index_];
+  headers.append(auth);
+  curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers.get());
+  CURLcode res = curl_easy_perform(curl.get());
+  if (res != CURLE_OK) {
+    spdlog::error("GraphQL query failed: {}", curl_easy_strerror(res));
+    return prs;
+  }
+  try {
+    auto json = nlohmann::json::parse(response);
+    auto nodes = json["data"]["repository"]["pullRequests"]["nodes"];
+    for (const auto &n : nodes) {
+      PullRequest pr{};
+      pr.number = n["number"].get<int>();
+      pr.title = n["title"].get<std::string>();
+      pr.merged = !n["mergedAt"].is_null();
+      pr.owner = owner;
+      pr.repo = repo;
+      prs.push_back(std::move(pr));
+    }
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to parse GraphQL response: {}", e.what());
+  }
+  return prs;
+}
+
 } // namespace agpm

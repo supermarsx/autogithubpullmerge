@@ -13,7 +13,8 @@ GitHubPoller::GitHubPoller(
     bool reject_dirty, std::string purge_prefix, bool auto_merge,
     bool purge_only, std::string sort_mode, PullRequestHistory *history,
     std::vector<std::string> protected_branches,
-    std::vector<std::string> protected_branch_excludes, bool dry_run)
+    std::vector<std::string> protected_branch_excludes, bool dry_run,
+    GitHubGraphQLClient *graphql_client)
     : client_(client), repos_(std::move(repos)), poller_(workers, max_rate),
       interval_ms_(interval_ms), only_poll_prs_(only_poll_prs),
       only_poll_stray_(only_poll_stray), reject_dirty_(reject_dirty),
@@ -21,7 +22,8 @@ GitHubPoller::GitHubPoller(
       purge_only_(purge_only), sort_mode_(std::move(sort_mode)),
       dry_run_(dry_run), history_(history),
       protected_branches_(std::move(protected_branches)),
-      protected_branch_excludes_(std::move(protected_branch_excludes)) {}
+      protected_branch_excludes_(std::move(protected_branch_excludes)),
+      graphql_client_(graphql_client) {}
 
 void GitHubPoller::start() {
   spdlog::info("Starting GitHub poller");
@@ -67,84 +69,88 @@ void GitHubPoller::poll() {
   std::mutex log_mutex;
   std::vector<std::future<void>> futures;
   for (const auto &repo : repos_) {
-    futures.push_back(
-        poller_.submit([this, repo, &all_prs, &pr_mutex, &log_mutex] {
-          if (purge_only_) {
-            spdlog::debug("purge_only set - skipping repo {}/{}", repo.first,
-                          repo.second);
-            if (!purge_prefix_.empty()) {
-              client_.cleanup_branches(repo.first, repo.second, purge_prefix_,
-                                       protected_branches_,
-                                       protected_branch_excludes_);
+    futures.push_back(poller_.submit([this, repo, &all_prs, &pr_mutex,
+                                      &log_mutex] {
+      if (purge_only_) {
+        spdlog::debug("purge_only set - skipping repo {}/{}", repo.first,
+                      repo.second);
+        if (!purge_prefix_.empty()) {
+          client_.cleanup_branches(repo.first, repo.second, purge_prefix_,
+                                   protected_branches_,
+                                   protected_branch_excludes_);
+        }
+        return;
+      }
+      std::vector<PullRequest> prs;
+      if (!only_poll_stray_) {
+        if (graphql_client_) {
+          prs = graphql_client_->list_pull_requests(repo.first, repo.second);
+        } else {
+          prs = client_.list_pull_requests(repo.first, repo.second);
+        }
+        {
+          std::lock_guard<std::mutex> lk(pr_mutex);
+          all_prs.insert(all_prs.end(), prs.begin(), prs.end());
+          if (history_) {
+            for (const auto &pr : prs) {
+              history_->insert(pr.number, pr.title, pr.merged);
             }
-            return;
           }
-          std::vector<PullRequest> prs;
-          if (!only_poll_stray_) {
-            prs = client_.list_pull_requests(repo.first, repo.second);
-            {
-              std::lock_guard<std::mutex> lk(pr_mutex);
-              all_prs.insert(all_prs.end(), prs.begin(), prs.end());
+        }
+        if (auto_merge_) {
+          for (const auto &pr : prs) {
+            if (dry_run_) {
+              client_.merge_pull_request(pr.owner, pr.repo, pr.number);
+              if (log_cb_) {
+                std::lock_guard<std::mutex> lk(log_mutex);
+                log_cb_("Would merge PR #" + std::to_string(pr.number));
+              }
+              continue;
+            }
+            bool merged =
+                client_.merge_pull_request(pr.owner, pr.repo, pr.number);
+            if (merged) {
               if (history_) {
-                for (const auto &pr : prs) {
-                  history_->insert(pr.number, pr.title, pr.merged);
-                }
+                std::lock_guard<std::mutex> lk(pr_mutex);
+                history_->update_merged(pr.number);
               }
-            }
-            if (auto_merge_) {
-              for (const auto &pr : prs) {
-                if (dry_run_) {
-                  client_.merge_pull_request(pr.owner, pr.repo, pr.number);
-                  if (log_cb_) {
-                    std::lock_guard<std::mutex> lk(log_mutex);
-                    log_cb_("Would merge PR #" + std::to_string(pr.number));
-                  }
-                  continue;
-                }
-                bool merged =
-                    client_.merge_pull_request(pr.owner, pr.repo, pr.number);
-                if (merged) {
-                  if (history_) {
-                    std::lock_guard<std::mutex> lk(pr_mutex);
-                    history_->update_merged(pr.number);
-                  }
-                  if (log_cb_) {
-                    std::lock_guard<std::mutex> lk(log_mutex);
-                    log_cb_("Merged PR #" + std::to_string(pr.number));
-                  }
-                } else if (log_cb_) {
-                  std::lock_guard<std::mutex> lk(log_mutex);
-                  log_cb_("PR #" + std::to_string(pr.number) +
-                          " did not meet merge requirements");
-                }
+              if (log_cb_) {
+                std::lock_guard<std::mutex> lk(log_mutex);
+                log_cb_("Merged PR #" + std::to_string(pr.number));
               }
-            }
-          }
-          if (!only_poll_prs_) {
-            auto branches = client_.list_branches(repo.first, repo.second);
-            std::vector<std::string> stray;
-            for (const auto &b : branches) {
-              if (purge_prefix_.empty() || b.rfind(purge_prefix_, 0) != 0) {
-                stray.push_back(b);
-              }
-            }
-            if (log_cb_) {
+            } else if (log_cb_) {
               std::lock_guard<std::mutex> lk(log_mutex);
-              log_cb_(repo.first + "/" + repo.second +
-                      " stray branches: " + std::to_string(stray.size()));
+              log_cb_("PR #" + std::to_string(pr.number) +
+                      " did not meet merge requirements");
             }
           }
-          if (!purge_prefix_.empty()) {
-            client_.cleanup_branches(repo.first, repo.second, purge_prefix_,
+        }
+      }
+      if (!only_poll_prs_) {
+        auto branches = client_.list_branches(repo.first, repo.second);
+        std::vector<std::string> stray;
+        for (const auto &b : branches) {
+          if (purge_prefix_.empty() || b.rfind(purge_prefix_, 0) != 0) {
+            stray.push_back(b);
+          }
+        }
+        if (log_cb_) {
+          std::lock_guard<std::mutex> lk(log_mutex);
+          log_cb_(repo.first + "/" + repo.second +
+                  " stray branches: " + std::to_string(stray.size()));
+        }
+      }
+      if (!purge_prefix_.empty()) {
+        client_.cleanup_branches(repo.first, repo.second, purge_prefix_,
+                                 protected_branches_,
+                                 protected_branch_excludes_);
+      }
+      if (!only_poll_prs_ && reject_dirty_) {
+        client_.close_dirty_branches(repo.first, repo.second,
                                      protected_branches_,
                                      protected_branch_excludes_);
-          }
-          if (!only_poll_prs_ && reject_dirty_) {
-            client_.close_dirty_branches(repo.first, repo.second,
-                                         protected_branches_,
-                                         protected_branch_excludes_);
-          }
-        }));
+      }
+    }));
   }
   for (auto &f : futures) {
     f.get();
