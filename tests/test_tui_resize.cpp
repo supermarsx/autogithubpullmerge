@@ -46,7 +46,7 @@ TEST_CASE("test tui resize") {
   setenv("TERM", "xterm", 1);
 #endif
 
-  if (!isatty(fileno(stdout))) {
+  if (!isatty(fileno(stdout)) || !isatty(fileno(stdin))) {
     WARN("Skipping TUI test: no TTY available");
     return;
   }
