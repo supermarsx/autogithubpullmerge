@@ -4,6 +4,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -184,6 +185,34 @@ void Config::load_json(const nlohmann::json &j) {
   }
   if (j.contains("sort")) {
     set_sort_mode(j["sort"].get<std::string>());
+  }
+
+  // Warn on repositories appearing in both include and exclude lists.
+  if (!include_repos_.empty() && !exclude_repos_.empty()) {
+    std::unordered_set<std::string> exclude(exclude_repos_.begin(),
+                                            exclude_repos_.end());
+    for (const auto &r : include_repos_) {
+      if (exclude.count(r) > 0) {
+        spdlog::warn(
+            "Repository '{}' listed in both include_repos and exclude_repos;"
+            " exclusion takes precedence",
+            r);
+      }
+    }
+  }
+
+  // Warn when protected branch patterns are overridden by explicit excludes.
+  if (!protected_branches_.empty() && !protected_branch_excludes_.empty()) {
+    std::unordered_set<std::string> protected_set(protected_branches_.begin(),
+                                                  protected_branches_.end());
+    for (const auto &p : protected_branch_excludes_) {
+      if (protected_set.count(p) > 0) {
+        spdlog::warn(
+            "Protected branch pattern '{}' also present in protected_branch_"
+            "excludes; exclusion takes precedence",
+            p);
+      }
+    }
   }
 }
 
