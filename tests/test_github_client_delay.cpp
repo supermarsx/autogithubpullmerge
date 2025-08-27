@@ -55,12 +55,12 @@ TEST_CASE("test github client delay") {
 
   try {
     CurlHttpClient real;
-    real.get("https://nonexistent.invalid", {});
+    real.get("http://192.0.2.1/", {});
     FAIL("Expected exception");
   } catch (const std::exception &e) {
     std::string msg = e.what();
-    REQUIRE(msg.find("nonexistent.invalid") != std::string::npos);
-    REQUIRE(msg.find(curl_easy_strerror(CURLE_COULDNT_RESOLVE_HOST)) !=
+    REQUIRE(msg.find("192.0.2.1") != std::string::npos);
+    REQUIRE(msg.find(curl_easy_strerror(CURLE_COULDNT_CONNECT)) !=
             std::string::npos);
   }
 }
