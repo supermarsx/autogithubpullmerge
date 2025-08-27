@@ -322,7 +322,9 @@ CliOptions parse_cli(int argc, char **argv) {
                "Only purge branches and skip PR polling")
       ->group("Actions");
   try {
-    app.parse(argc, argv);
+    std::vector<char *> args(argv, argv + argc);
+    args.push_back(nullptr);
+    app.parse(argc, args.data());
   } catch (const CLI::ParseError &e) {
     throw std::runtime_error(e.what());
   }
