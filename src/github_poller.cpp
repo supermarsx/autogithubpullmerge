@@ -62,6 +62,10 @@ void GitHubPoller::set_export_callback(std::function<void()> cb) {
   export_cb_ = std::move(cb);
 }
 
+void GitHubPoller::set_notifier(NotifierPtr notifier) {
+  notifier_ = std::move(notifier);
+}
+
 void GitHubPoller::poll() {
   spdlog::debug("Polling repositories");
   std::vector<PullRequest> all_prs;
@@ -78,6 +82,10 @@ void GitHubPoller::poll() {
           client_.cleanup_branches(repo.first, repo.second, purge_prefix_,
                                    protected_branches_,
                                    protected_branch_excludes_);
+          if (notifier_) {
+            notifier_->notify("Purged branches in " + repo.first + "/" +
+                              repo.second);
+          }
         }
         return;
       }
@@ -118,6 +126,10 @@ void GitHubPoller::poll() {
                 std::lock_guard<std::mutex> lk(log_mutex);
                 log_cb_("Merged PR #" + std::to_string(pr.number));
               }
+              if (notifier_) {
+                notifier_->notify("Merged PR #" + std::to_string(pr.number) +
+                                  " in " + pr.owner + "/" + pr.repo);
+              }
             } else if (log_cb_) {
               std::lock_guard<std::mutex> lk(log_mutex);
               log_cb_("PR #" + std::to_string(pr.number) +
@@ -144,6 +156,10 @@ void GitHubPoller::poll() {
         client_.cleanup_branches(repo.first, repo.second, purge_prefix_,
                                  protected_branches_,
                                  protected_branch_excludes_);
+        if (notifier_) {
+          notifier_->notify("Purged branches in " + repo.first + "/" +
+                            repo.second);
+        }
       }
       if (!only_poll_prs_ && reject_dirty_) {
         client_.close_dirty_branches(repo.first, repo.second,
