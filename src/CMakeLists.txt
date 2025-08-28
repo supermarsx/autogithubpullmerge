@@ -23,6 +23,7 @@ add_library(
   tui.cpp
   poller.cpp
   github_poller.cpp
+  notification.cpp
   util/duration.cpp)
 
 target_include_directories(

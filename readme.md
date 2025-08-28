@@ -130,6 +130,13 @@ Passing `--verbose` sets the logger to the `debug` level unless `--log-level`
 specifies another level. Configuration files may also define `log_level`,
 `log_pattern` and `log_file` values.
 
+## Notifications
+
+`GitHubPoller` can emit user notifications when pull requests are merged or
+branches are purged. A basic `NotifySendNotifier` uses the `notify-send`
+command on Linux desktops. Implementations derive from `agpm::Notifier` to
+integrate with other systems. See `docs/notifications.md` for details.
+
 ## API Key Options
 
 API keys can be provided in several ways:

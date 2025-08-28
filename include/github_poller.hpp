@@ -3,6 +3,7 @@
 
 #include "github_client.hpp"
 #include "history.hpp"
+#include "notification.hpp"
 #include "poller.hpp"
 #include <atomic>
 #include <functional>
@@ -78,6 +79,13 @@ public:
    */
   void set_export_callback(std::function<void()> cb);
 
+  /**
+   * Set a notifier invoked when merges or branch purges occur.
+   *
+   * @param notifier Notification handler
+   */
+  void set_notifier(NotifierPtr notifier);
+
 private:
   void poll();
 
@@ -106,6 +114,7 @@ private:
 
   std::function<void(const std::vector<PullRequest> &)> pr_cb_;
   std::function<void(const std::string &)> log_cb_;
+  NotifierPtr notifier_;
 };
 
 } // namespace agpm
