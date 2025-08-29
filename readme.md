@@ -208,21 +208,34 @@ max_request_rate: 60
 
 ## Branch Protection Patterns
 
-Glob patterns supplied with `--protect-branch` define branches that must not be
-modified. Patterns passed via `--protect-branch-exclude` remove protection for
-matching names.
+`--protect-branch` marks branches that must not be modified. Use
+`--protect-branch-exclude` to remove protection for matching patterns.
+Patterns support glob or regular expression syntax, and exclude patterns take
+precedence over protections.
+
+### Command Line
+
+```bash
+autogithubpullmerge --protect-branch main \
+  --protect-branch 'release/*' \
+  --protect-branch '/^hotfix-[0-9]+/' \
+  --protect-branch-exclude 'release/temp/*'
+```
+
+### Configuration
 
 ```yaml
 protected_branches:
   - main
   - release/*
+  - '/^hotfix-[0-9]+/'
 protected_branch_excludes:
   - release/temp/*
 ```
 
 ```json
 {
-  "protected_branches": ["main", "release/*"],
+  "protected_branches": ["main", "release/*", "/^hotfix-[0-9]+/"],
   "protected_branch_excludes": ["release/temp/*"]
 }
 ```
