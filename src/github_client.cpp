@@ -2,6 +2,7 @@
 #include "curl/curl.h"
 #include <chrono>
 #include <ctime>
+#include <fstream>
 #include <iomanip>
 #include <mutex>
 #include <regex>
@@ -429,16 +430,79 @@ GitHubClient::GitHubClient(std::vector<std::string> tokens,
                            std::unordered_set<std::string> include_repos,
                            std::unordered_set<std::string> exclude_repos,
                            int delay_ms, int timeout_ms, int max_retries,
-                           std::string api_base, bool dry_run)
+                           std::string api_base, bool dry_run,
+                           std::string cache_file)
     : tokens_(std::move(tokens)), token_index_(0),
       http_(std::make_unique<RetryHttpClient>(
           http ? std::move(http) : std::make_unique<CurlHttpClient>(timeout_ms),
           max_retries, 100)),
       include_repos_(std::move(include_repos)),
       exclude_repos_(std::move(exclude_repos)), api_base_(std::move(api_base)),
-      dry_run_(dry_run), delay_ms_(delay_ms),
-      last_request_(std::chrono::steady_clock::now() -
-                    std::chrono::milliseconds(delay_ms)) {}
+      dry_run_(dry_run), cache_file_(std::move(cache_file)),
+      delay_ms_(delay_ms), last_request_(std::chrono::steady_clock::now() -
+                                         std::chrono::milliseconds(delay_ms)) {
+  load_cache();
+}
+
+GitHubClient::~GitHubClient() { save_cache(); }
+
+HttpResponse
+GitHubClient::get_with_cache(const std::string &url,
+                             const std::vector<std::string> &headers) {
+  std::vector<std::string> hdrs = headers;
+  auto it = cache_.find(url);
+  if (it != cache_.end() && !it->second.etag.empty()) {
+    hdrs.push_back("If-None-Match: " + it->second.etag);
+  }
+  HttpResponse res = http_->get_with_headers(url, hdrs);
+  if (res.status_code == 304 && it != cache_.end()) {
+    spdlog::debug("Cache hit for {}", url);
+    return {it->second.body, it->second.headers, 200};
+  }
+  for (const auto &h : res.headers) {
+    if (h.rfind("ETag:", 0) == 0) {
+      std::string etag = h.substr(5);
+      if (!etag.empty() && etag[0] == ' ')
+        etag.erase(0, 1);
+      cache_[url] = {etag, res.body, res.headers};
+      save_cache();
+      break;
+    }
+  }
+  return res;
+}
+
+void GitHubClient::load_cache() {
+  if (cache_file_.empty())
+    return;
+  std::ifstream in(cache_file_);
+  if (!in)
+    return;
+  nlohmann::json j;
+  try {
+    in >> j;
+    for (auto &[url, entry] : j.items()) {
+      CachedResponse c;
+      c.etag = entry.value("etag", "");
+      c.body = entry.value("body", "");
+      c.headers = entry.value("headers", std::vector<std::string>{});
+      cache_[url] = std::move(c);
+    }
+  } catch (...) {
+  }
+}
+
+void GitHubClient::save_cache() {
+  if (cache_file_.empty())
+    return;
+  nlohmann::json j;
+  for (const auto &[url, c] : cache_) {
+    j[url] = {{"etag", c.etag}, {"body", c.body}, {"headers", c.headers}};
+  }
+  std::ofstream out(cache_file_);
+  if (out)
+    out << j.dump();
+}
 
 void GitHubClient::set_delay_ms(int delay_ms) { delay_ms_ = delay_ms; }
 
@@ -467,7 +531,7 @@ GitHubClient::list_repositories() {
     enforce_delay();
     HttpResponse res;
     try {
-      res = http_->get_with_headers(url, headers);
+      res = get_with_cache(url, headers);
     } catch (const std::exception &e) {
       spdlog::error("HTTP GET failed: {}", e.what());
       break;
@@ -552,7 +616,7 @@ GitHubClient::list_pull_requests(const std::string &owner,
     enforce_delay();
     HttpResponse res;
     try {
-      res = http_->get_with_headers(url, headers);
+      res = get_with_cache(url, headers);
     } catch (const std::exception &e) {
       spdlog::error("HTTP GET failed: {}", e.what());
       break;
@@ -640,7 +704,7 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
                        std::to_string(pr_number);
   nlohmann::json meta;
   try {
-    std::string pr_resp = http_->get(pr_url, headers);
+    std::string pr_resp = get_with_cache(pr_url, headers).body;
     meta = nlohmann::json::parse(pr_resp);
   } catch (const std::exception &e) {
     spdlog::error("Failed to fetch pull request metadata: {}", e.what());
@@ -701,7 +765,7 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
   std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
   std::string repo_resp;
   try {
-    repo_resp = http_->get(repo_url, headers);
+    repo_resp = get_with_cache(repo_url, headers).body;
   } catch (const std::exception &e) {
     spdlog::error("Failed to fetch repo metadata: {}", e.what());
     return branches;
@@ -722,7 +786,7 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
     enforce_delay();
     HttpResponse res;
     try {
-      res = http_->get_with_headers(url, headers);
+      res = get_with_cache(url, headers);
     } catch (const std::exception &e) {
       spdlog::error("Failed to fetch branches: {}", e.what());
       return branches;
@@ -795,7 +859,7 @@ void GitHubClient::cleanup_branches(
     enforce_delay();
     HttpResponse res;
     try {
-      res = http_->get_with_headers(url, headers);
+      res = get_with_cache(url, headers);
     } catch (const std::exception &e) {
       spdlog::error("Failed to fetch pull requests for cleanup: {}", e.what());
       return;
@@ -875,7 +939,7 @@ void GitHubClient::close_dirty_branches(
   std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
   std::string repo_resp;
   try {
-    repo_resp = http_->get(repo_url, headers);
+    repo_resp = get_with_cache(repo_url, headers).body;
   } catch (const std::exception &e) {
     spdlog::error("Failed to fetch repo metadata: {}", e.what());
     return;
@@ -897,7 +961,7 @@ void GitHubClient::close_dirty_branches(
     enforce_delay();
     HttpResponse res;
     try {
-      res = http_->get_with_headers(url, headers);
+      res = get_with_cache(url, headers);
     } catch (const std::exception &e) {
       spdlog::error("Failed to fetch branches: {}", e.what());
       return;
@@ -929,7 +993,7 @@ void GitHubClient::close_dirty_branches(
           repo_url + "/compare/" + default_branch + "..." + branch;
       std::string compare_resp;
       try {
-        compare_resp = http_->get(compare_url, headers);
+        compare_resp = get_with_cache(compare_url, headers).body;
       } catch (const std::exception &e) {
         spdlog::error("Failed to compare branch {}: {}", branch, e.what());
         continue;
