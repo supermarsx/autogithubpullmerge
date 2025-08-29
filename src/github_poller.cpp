@@ -20,10 +20,10 @@ GitHubPoller::GitHubPoller(
       only_poll_stray_(only_poll_stray), reject_dirty_(reject_dirty),
       purge_prefix_(std::move(purge_prefix)), auto_merge_(auto_merge),
       purge_only_(purge_only), sort_mode_(std::move(sort_mode)),
-      dry_run_(dry_run), history_(history),
+      dry_run_(dry_run), graphql_client_(graphql_client),
       protected_branches_(std::move(protected_branches)),
       protected_branch_excludes_(std::move(protected_branch_excludes)),
-      graphql_client_(graphql_client) {}
+      history_(history) {}
 
 void GitHubPoller::start() {
   spdlog::info("Starting GitHub poller");
