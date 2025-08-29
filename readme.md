@@ -211,14 +211,15 @@ max_request_rate: 60
 `--protect-branch` marks branches that must not be modified. Use
 `--protect-branch-exclude` to remove protection for matching patterns.
 Patterns support glob or regular expression syntax, and exclude patterns take
-precedence over protections.
+precedence over protections. Regular expressions should be provided without
+surrounding delimiters, for example `^hotfix-[0-9]+$`.
 
 ### Command Line
 
 ```bash
 autogithubpullmerge --protect-branch main \
   --protect-branch 'release/*' \
-  --protect-branch '/^hotfix-[0-9]+/' \
+  --protect-branch '^hotfix-[0-9]+$' \
   --protect-branch-exclude 'release/temp/*'
 ```
 
@@ -228,14 +229,14 @@ autogithubpullmerge --protect-branch main \
 protected_branches:
   - main
   - release/*
-  - '/^hotfix-[0-9]+/'
+  - '^hotfix-[0-9]+$'
 protected_branch_excludes:
   - release/temp/*
 ```
 
 ```json
 {
-  "protected_branches": ["main", "release/*", "/^hotfix-[0-9]+/"],
+  "protected_branches": ["main", "release/*", "^hotfix-[0-9]+$"],
   "protected_branch_excludes": ["release/temp/*"]
 }
 ```
