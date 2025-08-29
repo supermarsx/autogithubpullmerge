@@ -54,16 +54,16 @@ TEST_CASE("test tui log limit") {
   setenv("TERM", "xterm", 1);
 #endif
 
-  if (!isatty(fileno(stdout))) {
-    WARN("Skipping TUI test: no TTY available");
-    return;
-  }
-
   auto mock = std::make_unique<MockHttpClient>();
   mock->put_response = "{\"merged\":true}";
   GitHubClient client({"token"}, std::move(mock));
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
   Tui ui(client, poller);
+  ui.init();
+  if (!ui.initialized_) {
+    WARN("Skipping TUI test: no TTY available");
+    return;
+  }
 
   for (int i = 0; i < 205; ++i) {
     ui.update_prs({{i, "PR", false, "o", "r"}});

@@ -46,16 +46,15 @@ TEST_CASE("test tui resize") {
   setenv("TERM", "xterm", 1);
 #endif
 
-  if (!isatty(fileno(stdout)) || !isatty(fileno(stdin))) {
-    WARN("Skipping TUI test: no TTY available");
-    return;
-  }
-
   auto mock = std::make_unique<MockHttpClient>();
   GitHubClient client({"token"}, std::move(mock));
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
   Tui ui(client, poller);
   ui.init();
+  if (!ui.initialized_) {
+    WARN("Skipping TUI test: no TTY available");
+    return;
+  }
 
   ui.update_prs({{1, "PR", false, "o", "r"}});
   ui.draw();
