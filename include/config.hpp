@@ -276,6 +276,12 @@ public:
   /// Set sorting mode for pull request listing.
   void set_sort_mode(const std::string &mode) { sort_mode_ = mode; }
 
+  /// Use the GraphQL API for pull request queries.
+  bool use_graphql() const { return use_graphql_; }
+
+  /// Enable or disable GraphQL usage.
+  void set_use_graphql(bool v) { use_graphql_ = v; }
+
   /// Load configuration from the file at `path`.
   static Config from_file(const std::string &path);
 
@@ -317,6 +323,7 @@ private:
   int pr_limit_ = 50;
   std::chrono::seconds pr_since_{0};
   std::string sort_mode_;
+  bool use_graphql_ = false;
   int http_timeout_ = 30;
   int http_retries_ = 3;
   std::string api_base_ = "https://api.github.com";

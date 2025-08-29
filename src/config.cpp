@@ -186,6 +186,9 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("sort")) {
     set_sort_mode(j["sort"].get<std::string>());
   }
+  if (j.contains("use_graphql")) {
+    set_use_graphql(j["use_graphql"].get<bool>());
+  }
 
   // Warn on repositories appearing in both include and exclude lists.
   if (!include_repos_.empty() && !exclude_repos_.empty()) {

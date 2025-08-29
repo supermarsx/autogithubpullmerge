@@ -1,5 +1,6 @@
 {
   "verbose": false,
   "poll_interval": 30,
-  "max_request_rate": 50
+  "max_request_rate": 50,
+  "use_graphql": true
 }

@@ -17,6 +17,7 @@ TEST_CASE("test config loading") {
     f << "max_upload: 14\n";
     f << "http_proxy: http://proxy\n";
     f << "https_proxy: http://secureproxy\n";
+    f << "use_graphql: true\n";
     f.close();
   }
   agpm::Config ycfg = agpm::Config::from_file("config.yaml");
@@ -32,6 +33,7 @@ TEST_CASE("test config loading") {
   REQUIRE(ycfg.max_upload() == 14);
   REQUIRE(ycfg.http_proxy() == "http://proxy");
   REQUIRE(ycfg.https_proxy() == "http://secureproxy");
+  REQUIRE(ycfg.use_graphql());
 
   {
     std::ofstream f("config.json");
@@ -47,7 +49,8 @@ TEST_CASE("test config loading") {
     f << "\"max_download\":23,";
     f << "\"max_upload\":24,";
     f << "\"http_proxy\":\"http://proxy\",";
-    f << "\"https_proxy\":\"http://secureproxy\"";
+    f << "\"https_proxy\":\"http://secureproxy\",";
+    f << "\"use_graphql\":false";
     f << "}";
     f.close();
   }
@@ -64,4 +67,5 @@ TEST_CASE("test config loading") {
   REQUIRE(jcfg.max_upload() == 24);
   REQUIRE(jcfg.http_proxy() == "http://proxy");
   REQUIRE(jcfg.https_proxy() == "http://secureproxy");
+  REQUIRE(!jcfg.use_graphql());
 }
