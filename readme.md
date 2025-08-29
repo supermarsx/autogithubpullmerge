@@ -254,7 +254,9 @@ https_proxy: http://secureproxy
 The terminal interface supports the following key bindings:
 
 - `r` refreshes the pull request list.
+- `o` opens the selected pull request in a browser.
 - `m` merges the selected pull request.
+- `ENTER` or `d` shows details for the selected pull request.
 - `q` quits the interface.
 - Arrow keys navigate between pull requests.
 
