@@ -49,9 +49,29 @@ int main(int argc, char **argv) {
         opts.http_retries != 3 ? opts.http_retries : cfg.http_retries();
     std::string api_base =
         !opts.api_base.empty() ? opts.api_base : cfg.api_base();
-    agpm::GitHubClient client(tokens, nullptr, include_set, exclude_set,
-                              delay_ms, http_timeout * 1000, http_retries,
-                              api_base, opts.dry_run);
+    curl_off_t download_limit =
+        opts.download_limit != 0
+            ? static_cast<curl_off_t>(opts.download_limit)
+            : static_cast<curl_off_t>(cfg.download_limit());
+    curl_off_t upload_limit = opts.upload_limit != 0
+                                  ? static_cast<curl_off_t>(opts.upload_limit)
+                                  : static_cast<curl_off_t>(cfg.upload_limit());
+    curl_off_t max_download = opts.max_download != 0
+                                  ? static_cast<curl_off_t>(opts.max_download)
+                                  : static_cast<curl_off_t>(cfg.max_download());
+    curl_off_t max_upload = opts.max_upload != 0
+                                ? static_cast<curl_off_t>(opts.max_upload)
+                                : static_cast<curl_off_t>(cfg.max_upload());
+    std::string http_proxy =
+        !opts.http_proxy.empty() ? opts.http_proxy : cfg.http_proxy();
+    std::string https_proxy =
+        !opts.https_proxy.empty() ? opts.https_proxy : cfg.https_proxy();
+    auto http_client = std::make_unique<agpm::CurlHttpClient>(
+        http_timeout * 1000, download_limit, upload_limit, max_download,
+        max_upload, http_proxy, https_proxy);
+    agpm::GitHubClient client(tokens, std::move(http_client), include_set,
+                              exclude_set, delay_ms, http_timeout * 1000,
+                              http_retries, api_base, opts.dry_run);
     agpm::GitHubGraphQLClient graphql_client(tokens, http_timeout * 1000,
                                              api_base);
 
