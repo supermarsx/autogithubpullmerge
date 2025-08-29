@@ -19,6 +19,9 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - CLI options for GitHub API keys (`--api-key`, `--api-key-from-stream`,
   `--api-key-url`, `--api-key-url-user`, `--api-key-url-password`,
   `--api-key-file`)
+- Rate limiting to control GitHub API usage
+- Branch protection patterns to guard important branches
+- Dry-run mode and HTTP/HTTPS proxy support
 
 ## Building (Linux)
 ```bash
@@ -187,6 +190,64 @@ Destructive options (`--reject-dirty`, `--auto-merge`, `--purge-prefix`,
 These options may also be specified in JSON or YAML configuration files as
 `http_timeout`, `http_retries`, `download_limit`, `upload_limit`,
 `max_download` and `max_upload`.
+
+## Rate Limiting
+
+The `--max-request-rate` option throttles how many GitHub API calls are made
+per minute to stay within rate limits.
+
+```yaml
+max_request_rate: 60
+```
+
+```json
+{
+  "max_request_rate": 60
+}
+```
+
+## Branch Protection Patterns
+
+Glob patterns supplied with `--protect-branch` define branches that must not be
+modified. Patterns passed via `--protect-branch-exclude` remove protection for
+matching names.
+
+```yaml
+protected_branches:
+  - main
+  - release/*
+protected_branch_excludes:
+  - release/temp/*
+```
+
+```json
+{
+  "protected_branches": ["main", "release/*"],
+  "protected_branch_excludes": ["release/temp/*"]
+}
+```
+
+## Dry-Run and Proxy Support
+
+Use `--dry-run` to simulate operations without altering repositories. HTTP
+requests may be routed through proxies using `--http-proxy` and
+`--https-proxy`.
+
+```bash
+autogithubpullmerge --dry-run --http-proxy http://proxy --https-proxy http://secureproxy
+```
+
+```yaml
+http_proxy: http://proxy
+https_proxy: http://secureproxy
+```
+
+```json
+{
+  "http_proxy": "http://proxy",
+  "https_proxy": "http://secureproxy"
+}
+```
 
 ## TUI Hotkeys
 
