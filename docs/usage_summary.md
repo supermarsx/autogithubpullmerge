@@ -92,6 +92,70 @@ Branches that have diverged from their remote are considered dirty and are
 skipped by default. Pass `--reject-dirty` to close these branches
 automatically, overriding the protection for dirty branches.
 
+## Rate Limiting
+
+Use `--max-request-rate` to throttle GitHub API calls. This option limits how
+many requests are issued per minute to avoid hitting GitHub's API quotas.
+
+YAML:
+```yaml
+max_request_rate: 60
+```
+
+JSON:
+```json
+{
+  "max_request_rate": 60
+}
+```
+
+## Branch Protection Patterns
+
+Glob patterns can designate branches that must never be modified. Provide
+patterns with `--protect-branch` and use `--protect-branch-exclude` to remove
+protection for specific names.
+
+YAML:
+```yaml
+protected_branches:
+  - main
+  - release/*
+protected_branch_excludes:
+  - release/temp/*
+```
+
+JSON:
+```json
+{
+  "protected_branches": ["main", "release/*"],
+  "protected_branch_excludes": ["release/temp/*"]
+}
+```
+
+## Dry-Run and Proxy Support
+
+`--dry-run` simulates operations without altering repositories. HTTP requests
+may be routed through proxies using `--http-proxy` and `--https-proxy`.
+
+CLI:
+```bash
+autogithubpullmerge --dry-run --http-proxy http://proxy --https-proxy http://secureproxy
+```
+
+YAML:
+```yaml
+http_proxy: http://proxy
+https_proxy: http://secureproxy
+```
+
+JSON:
+```json
+{
+  "http_proxy": "http://proxy",
+  "https_proxy": "http://secureproxy"
+}
+```
+
 ## Configuration File Examples
 
 YAML:
