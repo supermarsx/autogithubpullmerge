@@ -47,16 +47,15 @@ TEST_CASE("tui show details") {
   setenv("TERM", "xterm", 1);
 #endif
 
-  if (!isatty(fileno(stdout))) {
-    WARN("Skipping TUI test: no TTY available");
-    return;
-  }
-
   auto mock = std::make_unique<MockHttpClient>();
   GitHubClient client({"token"}, std::move(mock));
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
   Tui ui(client, poller);
   ui.init();
+  if (!ui.initialized_) {
+    WARN("Skipping TUI test: no TTY available");
+    return;
+  }
   ui.update_prs({{1, "PR title", false, "o", "r"}});
   ui.handle_key('d');
   ui.draw();
@@ -75,16 +74,15 @@ TEST_CASE("tui show details enter") {
   setenv("TERM", "xterm", 1);
 #endif
 
-  if (!isatty(fileno(stdout))) {
-    WARN("Skipping TUI test: no TTY available");
-    return;
-  }
-
   auto mock = std::make_unique<MockHttpClient>();
   GitHubClient client({"token"}, std::move(mock));
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
   Tui ui(client, poller);
   ui.init();
+  if (!ui.initialized_) {
+    WARN("Skipping TUI test: no TTY available");
+    return;
+  }
   ui.update_prs({{2, "Another", false, "o", "r"}});
   ui.handle_key('\n');
   ui.draw();
