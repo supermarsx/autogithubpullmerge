@@ -266,6 +266,29 @@ TEST_CASE("test cli") {
   REQUIRE(opts_proxy.http_proxy == "http://proxy");
   REQUIRE(opts_proxy.https_proxy == "http://secureproxy");
 
+  char workers_flag[] = "--workers";
+  char workers_val[] = "4";
+  char *argv_workers[] = {prog, workers_flag, workers_val};
+  agpm::CliOptions opts_workers = agpm::parse_cli(3, argv_workers);
+  REQUIRE(opts_workers.workers == 4);
+
+  char workers_zero[] = "0";
+  char *argv_workers_zero[] = {prog, workers_flag, workers_zero};
+  agpm::CliOptions opts_workers_zero = agpm::parse_cli(3, argv_workers_zero);
+  REQUIRE(opts_workers_zero.workers == 0);
+
+  {
+    char workers_neg[] = "-1";
+    char *argv_workers_neg[] = {prog, workers_flag, workers_neg};
+    bool threw = false;
+    try {
+      agpm::parse_cli(3, argv_workers_neg);
+    } catch (const std::exception &) {
+      threw = true;
+    }
+    REQUIRE(threw);
+  }
+
   {
     char bad[] = "--unknown";
     char *argv_bad[] = {prog, bad};

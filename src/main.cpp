@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
     bool auto_merge = opts.auto_merge || cfg.auto_merge();
     bool purge_only = opts.purge_only || cfg.purge_only();
     std::string sort_mode = !opts.sort.empty() ? opts.sort : cfg.sort_mode();
-    int workers = opts.workers != 0 ? opts.workers : cfg.workers();
+    int workers = opts.workers == 0 ? cfg.workers() : opts.workers;
     if (workers <= 0)
       workers = 1;
 
