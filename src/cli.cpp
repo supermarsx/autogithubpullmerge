@@ -234,8 +234,7 @@ CliOptions parse_cli(int argc, char **argv) {
       ->group("Polling");
   app.add_option("--workers", options.workers, "Number of worker threads")
       ->type_name("N")
-      ->check(CLI::PositiveNumber)
-      ->default_val("1")
+      ->check(CLI::NonNegativeNumber)
       ->group("Polling");
   app.add_option("--http-timeout", options.http_timeout,
                  "HTTP request timeout in seconds")
