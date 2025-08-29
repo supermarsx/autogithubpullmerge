@@ -138,6 +138,24 @@ public:
   /// Total bytes uploaded so far.
   curl_off_t total_uploaded() const { return total_uploaded_; }
 
+  /// Download limit in bytes per second.
+  curl_off_t download_limit() const { return download_limit_; }
+
+  /// Upload limit in bytes per second.
+  curl_off_t upload_limit() const { return upload_limit_; }
+
+  /// Maximum cumulative download in bytes.
+  curl_off_t max_download() const { return max_download_; }
+
+  /// Maximum cumulative upload in bytes.
+  curl_off_t max_upload() const { return max_upload_; }
+
+  /// HTTP proxy URL.
+  const std::string &http_proxy() const { return http_proxy_; }
+
+  /// HTTPS proxy URL.
+  const std::string &https_proxy() const { return https_proxy_; }
+
 private:
   void apply_proxy(CURL *curl, const std::string &url);
   CurlHandle curl_;

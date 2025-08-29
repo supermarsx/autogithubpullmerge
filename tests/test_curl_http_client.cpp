@@ -1,6 +1,4 @@
-#define private public
 #include "github_client.hpp"
-#undef private
 #include <catch2/catch_test_macros.hpp>
 #include <curl/curl.h>
 #include <string>
@@ -16,10 +14,10 @@ TEST_CASE("CurlHttpClient configuration") {
   std::string https_proxy = "http://secureproxy";
   CurlHttpClient client(1000, download_limit, upload_limit, max_download,
                         max_upload, http_proxy, https_proxy);
-  REQUIRE(client.download_limit_ == download_limit);
-  REQUIRE(client.upload_limit_ == upload_limit);
-  REQUIRE(client.max_download_ == max_download);
-  REQUIRE(client.max_upload_ == max_upload);
-  REQUIRE(client.http_proxy_ == http_proxy);
-  REQUIRE(client.https_proxy_ == https_proxy);
+  REQUIRE(client.download_limit() == download_limit);
+  REQUIRE(client.upload_limit() == upload_limit);
+  REQUIRE(client.max_download() == max_download);
+  REQUIRE(client.max_upload() == max_upload);
+  REQUIRE(client.http_proxy() == http_proxy);
+  REQUIRE(client.https_proxy() == https_proxy);
 }
