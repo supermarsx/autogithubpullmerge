@@ -7,6 +7,7 @@
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -181,7 +182,9 @@ public:
                         int delay_ms = 0, int timeout_ms = 30000,
                         int max_retries = 3,
                         std::string api_base = "https://api.github.com",
-                        bool dry_run = false);
+                        bool dry_run = false, std::string cache_file = "");
+
+  ~GitHubClient();
 
   /// Set minimum delay between HTTP requests in milliseconds.
   void set_delay_ms(int delay_ms);
@@ -279,6 +282,14 @@ private:
   std::string api_base_;
   bool dry_run_{false};
 
+  struct CachedResponse {
+    std::string etag;
+    std::string body;
+    std::vector<std::string> headers;
+  };
+  std::unordered_map<std::string, CachedResponse> cache_;
+  std::string cache_file_;
+
   int required_approvals_{0};
   bool require_status_success_{false};
   bool require_mergeable_state_{false};
@@ -289,6 +300,10 @@ private:
   bool repo_allowed(const std::string &owner, const std::string &repo) const;
   void enforce_delay();
   bool handle_rate_limit(const HttpResponse &resp);
+  HttpResponse get_with_cache(const std::string &url,
+                              const std::vector<std::string> &headers);
+  void load_cache();
+  void save_cache();
 };
 
 /**
