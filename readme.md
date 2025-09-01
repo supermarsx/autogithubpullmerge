@@ -10,7 +10,8 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - Requires a curses development package for the TUI (`libncurses-dev` on
   Linux/macOS or `pdcurses` on Windows)
 - Unit tests using Catch2
-- SQLite-based history storage with CSV/JSON export
+- SQLite-based history storage with `--history-db` and automatic CSV
+  (`--export-csv`) or JSON (`--export-json`) export after each polling cycle
 - Configurable logging with `--log-level` and optional `--log-file`
 - Uses spdlog for colored console and rotating file logging
 - Cross-platform compile scripts (MSVC on Windows, g++ on Linux/macOS) with
@@ -262,6 +263,20 @@ https_proxy: http://secureproxy
   "https_proxy": "http://secureproxy"
 }
 ```
+
+## History Database and Export
+
+`--history-db` sets the path to a SQLite database that records pull request
+data each polling cycle. When `--export-csv` or `--export-json` are supplied,
+the application writes the accumulated history to the given file after every
+polling cycle.
+
+```bash
+autogithubpullmerge --history-db pr_history.db --export-csv pulls.csv
+autogithubpullmerge --history-db pr_history.db --export-json pulls.json
+```
+
+The exports reflect the state captured at the end of each poll interval.
 
 ## TUI Hotkeys
 
