@@ -12,8 +12,16 @@ auto notifier = std::make_shared<agpm::NotifySendNotifier>();
 poller.set_notifier(notifier);
 ```
 
-`NotifySendNotifier` uses the `notify-send` command available on many Linux
-systems to display desktop notifications. Other platforms ignore the call.
+`NotifySendNotifier` attempts to surface desktop notifications on the host
+platform:
+
+- **Linux** – uses `notify-send` when available.
+- **Windows** – uses PowerShell's `New-BurntToastNotification` if the
+  BurntToast module is installed.
+- **macOS** – prefers `terminal-notifier` and falls back to `osascript`.
+
+If none of the required utilities are present, the notification request is
+silently ignored.
 
 ## Extending
 
