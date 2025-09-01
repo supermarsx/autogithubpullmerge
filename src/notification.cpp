@@ -38,8 +38,6 @@ std::string escape_powershell(const std::string &s) {
   for (char c : s) {
     if (c == '\'') {
       out += "''";
-    } else if (c == '"') {
-      out += "\\\"";
     } else {
       out.push_back(c);
     }
