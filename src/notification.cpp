@@ -20,6 +20,7 @@ std::string shell_escape(const std::string &s) {
   return out;
 }
 
+#ifdef __APPLE__
 std::string escape_apple_script(const std::string &s) {
   std::string out;
   out.reserve(s.size());
@@ -31,7 +32,9 @@ std::string escape_apple_script(const std::string &s) {
   }
   return out;
 }
+#endif
 
+#ifdef _WIN32
 std::string escape_powershell(const std::string &s) {
   std::string out;
   out.reserve(s.size());
@@ -44,6 +47,7 @@ std::string escape_powershell(const std::string &s) {
   }
   return out;
 }
+#endif
 
 } // namespace
 
@@ -62,9 +66,10 @@ void NotifySendNotifier::notify(const std::string &message) {
         shell_escape(message);
     std::system(cmd.c_str());
   } else {
-    std::string cmd = "osascript -e 'display notification \"" +
-                      escape_apple_script(message) +
-                      "\" with title \"autogithubpullmerge\"'";
+    std::string script = "display notification \"" +
+                         escape_apple_script(message) +
+                         "\" with title \"autogithubpullmerge\"";
+    std::string cmd = "osascript -e " + shell_escape(script);
     std::system(cmd.c_str());
   }
 #elif __linux__
