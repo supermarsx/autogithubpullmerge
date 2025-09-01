@@ -1,7 +1,5 @@
 #include "github_poller.hpp"
-#define private public
 #include "tui.hpp"
-#undef private
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstdio>
@@ -52,7 +50,7 @@ TEST_CASE("tui show details") {
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
   Tui ui(client, poller);
   ui.init();
-  if (!ui.initialized_) {
+  if (!ui.initialized()) {
     WARN("Skipping TUI test: no TTY available");
     return;
   }
@@ -60,7 +58,7 @@ TEST_CASE("tui show details") {
   ui.handle_key('d');
   ui.draw();
   std::array<char, 80> buf{};
-  mvwinnstr(ui.detail_win_, 2, 1, buf.data(), 79);
+  mvwinnstr(ui.detail_win(), 2, 1, buf.data(), 79);
   std::string detail(buf.data());
   REQUIRE(detail.find("PR title") != std::string::npos);
   ui.handle_key('d');
@@ -79,7 +77,7 @@ TEST_CASE("tui show details enter") {
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
   Tui ui(client, poller);
   ui.init();
-  if (!ui.initialized_) {
+  if (!ui.initialized()) {
     WARN("Skipping TUI test: no TTY available");
     return;
   }
@@ -87,7 +85,7 @@ TEST_CASE("tui show details enter") {
   ui.handle_key('\n');
   ui.draw();
   std::array<char, 80> buf2{};
-  mvwinnstr(ui.detail_win_, 2, 1, buf2.data(), 79);
+  mvwinnstr(ui.detail_win(), 2, 1, buf2.data(), 79);
   std::string detail2(buf2.data());
   REQUIRE(detail2.find("Another") != std::string::npos);
   ui.handle_key('\n');

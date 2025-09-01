@@ -1,7 +1,5 @@
 #include "github_poller.hpp"
-#define private public
 #include "tui.hpp"
-#undef private
 #include <catch2/catch_test_macros.hpp>
 #include <cstdio>
 #include <cstdlib>
@@ -51,18 +49,18 @@ TEST_CASE("test tui resize") {
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
   Tui ui(client, poller);
   ui.init();
-  if (!ui.initialized_) {
+  if (!ui.initialized()) {
     WARN("Skipping TUI test: no TTY available");
     return;
   }
 
   ui.update_prs({{1, "PR", false, "o", "r"}});
   ui.draw();
-  WINDOW *before = ui.pr_win_;
+  WINDOW *before = ui.pr_win();
   int h, w;
   getmaxyx(stdscr, h, w);
   resize_term(h / 2, w / 2);
   ui.draw();
-  REQUIRE(before != ui.pr_win_);
+  REQUIRE(before != ui.pr_win());
   ui.cleanup();
 }
