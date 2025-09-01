@@ -60,7 +60,7 @@ TEST_CASE("test tui log limit") {
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
   Tui ui(client, poller);
   ui.init();
-  if (!ui.initialized_) {
+  if (!ui.initialized()) {
     WARN("Skipping TUI test: no TTY available");
     return;
   }

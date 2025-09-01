@@ -15,6 +15,7 @@
 #include "github_poller.hpp"
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace agpm {
@@ -60,6 +61,31 @@ public:
 
   /// Access collected log messages.
   const std::vector<std::string> &logs() const { return logs_; }
+
+  /**
+   * Check whether the TUI has been successfully initialized.
+   *
+   * @return true if curses has been initialized and windows created
+   */
+  bool initialized() const { return initialized_; }
+
+  /// Access the main pull request window (primarily for tests).
+  WINDOW *pr_win() const { return pr_win_; }
+
+  /// Access the help window (primarily for tests).
+  WINDOW *help_win() const { return help_win_; }
+
+  /// Access the detail window (primarily for tests).
+  WINDOW *detail_win() const { return detail_win_; }
+
+  /**
+   * Override the command used to open URLs. Intended for tests.
+   *
+   * @param cmd Function returning the exit code after opening the URL
+   */
+  void set_open_cmd(std::function<int(const std::string &)> cmd) {
+    open_cmd_ = std::move(cmd);
+  }
 
 private:
   void log(const std::string &msg);

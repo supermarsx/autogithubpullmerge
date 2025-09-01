@@ -1,7 +1,5 @@
 #include "github_poller.hpp"
-#define private public
 #include "tui.hpp"
-#undef private
 #include <catch2/catch_test_macros.hpp>
 #include <cstdio>
 #include <cstdlib>
@@ -52,16 +50,16 @@ TEST_CASE("tui open pr") {
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
   Tui ui(client, poller);
   ui.init();
-  if (!ui.initialized_) {
+  if (!ui.initialized()) {
     WARN("Skipping TUI test: no TTY available");
     return;
   }
   ui.update_prs({{1, "PR", false, "o", "r"}});
   std::string opened;
-  ui.open_cmd_ = [&](const std::string &url) {
+  ui.set_open_cmd([&](const std::string &url) {
     opened = url;
     return 0;
-  };
+  });
   ui.handle_key('o');
   REQUIRE(opened == "https://github.com/o/r/pull/1");
   ui.cleanup();

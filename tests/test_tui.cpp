@@ -1,7 +1,5 @@
 #include "github_poller.hpp"
-#define private public
 #include "tui.hpp"
-#undef private
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstdio>
@@ -68,7 +66,7 @@ TEST_CASE("test tui") {
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
   Tui ui(client, poller);
   ui.init();
-  if (!ui.initialized_) {
+  if (!ui.initialized()) {
     WARN("Skipping TUI test: no TTY available");
     return;
   }
@@ -81,10 +79,10 @@ TEST_CASE("test tui") {
   REQUIRE(line.find("Test PR") != std::string::npos);
   REQUIRE(line.find("o/r") != std::string::npos);
 
-  mvwinnstr(ui.help_win_, 3, 1, buf.data(), 79);
+  mvwinnstr(ui.help_win(), 3, 1, buf.data(), 79);
   std::string help_line(buf.data());
   REQUIRE(help_line.find("o - Open PR") != std::string::npos);
-  mvwinnstr(ui.help_win_, 4, 1, buf.data(), 79);
+  mvwinnstr(ui.help_win(), 4, 1, buf.data(), 79);
   std::string help_line2(buf.data());
   REQUIRE(help_line2.find("ENTER/d - Details") != std::string::npos);
 
