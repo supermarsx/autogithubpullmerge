@@ -18,8 +18,9 @@ void NotifySendNotifier::notify(const std::string &message) {
         "'";
     std::system(cmd.c_str());
   } else {
-    std::string cmd = "osascript -e 'display notification \"" + message +
-                      "\" with title \"autogithubpullmerge\"'";
+    std::string cmd = "osascript -e 'display notification \"";
+    cmd += message;
+    cmd += "\" with title \"autogithubpullmerge\"'";
     std::system(cmd.c_str());
   }
 #elif __linux__
