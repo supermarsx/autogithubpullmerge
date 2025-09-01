@@ -20,8 +20,8 @@ platform:
   BurntToast module is installed.
 - **macOS** – prefers `terminal-notifier` and falls back to `osascript`.
 
-If none of the required utilities are present, the notification request is
-silently ignored.
+All message text is escaped before invoking external commands. If none of the
+required utilities are present, the notification request is silently ignored.
 
 ## Extending
 
