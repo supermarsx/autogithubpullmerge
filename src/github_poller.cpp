@@ -10,17 +10,18 @@ GitHubPoller::GitHubPoller(
     GitHubClient &client,
     std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
     int max_rate, int workers, bool only_poll_prs, bool only_poll_stray,
-    bool reject_dirty, std::string purge_prefix, bool auto_merge,
-    bool purge_only, std::string sort_mode, PullRequestHistory *history,
-    std::vector<std::string> protected_branches,
+    bool reject_dirty, bool delete_stray, std::string purge_prefix,
+    bool auto_merge, bool purge_only, std::string sort_mode,
+    PullRequestHistory *history, std::vector<std::string> protected_branches,
     std::vector<std::string> protected_branch_excludes, bool dry_run,
     GitHubGraphQLClient *graphql_client)
     : client_(client), repos_(std::move(repos)), poller_(workers, max_rate),
       interval_ms_(interval_ms), only_poll_prs_(only_poll_prs),
       only_poll_stray_(only_poll_stray), reject_dirty_(reject_dirty),
-      purge_prefix_(std::move(purge_prefix)), auto_merge_(auto_merge),
-      purge_only_(purge_only), sort_mode_(std::move(sort_mode)),
-      dry_run_(dry_run), graphql_client_(graphql_client),
+      delete_stray_(delete_stray), purge_prefix_(std::move(purge_prefix)),
+      auto_merge_(auto_merge), purge_only_(purge_only),
+      sort_mode_(std::move(sort_mode)), dry_run_(dry_run),
+      graphql_client_(graphql_client),
       protected_branches_(std::move(protected_branches)),
       protected_branch_excludes_(std::move(protected_branch_excludes)),
       history_(history) {}
@@ -150,6 +151,13 @@ void GitHubPoller::poll() {
           std::lock_guard<std::mutex> lk(log_mutex);
           log_cb_(repo.first + "/" + repo.second +
                   " stray branches: " + std::to_string(stray.size()));
+        }
+        if (delete_stray_) {
+          for (const auto &b : stray) {
+            client_.cleanup_branches(repo.first, repo.second, b,
+                                     protected_branches_,
+                                     protected_branch_excludes_);
+          }
         }
       }
       if (!purge_prefix_.empty()) {
