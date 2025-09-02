@@ -10,11 +10,11 @@ GitHubPoller::GitHubPoller(
     GitHubClient &client,
     std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
     int max_rate, int workers, bool only_poll_prs, bool only_poll_stray,
-    bool reject_dirty, bool delete_stray, std::string purge_prefix,
-    bool auto_merge, bool purge_only, std::string sort_mode,
-    PullRequestHistory *history, std::vector<std::string> protected_branches,
+    bool reject_dirty, std::string purge_prefix, bool auto_merge,
+    bool purge_only, std::string sort_mode, PullRequestHistory *history,
+    std::vector<std::string> protected_branches,
     std::vector<std::string> protected_branch_excludes, bool dry_run,
-    GitHubGraphQLClient *graphql_client)
+    GitHubGraphQLClient *graphql_client, bool delete_stray)
     : client_(client), repos_(std::move(repos)), poller_(workers, max_rate),
       interval_ms_(interval_ms), only_poll_prs_(only_poll_prs),
       only_poll_stray_(only_poll_stray), reject_dirty_(reject_dirty),

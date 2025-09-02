@@ -27,7 +27,6 @@ public:
    * @param only_poll_prs When true, skip branch polling
    * @param only_poll_stray When true, only poll branches for stray detection
    * @param reject_dirty Automatically close or delete dirty branches
-   * @param delete_stray Delete stray branches without requiring a prefix
    * @param purge_prefix Delete merged branches starting with this prefix
    * @param auto_merge Automatically merge qualifying pull requests
    * @param purge_only Only purge branches without polling PRs
@@ -36,19 +35,21 @@ public:
    * @param protected_branches Glob patterns for branches that must not be
    *        removed
    * @param protected_branch_excludes Patterns that override protections
+   * @param delete_stray Delete stray branches without requiring a prefix
    */
   GitHubPoller(GitHubClient &client,
                std::vector<std::pair<std::string, std::string>> repos,
                int interval_ms, int max_rate, int workers = 1,
                bool only_poll_prs = false, bool only_poll_stray = false,
-               bool reject_dirty = false, bool delete_stray = false,
-               std::string purge_prefix = "", bool auto_merge = false,
-               bool purge_only = false, std::string sort_mode = "",
+               bool reject_dirty = false, std::string purge_prefix = "",
+               bool auto_merge = false, bool purge_only = false,
+               std::string sort_mode = "",
                PullRequestHistory *history = nullptr,
                std::vector<std::string> protected_branches = {},
                std::vector<std::string> protected_branch_excludes = {},
                bool dry_run = false,
-               GitHubGraphQLClient *graphql_client = nullptr);
+               GitHubGraphQLClient *graphql_client = nullptr,
+               bool delete_stray = false);
 
   /// Start polling in a background thread.
   void start();
