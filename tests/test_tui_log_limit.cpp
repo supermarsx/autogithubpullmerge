@@ -58,10 +58,11 @@ TEST_CASE("test tui log limit") {
   mock->put_response = "{\"merged\":true}";
   GitHubClient client({"token"}, std::move(mock));
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
-  Tui ui(client, poller);
+  Tui ui(client, poller, 100);
   ui.init();
   if (!ui.initialized()) {
     WARN("Skipping TUI test: no TTY available");
+    ui.cleanup();
     return;
   }
 
@@ -70,7 +71,8 @@ TEST_CASE("test tui log limit") {
     ui.handle_key('m');
   }
 
-  REQUIRE(ui.logs().size() == 200);
-  REQUIRE(ui.logs().front().find("Merged PR #5") != std::string::npos);
+  REQUIRE(ui.logs().size() == 100);
+  REQUIRE(ui.logs().front().find("Merged PR #105") != std::string::npos);
   REQUIRE(ui.logs().back().find("Merged PR #204") != std::string::npos);
+  ui.cleanup();
 }

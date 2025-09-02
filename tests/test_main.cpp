@@ -86,7 +86,7 @@ TEST_CASE("test main") {
   poller.stop();
   REQUIRE(count > 0);
 
-  agpm::Tui ui(client, poller);
+  agpm::Tui ui(client, poller, 200);
   ui.init();
   ui.cleanup();
 

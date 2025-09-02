@@ -13,6 +13,7 @@
 
 #include "github_client.hpp"
 #include "github_poller.hpp"
+#include <cstddef>
 #include <functional>
 #include <string>
 #include <utility>
@@ -28,10 +29,11 @@ public:
   /**
    * Construct a TUI bound to a GitHub client and poller.
    *
-   * @param client GitHub API client used for interactive actions
-   * @param poller Poller providing periodic updates
+   * @param client    GitHub API client used for interactive actions
+   * @param poller    Poller providing periodic updates
+   * @param log_limit Maximum number of log messages to keep in memory
    */
-  Tui(GitHubClient &client, GitHubPoller &poller);
+  Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit = 200);
 
   /// Initialize the curses library and windows.
   void init();
@@ -94,6 +96,7 @@ private:
   GitHubPoller &poller_;
   std::vector<PullRequest> prs_;
   std::vector<std::string> logs_;
+  std::size_t log_limit_;
   int selected_{0};
   WINDOW *pr_win_{nullptr};
   WINDOW *log_win_{nullptr};

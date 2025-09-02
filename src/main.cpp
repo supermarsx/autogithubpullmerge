@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
         }
       });
     }
-    agpm::Tui ui(client, poller);
+    agpm::Tui ui(client, poller, opts.log_limit);
     poller.start();
     try {
       ui.init();

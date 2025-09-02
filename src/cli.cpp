@@ -151,6 +151,11 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_option("--log-file", options.log_file, "Path to rotating log file")
       ->type_name("FILE")
       ->group("General");
+  app.add_option("--log-limit", options.log_limit,
+                 "Maximum number of log messages to retain")
+      ->type_name("N")
+      ->default_val("200")
+      ->group("General");
   app.add_flag("-y,--yes", options.assume_yes,
                "Assume yes to confirmation prompts")
       ->group("General");

@@ -36,10 +36,17 @@ TEST_CASE("test cli") {
   agpm::CliOptions opts4b = agpm::parse_cli(3, argv4b);
   REQUIRE(opts4b.log_file == "app.log");
 
+  char log_limit_flag[] = "--log-limit";
+  char log_limit_val[] = "123";
+  char *argv4c[] = {prog, log_limit_flag, log_limit_val};
+  agpm::CliOptions opts4c = agpm::parse_cli(3, argv4c);
+  REQUIRE(opts4c.log_limit == 123);
+
   char *argv5[] = {prog};
   agpm::CliOptions opts5 = agpm::parse_cli(1, argv5);
   REQUIRE(opts5.log_level == "info");
   REQUIRE(!opts5.include_merged);
+  REQUIRE(opts5.log_limit == 200);
 
   char include_flag[] = "--include";
   char repo_a[] = "repoA";
