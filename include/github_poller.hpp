@@ -35,6 +35,7 @@ public:
    * @param protected_branches Glob patterns for branches that must not be
    *        removed
    * @param protected_branch_excludes Patterns that override protections
+   * @param delete_stray Delete stray branches without requiring a prefix
    */
   GitHubPoller(GitHubClient &client,
                std::vector<std::pair<std::string, std::string>> repos,
@@ -47,7 +48,8 @@ public:
                std::vector<std::string> protected_branches = {},
                std::vector<std::string> protected_branch_excludes = {},
                bool dry_run = false,
-               GitHubGraphQLClient *graphql_client = nullptr);
+               GitHubGraphQLClient *graphql_client = nullptr,
+               bool delete_stray = false);
 
   /// Start polling in a background thread.
   void start();
@@ -98,6 +100,7 @@ private:
   bool only_poll_prs_;
   bool only_poll_stray_;
   bool reject_dirty_;
+  bool delete_stray_;
   std::string purge_prefix_;
   bool auto_merge_;
   bool purge_only_;

@@ -172,6 +172,11 @@ TEST_CASE("test cli") {
   agpm::CliOptions opts_yes = agpm::parse_cli(2, argv_yes);
   REQUIRE(opts_yes.assume_yes);
 
+  char delete_flag[] = "--delete-stray";
+  char *argv_delete[] = {prog, yes_flag, delete_flag};
+  agpm::CliOptions opts_delete = agpm::parse_cli(3, argv_delete);
+  REQUIRE(opts_delete.delete_stray);
+
   char limit_flag[] = "--pr-limit";
   char limit_val[] = "25";
   char *argv16[] = {prog, limit_flag, limit_val};

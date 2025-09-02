@@ -47,13 +47,14 @@ struct CliOptions {
   bool only_poll_prs = false;            ///< Only poll pull requests
   bool only_poll_stray = false;          ///< Only poll stray branches
   bool reject_dirty = false;             ///< Auto close dirty branches
-  bool auto_merge{false};                ///< Automatically merge pull requests
-  int required_approvals{0};             ///< Required approvals before merge
-  bool require_status_success{false};    ///< Require status checks to succeed
-  bool require_mergeable_state{false};   ///< Require PR to be mergeable
-  std::string purge_prefix;              ///< Delete branches with this prefix
-  bool purge_only = false; ///< Only purge branches, skip PR polling
-  int pr_limit{50};        ///< Number of pull requests to fetch
+  bool delete_stray{false};            ///< Delete stray branches automatically
+  bool auto_merge{false};              ///< Automatically merge pull requests
+  int required_approvals{0};           ///< Required approvals before merge
+  bool require_status_success{false};  ///< Require status checks to succeed
+  bool require_mergeable_state{false}; ///< Require PR to be mergeable
+  std::string purge_prefix;            ///< Delete branches with this prefix
+  bool purge_only = false;             ///< Only purge branches, skip PR polling
+  int pr_limit{50};                    ///< Number of pull requests to fetch
   std::chrono::seconds pr_since{
       0};                  ///< Only list pull requests newer than this duration
   std::string sort;        ///< Sorting mode for pull requests

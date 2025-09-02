@@ -304,6 +304,9 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("--reject-dirty", options.reject_dirty,
                "Close dirty stray branches automatically")
       ->group("Actions");
+  app.add_flag("--delete-stray", options.delete_stray,
+               "Delete stray branches without requiring a prefix")
+      ->group("Actions");
   app.add_flag("--auto-merge", options.auto_merge,
                "Automatically merge pull requests")
       ->group("Actions");
@@ -362,9 +365,10 @@ CliOptions parse_cli(int argc, char **argv) {
     }
   }
   options.pr_since = parse_duration(pr_since_str);
-  bool destructive = (options.reject_dirty || options.auto_merge ||
-                      !options.purge_prefix.empty() || options.purge_only) &&
-                     !options.dry_run;
+  bool destructive =
+      (options.reject_dirty || options.delete_stray || options.auto_merge ||
+       !options.purge_prefix.empty() || options.purge_only) &&
+      !options.dry_run;
   if (destructive && !options.assume_yes) {
     std::cout << "Destructive options enabled. Continue? [y/N]: ";
     std::string resp;

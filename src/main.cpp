@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
     bool reject_dirty = opts.reject_dirty || cfg.reject_dirty();
     std::string purge_prefix =
         !opts.purge_prefix.empty() ? opts.purge_prefix : cfg.purge_prefix();
+    bool delete_stray = opts.delete_stray; // no config support yet
     bool auto_merge = opts.auto_merge || cfg.auto_merge();
     bool purge_only = opts.purge_only || cfg.purge_only();
     std::string sort_mode = !opts.sort.empty() ? opts.sort : cfg.sort_mode();
@@ -122,7 +123,8 @@ int main(int argc, char **argv) {
         only_poll_stray, reject_dirty, purge_prefix, auto_merge, purge_only,
         sort_mode, &history, protected_branches, protected_branch_excludes,
         opts.dry_run,
-        (opts.use_graphql || cfg.use_graphql()) ? &graphql_client : nullptr);
+        (opts.use_graphql || cfg.use_graphql()) ? &graphql_client : nullptr,
+        delete_stray);
 
     if (!opts.export_csv.empty() || !opts.export_json.empty()) {
       poller.set_export_callback([&history, &opts]() {
