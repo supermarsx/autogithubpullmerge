@@ -47,10 +47,11 @@ TEST_CASE("test tui resize") {
   auto mock = std::make_unique<MockHttpClient>();
   GitHubClient client({"token"}, std::move(mock));
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
-  Tui ui(client, poller);
+  Tui ui(client, poller, 200);
   ui.init();
   if (!ui.initialized()) {
     WARN("Skipping TUI test: no TTY available");
+    ui.cleanup();
     return;
   }
 

@@ -64,10 +64,11 @@ TEST_CASE("test tui") {
   MockHttpClient *raw = mock.get();
   GitHubClient client({"token"}, std::unique_ptr<HttpClient>(mock.release()));
   GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
-  Tui ui(client, poller);
+  Tui ui(client, poller, 200);
   ui.init();
   if (!ui.initialized()) {
     WARN("Skipping TUI test: no TTY available");
+    ui.cleanup();
     return;
   }
 

@@ -13,6 +13,7 @@ struct CliOptions {
   std::string config_file;        ///< Optional path to configuration file
   std::string log_level = "info"; ///< Logging verbosity level
   std::string log_file;           ///< Optional path to rotating log file
+  int log_limit{200};             ///< Maximum number of log messages to retain
   bool assume_yes{false};         ///< Skip confirmation prompts
   bool dry_run{false};            ///< Simulate operations without changes
   std::vector<std::string> include_repos; ///< Repositories to include
