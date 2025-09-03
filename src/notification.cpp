@@ -1,5 +1,6 @@
 #include "notification.hpp"
 #include <cstdlib>
+#include <utility>
 
 namespace agpm {
 
@@ -47,6 +48,9 @@ std::string escape_powershell(const std::string &s) {
 
 } // namespace
 
+NotifySendNotifier::NotifySendNotifier(CommandRunner runner)
+    : run_(std::move(runner)) {}
+
 void NotifySendNotifier::notify(const std::string &message) {
 #ifdef _WIN32
   std::string cmd =
@@ -54,24 +58,24 @@ void NotifySendNotifier::notify(const std::string &message) {
       "-ErrorAction Stop; New-BurntToastNotification -Text "
       "'autogithubpullmerge','" +
       escape_powershell(message) + "'} Catch {}\"";
-  std::system(cmd.c_str());
-#elif __APPLE__
-  if (std::system("command -v terminal-notifier >/dev/null 2>&1") == 0) {
+  run_(cmd);
+#elif defined(__APPLE__)
+  if (run_("command -v terminal-notifier >/dev/null 2>&1") == 0) {
     std::string cmd =
         "terminal-notifier -title 'autogithubpullmerge' -message " +
         shell_escape(message);
-    std::system(cmd.c_str());
+    run_(cmd);
   } else {
     std::string cmd = "osascript -e 'display notification \"" +
                       escape_apple_script(message) +
                       "\" with title \"autogithubpullmerge\"'";
-    std::system(cmd.c_str());
+    run_(cmd);
   }
-#elif __linux__
-  if (std::system("command -v notify-send >/dev/null 2>&1") == 0) {
+#elif defined(__linux__)
+  if (run_("command -v notify-send >/dev/null 2>&1") == 0) {
     std::string cmd = "notify-send " + shell_escape("autogithubpullmerge") +
                       " " + shell_escape(message);
-    std::system(cmd.c_str());
+    run_(cmd);
   }
 #else
   (void)message;

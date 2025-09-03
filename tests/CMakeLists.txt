@@ -1,5 +1,6 @@
 find_package(Catch2 3 REQUIRED)
 
+# Automatically include all test sources, including test_notification.cpp
 file(GLOB TEST_SOURCES CONFIGURE_DEPENDS *.cpp)
 
 add_executable(agpm_tests ${TEST_SOURCES})
