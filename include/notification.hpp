@@ -22,9 +22,13 @@ public:
 };
 
 /**
- * Basic notifier that uses the `notify-send` command on Linux desktops.
+ * Desktop notifier that invokes platform-specific utilities:
  *
- * Other platforms simply ignore notifications.
+ * - Linux: `notify-send`
+ * - Windows: BurntToast PowerShell module
+ * - macOS: `terminal-notifier` (preferred) or `osascript`
+ *
+ * If the required tool is not available, the notification request is ignored.
  */
 class NotifySendNotifier : public Notifier {
 public:
