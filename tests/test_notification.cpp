@@ -52,6 +52,23 @@ TEST_CASE("NotifySendNotifier prefers terminal-notifier on macOS") {
 #endif
 }
 
+TEST_CASE("NotifySendNotifier falls back to osascript on macOS") {
+#ifdef __APPLE__
+  std::vector<std::string> cmds;
+  NotifySendNotifier notifier([&](const std::string &cmd) {
+    cmds.push_back(cmd);
+    if (cmd.find("command -v terminal-notifier") != std::string::npos) {
+      return 1; // simulate absence of terminal-notifier
+    }
+    return 0;
+  });
+  notifier.notify("hello world");
+  REQUIRE(cmds.size() == 2);
+  CHECK(cmds[1] == "osascript -e 'display notification \"hello world\" with "
+                   "title \"autogithubpullmerge\"'");
+#endif
+}
+
 TEST_CASE("NotifySendNotifier does nothing on unsupported platforms") {
 #if !defined(_WIN32) && !defined(__APPLE__) && !defined(__linux__)
   bool called = false;
