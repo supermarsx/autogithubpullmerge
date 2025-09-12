@@ -1,0 +1,127 @@
+---
+name: CI
+
+"on":
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake git curl pkg-config ninja-build \
+            libpsl-dev libsqlite3-dev libspdlog-dev libncurses-dev \
+            cppcheck clang-format
+          git clone https://github.com/microsoft/vcpkg
+          ./vcpkg/bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=$PWD/vcpkg" >> $GITHUB_ENV
+          echo "VCPKG_DEFAULT_TRIPLET=x64-linux" >> $GITHUB_ENV
+
+      - name: Lint
+        run: |
+          cppcheck --enable=all --std=c++23 --error-exitcode=1 src include
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake git curl pkg-config ninja-build \
+            libpsl-dev libsqlite3-dev libspdlog-dev libncurses-dev \
+            cppcheck clang-format
+          git clone https://github.com/microsoft/vcpkg
+          ./vcpkg/bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=$PWD/vcpkg" >> $GITHUB_ENV
+          echo "VCPKG_DEFAULT_TRIPLET=x64-linux" >> $GITHUB_ENV
+
+      - name: Format
+        run: |
+          find src include tests -type f \( -name '*.cpp' -o -name '*.hpp' \) |
+            xargs clang-format --dry-run --Werror
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake git curl pkg-config ninja-build \
+            libpsl-dev libsqlite3-dev libspdlog-dev libncurses-dev \
+            cppcheck clang-format
+          git clone https://github.com/microsoft/vcpkg
+          ./vcpkg/bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=$PWD/vcpkg" >> $GITHUB_ENV
+          echo "VCPKG_DEFAULT_TRIPLET=x64-linux" >> $GITHUB_ENV
+
+      - name: Typecheck
+        run: cmake --preset vcpkg --fresh -DCMAKE_CXX_STANDARD=23
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, format, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake git curl pkg-config ninja-build \
+            libpsl-dev libsqlite3-dev libspdlog-dev libncurses-dev \
+            cppcheck clang-format
+          git clone https://github.com/microsoft/vcpkg
+          ./vcpkg/bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=$PWD/vcpkg" >> $GITHUB_ENV
+          echo "VCPKG_DEFAULT_TRIPLET=x64-linux" >> $GITHUB_ENV
+
+      - name: Configure
+        run: cmake --preset vcpkg --fresh -DCMAKE_CXX_STANDARD=23
+
+      - name: Build
+        run: cmake --build --preset vcpkg
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: build/vcpkg
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake git curl pkg-config ninja-build \
+            libpsl-dev libsqlite3-dev libspdlog-dev libncurses-dev \
+            cppcheck clang-format
+          git clone https://github.com/microsoft/vcpkg
+          ./vcpkg/bootstrap-vcpkg.sh
+          echo "VCPKG_ROOT=$PWD/vcpkg" >> $GITHUB_ENV
+          echo "VCPKG_DEFAULT_TRIPLET=x64-linux" >> $GITHUB_ENV
+
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+          path: build/vcpkg
+
+      - name: Test
+        run: ctest --preset vcpkg
