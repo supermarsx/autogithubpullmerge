@@ -939,7 +939,11 @@ void GitHubClient::close_dirty_branches(
   std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
   std::string repo_resp;
   try {
-    repo_resp = get_with_cache(repo_url, headers).body;
+    // Repository metadata does not require response headers, so use the plain
+    // GET helper instead of `get_with_cache`. Some HttpClient test doubles only
+    // implement `get` which previously caused early returns when metadata was
+    // requested via `get_with_headers`.
+    repo_resp = http_->get(repo_url, headers);
   } catch (const std::exception &e) {
     spdlog::error("Failed to fetch repo metadata: {}", e.what());
     return;
@@ -993,7 +997,9 @@ void GitHubClient::close_dirty_branches(
           repo_url + "/compare/" + default_branch + "..." + branch;
       std::string compare_resp;
       try {
-        compare_resp = get_with_cache(compare_url, headers).body;
+        // Fetch comparison without caching since headers are unnecessary and
+        // some HttpClient test doubles only implement `get`.
+        compare_resp = http_->get(compare_url, headers);
       } catch (const std::exception &e) {
         spdlog::error("Failed to compare branch {}: {}", branch, e.what());
         continue;
