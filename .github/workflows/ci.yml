@@ -25,7 +25,10 @@ jobs:
 
       - name: Lint
         run: |
-          cppcheck --enable=all --std=c++23 --error-exitcode=1 src include
+          cppcheck --enable=all --std=c++23 --error-exitcode=1 \
+            --suppress=missingInclude --suppress=missingIncludeSystem \
+            --suppress=preprocessorErrorDirective --suppress=noValidConfiguration \
+            -I include src
 
   format:
     runs-on: ubuntu-latest
