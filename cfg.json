@@ -1,0 +1,6 @@
+{
+  "verbose": false,
+  "poll_interval": 1,
+  "max_request_rate": 3,
+  "log_level": "error"
+}

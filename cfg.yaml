@@ -1,0 +1,4 @@
+verbose: true
+poll_interval: 4
+max_request_rate: 7
+log_level: info

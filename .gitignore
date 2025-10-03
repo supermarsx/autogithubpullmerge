@@ -18,3 +18,4 @@ build_gpp/
 CMakeUserPresets.json
 vcpkg/
 vcpkg_installed/
+lldb_cmds.txt

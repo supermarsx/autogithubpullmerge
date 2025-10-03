@@ -1,0 +1,15 @@
+{
+  "verbose": false,
+  "poll_interval": 5,
+  "max_request_rate": 15,
+  "log_level": "warn",
+  "http_timeout": 50,
+  "http_retries": 4,
+  "download_limit": 21,
+  "upload_limit": 22,
+  "max_download": 23,
+  "max_upload": 24,
+  "http_proxy": "http://proxy",
+  "https_proxy": "http://secureproxy",
+  "use_graphql": false
+}
