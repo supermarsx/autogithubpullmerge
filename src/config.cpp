@@ -1,4 +1,5 @@
 #include "config.hpp"
+#include "log.hpp"
 #include "util/duration.hpp"
 #include <algorithm>
 #include <fstream>
@@ -226,6 +227,7 @@ Config Config::from_json(const nlohmann::json &j) {
 }
 
 Config Config::from_file(const std::string &path) {
+  ensure_default_logger();
   spdlog::debug("Loading config from {}", path);
   auto pos = path.find_last_of('.');
   if (pos == std::string::npos) {

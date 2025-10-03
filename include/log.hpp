@@ -16,6 +16,9 @@ namespace agpm {
 void init_logger(spdlog::level::level_enum level,
                  const std::string &pattern = "", const std::string &file = "");
 
+/** Ensure a default logger exists before logging. */
+void ensure_default_logger();
+
 } // namespace agpm
 
 #endif // AUTOGITHUBPULLMERGE_LOG_HPP

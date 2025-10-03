@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstdio>
 #include <fstream>
+#include <iostream>
 
 using namespace agpm;
 
@@ -11,9 +12,21 @@ class DummyHttpClient : public HttpClient {
 public:
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override {
-    (void)url;
     (void)headers;
-    return "[{\"number\":1,\"title\":\"Test PR\"}]";
+    std::cerr << "[Dummy] GET " << url << std::endl;
+    if (url.find("/pulls") != std::string::npos) {
+      return "[{\"number\":1,\"title\":\"Test PR\"}]";
+    }
+    if (url.find("/branches") != std::string::npos) {
+      return "[]";
+    }
+    if (url.find("/compare") != std::string::npos) {
+      return "{\"status\":\"identical\"}";
+    }
+    if (url.find("/repos/") != std::string::npos) {
+      return "{\"default_branch\":\"main\"}";
+    }
+    return "{}";
   }
   std::string put(const std::string &url, const std::string &data,
                   const std::vector<std::string> &headers) override {

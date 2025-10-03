@@ -41,7 +41,7 @@ public:
 
 private:
   void worker();
-  void acquire_token();
+  bool acquire_token();
 
   int workers_;
   int max_rate_;
@@ -53,10 +53,8 @@ private:
 
   // Token bucket
   std::mutex rate_mutex_;
-  double tokens_;
-  double capacity_;
-  double fill_rate_;
-  std::chrono::steady_clock::time_point last_fill_;
+  std::chrono::steady_clock::duration min_interval_{};
+  std::chrono::steady_clock::time_point next_allowed_{};
 };
 
 } // namespace agpm

@@ -5,6 +5,7 @@
 #include "history.hpp"
 #include "notification.hpp"
 #include "poller.hpp"
+#include <chrono>
 #include <atomic>
 #include <functional>
 #include <string>
@@ -97,6 +98,7 @@ private:
   int interval_ms_;
   std::thread thread_;
   std::atomic<bool> running_{false};
+  int max_rate_;
   bool only_poll_prs_;
   bool only_poll_stray_;
   bool reject_dirty_;
@@ -118,6 +120,10 @@ private:
   std::function<void(const std::vector<PullRequest> &)> pr_cb_;
   std::function<void(const std::string &)> log_cb_;
   NotifierPtr notifier_;
+
+  std::chrono::steady_clock::duration min_poll_interval_{};
+  std::chrono::steady_clock::time_point next_allowed_poll_{};
+  std::mutex poll_rate_mutex_;
 };
 
 } // namespace agpm

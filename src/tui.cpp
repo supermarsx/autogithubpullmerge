@@ -1,4 +1,5 @@
 #include "tui.hpp"
+#include "log.hpp"
 
 #if __has_include(<curses.h>)
 #include <curses.h>
@@ -24,6 +25,7 @@ namespace agpm {
 
 Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit)
     : client_(client), poller_(poller), log_limit_(log_limit) {
+  ensure_default_logger();
   open_cmd_ = [](const std::string &url) {
 #if defined(_WIN32)
     std::string cmd = "start \"\" \"" + url + "\"";
@@ -43,8 +45,10 @@ void Tui::init() {
   // Ensure all standard streams are attached to a real terminal. macOS
   // builds in CI environments may have one or more redirected which can
   // cause ncurses to crash with a bus error when initializing.
-  if (!isatty(fileno(stdout)) || !isatty(fileno(stdin)) ||
-      !isatty(fileno(stderr))) {
+  bool tty_out = isatty(fileno(stdout));
+  bool tty_in = isatty(fileno(stdin));
+  bool tty_err = isatty(fileno(stderr));
+  if (!tty_out || !tty_in || !tty_err) {
     return;
   }
   if (initscr() == nullptr) {

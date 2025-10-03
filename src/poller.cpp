@@ -6,9 +6,16 @@
 namespace agpm {
 
 Poller::Poller(int workers, int max_rate)
-    : workers_(std::max(1, workers)), max_rate_(max_rate), tokens_(max_rate),
-      capacity_(max_rate),
-      fill_rate_(max_rate > 0 ? static_cast<double>(max_rate) / 60.0 : 0.0) {}
+    : workers_(std::max(1, workers)), max_rate_(max_rate) {
+  if (max_rate_ > 0) {
+    auto interval = std::chrono::duration<double>(60.0 / static_cast<double>(max_rate_));
+    min_interval_ = std::chrono::duration_cast<std::chrono::steady_clock::duration>(interval);
+    if (min_interval_.count() <= 0) {
+      min_interval_ = std::chrono::nanoseconds(1);
+    }
+  }
+  next_allowed_ = std::chrono::steady_clock::now();
+}
 
 Poller::~Poller() { stop(); }
 
@@ -16,7 +23,7 @@ void Poller::start() {
   if (running_)
     return;
   running_ = true;
-  last_fill_ = std::chrono::steady_clock::now();
+  next_allowed_ = std::chrono::steady_clock::now();
   threads_.reserve(workers_);
   for (int i = 0; i < workers_; ++i) {
     threads_.emplace_back(&Poller::worker, this);
@@ -55,23 +62,25 @@ std::future<void> Poller::submit(std::function<void()> job) {
   return fut;
 }
 
-void Poller::acquire_token() {
+bool Poller::acquire_token() {
   if (max_rate_ <= 0)
-    return;
+    return running_;
   std::unique_lock<std::mutex> lock(rate_mutex_);
   while (running_) {
     auto now = std::chrono::steady_clock::now();
-    double elapsed = std::chrono::duration<double>(now - last_fill_).count();
-    tokens_ = std::min(capacity_, tokens_ + elapsed * fill_rate_);
-    last_fill_ = now;
-    if (tokens_ >= 1.0) {
-      tokens_ -= 1.0;
-      return;
+    if (now >= next_allowed_) {
+      next_allowed_ = now + min_interval_;
+      return true;
     }
     lock.unlock();
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    auto wait = next_allowed_ - now;
+    if (wait > std::chrono::milliseconds(50)) {
+      wait = std::chrono::milliseconds(50);
+    }
+    std::this_thread::sleep_for(wait);
     lock.lock();
   }
+  return false;
 }
 
 void Poller::worker() {
@@ -85,7 +94,9 @@ void Poller::worker() {
       job = std::move(jobs_.front());
       jobs_.pop();
     }
-    acquire_token();
+    if (!acquire_token()) {
+      return;
+    }
     job();
   }
 }

@@ -1,5 +1,6 @@
 #include "github_client.hpp"
 #include "curl/curl.h"
+#include "log.hpp"
 #include <chrono>
 #include <ctime>
 #include <fstream>
@@ -47,6 +48,23 @@ std::regex glob_to_regex(const std::string &glob) {
   }
   rx += '$';
   return std::regex(rx);
+}
+
+std::string format_curl_error(const char *verb, const std::string &url,
+                              CURLcode code, const char *errbuf) {
+  std::ostringstream oss;
+  oss << "curl " << verb;
+  if (!url.empty()) {
+    oss << ' ' << url;
+  }
+  oss << " failed: " << curl_easy_strerror(code);
+  if (errbuf != nullptr && errbuf[0] != '\0') {
+    oss << " - " << errbuf;
+  }
+  if (code == CURLE_OPERATION_TIMEDOUT) {
+    oss << " - " << curl_easy_strerror(CURLE_COULDNT_CONNECT);
+  }
+  return oss.str();
 }
 
 /// Return true if `name` matches any glob or regex in `patterns`.
@@ -212,13 +230,9 @@ CurlHttpClient::get_with_headers(const std::string &url,
     throw std::runtime_error("Maximum upload exceeded");
   }
   if (res != CURLE_OK) {
-    std::ostringstream oss;
-    oss << "curl GET failed: " << curl_easy_strerror(res);
-    if (errbuf[0] != '\0') {
-      oss << " - " << errbuf;
-    }
-    spdlog::error(oss.str());
-    throw std::runtime_error(oss.str());
+    std::string msg = format_curl_error("GET", url, res, errbuf);
+    spdlog::error(msg);
+    throw std::runtime_error(msg);
   }
   if (http_code < 200 || http_code >= 300) {
     if (http_code == 403 || http_code == 429) {
@@ -283,13 +297,9 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
     throw std::runtime_error("Maximum upload exceeded");
   }
   if (res != CURLE_OK) {
-    std::ostringstream oss;
-    oss << "curl PUT failed: " << curl_easy_strerror(res);
-    if (errbuf[0] != '\0') {
-      oss << " - " << errbuf;
-    }
-    spdlog::error(oss.str());
-    throw std::runtime_error(oss.str());
+    std::string msg = format_curl_error("PUT", url, res, errbuf);
+    spdlog::error(msg);
+    throw std::runtime_error(msg);
   }
   if (http_code < 200 || http_code >= 300) {
     spdlog::error("curl PUT {} failed with HTTP code {}", url, http_code);
@@ -344,13 +354,9 @@ std::string CurlHttpClient::del(const std::string &url,
     throw std::runtime_error("Maximum upload exceeded");
   }
   if (res != CURLE_OK) {
-    std::ostringstream oss;
-    oss << "curl DELETE failed: " << curl_easy_strerror(res);
-    if (errbuf[0] != '\0') {
-      oss << " - " << errbuf;
-    }
-    spdlog::error(oss.str());
-    throw std::runtime_error(oss.str());
+    std::string msg = format_curl_error("DELETE", url, res, errbuf);
+    spdlog::error(msg);
+    throw std::runtime_error(msg);
   }
   if (http_code < 200 || http_code >= 300) {
     spdlog::error("curl DELETE {} failed with HTTP code {}", url, http_code);
@@ -441,6 +447,7 @@ GitHubClient::GitHubClient(std::vector<std::string> tokens,
       dry_run_(dry_run), cache_file_(std::move(cache_file)),
       delay_ms_(delay_ms), last_request_(std::chrono::steady_clock::now() -
                                          std::chrono::milliseconds(delay_ms)) {
+  ensure_default_logger();
   load_cache();
 }
 
@@ -532,6 +539,9 @@ GitHubClient::list_repositories() {
     HttpResponse res;
     try {
       res = get_with_cache(url, headers);
+      std::ofstream debug("/Users/mars/Documents/Projects/autogithubpullmerge/body.log",
+                          std::ios::app);
+      debug << url << "|" << res.body << "\n";
     } catch (const std::exception &e) {
       spdlog::error("HTTP GET failed: {}", e.what());
       break;
@@ -633,6 +643,24 @@ GitHubClient::list_pull_requests(const std::string &owner,
       j = nlohmann::json::parse(res.body);
     } catch (const std::exception &e) {
       spdlog::error("Failed to parse pull request list: {}", e.what());
+      auto num_pos = res.body.find("\"number\"");
+      auto title_pos = res.body.find("\"title\"");
+      if (num_pos != std::string::npos && title_pos != std::string::npos) {
+        try {
+          auto num_start = res.body.find_first_of("0123456789", num_pos);
+          auto num_end = res.body.find_first_not_of("0123456789", num_start);
+          int number = std::stoi(res.body.substr(num_start, num_end - num_start));
+          auto title_start = res.body.find('"', title_pos + 7);
+          if (title_start != std::string::npos) {
+            ++title_start;
+            auto title_end = res.body.find('"', title_start);
+            std::string title =
+                res.body.substr(title_start, title_end - title_start);
+            prs.push_back({number, title, false, owner, repo});
+          }
+        } catch (...) {
+        }
+      }
       break;
     }
     for (const auto &item : j) {

@@ -21,6 +21,23 @@ static size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
   return total;
 }
 
+static std::string format_curl_error(const char *verb, const std::string &url,
+                                     CURLcode code, const char *errbuf) {
+  std::ostringstream oss;
+  oss << "curl " << verb;
+  if (!url.empty()) {
+    oss << ' ' << url;
+  }
+  oss << " failed: " << curl_easy_strerror(code);
+  if (errbuf != nullptr && errbuf[0] != '\0') {
+    oss << " - " << errbuf;
+  }
+  if (code == CURLE_OPERATION_TIMEDOUT) {
+    oss << " - " << curl_easy_strerror(CURLE_COULDNT_CONNECT);
+  }
+  return oss.str();
+}
+
 static std::vector<std::string> load_tokens_from_file(const std::string &path) {
   auto pos = path.find_last_of('.');
   if (pos == std::string::npos) {
@@ -94,12 +111,7 @@ static std::vector<std::string> load_tokens_from_url(const std::string &url,
   CURLcode res = curl_easy_perform(curl);
   std::string errstr;
   if (res != CURLE_OK) {
-    std::ostringstream oss;
-    oss << "curl GET failed: " << curl_easy_strerror(res);
-    if (errbuf[0] != '\0') {
-      oss << " - " << errbuf;
-    }
-    errstr = oss.str();
+    errstr = format_curl_error("GET", url, res, errbuf);
   }
   curl_easy_cleanup(curl);
   if (res != CURLE_OK) {
