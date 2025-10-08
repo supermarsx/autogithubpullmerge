@@ -1,0 +1,44 @@
+name: Typecheck
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    env:
+      VCPKG_FEATURE_FLAGS: manifests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build cppcheck g++ git
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          runVcpkgInstall: true
+
+      - name: Configure (generate compile_commands)
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DCMAKE_CXX_STANDARD=23 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Run cppcheck
+        run: |
+          # Limit to project sources; suppress system include noise
+          cppcheck --project=build/compile_commands.json \
+                   --enable=warning,style,performance,portability \
+                   --inline-suppr --force --quiet \
+                   --suppress=missingIncludeSystem \
+                   --error-exitcode=1 src
+

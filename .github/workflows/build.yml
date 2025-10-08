@@ -1,0 +1,37 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VCPKG_FEATURE_FLAGS: manifests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++ git
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          runVcpkgInstall: true
+
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DCMAKE_CXX_STANDARD=23 \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release -j 2
+

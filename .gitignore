@@ -19,3 +19,18 @@ CMakeUserPresets.json
 vcpkg/
 vcpkg_installed/
 lldb_cmds.txt
+
+# Temp and test artifacts
+tmp_history.cpp
+tmp_rate
+tmp_rate.cpp
+out.csv
+out.json
+test_history.db
+
+# Local configs and secrets (root only)
+/tokens.yaml
+/config.yaml
+/config.json
+/cfg.yaml
+/cfg.json

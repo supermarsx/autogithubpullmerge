@@ -1,4 +1,4 @@
-#autogithubpullmerge
+# autogithubpullmerge
 
 A cross-platform tool to manage and monitor GitHub pull requests from a terminal user interface.
 
@@ -291,23 +291,39 @@ The terminal interface supports the following key bindings:
 - `q` quits the interface.
 - Arrow keys navigate between pull requests.
 
+## CI Status
+
+[![Format](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/format.yml/badge.svg?branch=main)](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/format.yml)
+[![Lint](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/lint.yml)
+[![Typecheck](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/typecheck.yml/badge.svg?branch=main)](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/typecheck.yml)
+[![Build](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/build.yml)
+[![Test](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/test.yml)
+
 ## Examples
 
 Example configuration files can be found in the `examples` directory:
 
-- `config.yaml`
-- `config.json`
+- `config.example.yaml`
+- `config.example.json`
+
+To use these locally, copy an example to a real config filename in the repo root (these are gitignored):
+
+```bash
+cp examples/config.example.yaml config.yaml
+cp examples/config.example.json config.json
+cp examples/tokens.example.yaml tokens.yaml
+```
 
 You can combine configuration files with CLI flags:
 
 ```yaml
-# config.yaml
+# examples/config.example.yaml
 http_timeout: 45
 download_limit: 1048576
 ```
 
 ```bash
-autogithubpullmerge --config config.yaml --http-retries 5 --upload-limit 512000
+autogithubpullmerge --config examples/config.example.yaml --http-retries 5 --upload-limit 512000
 ```
 
 Or configure everything directly on the command line:
