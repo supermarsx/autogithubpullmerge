@@ -334,6 +334,73 @@ autogithubpullmerge --http-timeout 60 --http-retries 5 \
   --max-download 10485760 --max-upload 5242880
 ```
 
+## CLI Options (Reference)
+
+General
+- `-v, --verbose` Enable verbose output (implies debug level unless overridden).
+- `--config FILE` Path to configuration file (YAML or JSON).
+- `--log-level LEVEL` Set logging level: `trace|debug|info|warn|error|critical|off` (default `info`).
+- `--log-file FILE` Path to rotating log file.
+- `--log-limit N` Max number of in-memory log messages (default `200`).
+- `-y, --yes` Assume yes to confirmation prompts.
+- `--dry-run` Perform a trial run with no changes.
+
+Repositories
+- `--include REPO` Repository to include (repeatable). Format `OWNER/REPO`.
+- `--exclude REPO` Repository to exclude (repeatable). Format `OWNER/REPO`.
+- `--protect-branch, --protected-branch PATTERN` Protect matching branches (repeatable). Glob or regex.
+- `--protect-branch-exclude PATTERN` Remove protection for matching branches (repeatable).
+- `--include-merged` Include merged PRs when listing.
+
+Authentication
+- `--api-key TOKEN` Personal access token (repeatable; not recommended).
+- `--api-key-from-stream` Read token(s) from stdin (one per line).
+- `--api-key-url URL` Fetch token(s) from URL.
+- `--api-key-url-user USER` Basic auth user for `--api-key-url`.
+- `--api-key-url-password PASS` Basic auth password for `--api-key-url`.
+- `--api-key-file FILE` JSON/YAML file with `token` or `tokens` array.
+- `--api-base URL` Base URL for GitHub API (default `https://api.github.com`).
+
+History / Export
+- `--history-db FILE` SQLite history database path (default `history.db`).
+- `--export-csv FILE` Export PR history to CSV after each poll.
+- `--export-json FILE` Export PR history to JSON after each poll.
+
+Networking
+- `--http-timeout SECONDS` HTTP request timeout (default `30`).
+- `--http-retries N` Number of HTTP retry attempts (default `3`).
+- `--download-limit BPS` Max download rate bytes/sec (0 = unlimited).
+- `--upload-limit BPS` Max upload rate bytes/sec (0 = unlimited).
+- `--max-download BYTES` Max cumulative download (0 = unlimited).
+- `--max-upload BYTES` Max cumulative upload (0 = unlimited).
+- `--http-proxy URL` HTTP proxy URL.
+- `--https-proxy URL` HTTPS proxy URL.
+- `--use-graphql` Use GraphQL API for pull requests.
+
+Polling
+- `--poll-interval SECONDS` Poll frequency; `0` disables background polling (default `0`).
+- `--max-request-rate RATE` Max requests per minute (default `60`).
+- `--workers N` Number of worker threads (non-negative; default from config or 1).
+- `--pr-limit N` Number of PRs to fetch when listing (default `50`).
+- `--pr-since DURATION` Only list PRs newer than duration (e.g. `30m`, `2h`, `1d`).
+- `--sort MODE` Sort titles: `alpha|reverse|alphanum|reverse-alphanum`.
+- `--only-poll-prs` Only poll pull requests (skip branch ops).
+- `--only-poll-stray` Only poll stray branches mode.
+
+Actions
+- `--reject-dirty` Close dirty stray branches automatically (dangerous).
+- `--delete-stray` Delete stray branches without requiring a prefix (dangerous).
+- `--auto-merge` Automatically merge PRs (dangerous).
+- `--require-approval N` Minimum approvals required before merge (default `0`).
+- `--require-status-success` Require all status checks to pass before merge.
+- `--require-mergeable` Require PR to be mergeable.
+- `--purge-prefix PREFIX` Delete branches with this prefix after PR close/merge.
+- `--purge-only` Only purge branches; skip PR polling (dangerous).
+
+Testing / Utilities
+- `--single-open-prs OWNER/REPO` Fetch open PRs for a repo via one HTTP request and exit.
+- `--single-branches OWNER/REPO` Fetch branches for a repo via one HTTP request and exit.
+
 ### Single Open-PR Poll (Testing)
 
 Fetch the current open pull requests for a single repository using exactly one
