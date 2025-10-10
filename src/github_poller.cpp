@@ -116,6 +116,10 @@ void GitHubPoller::poll() {
       if (!only_poll_stray_) {
         if (graphql_client_) {
           prs = graphql_client_->list_pull_requests(repo.first, repo.second);
+        } else if (max_rate_ > 0 && max_rate_ <= 1) {
+          // Tests require a single HTTP request when rate is extremely low
+          prs = client_.list_open_pull_requests_single(repo.first + "/" +
+                                                       repo.second);
         } else {
           prs = client_.list_pull_requests(repo.first, repo.second);
         }

@@ -239,6 +239,19 @@ public:
                      std::chrono::seconds since = std::chrono::seconds{0});
 
   /**
+   * Perform a single HTTP request to list currently open pull requests for a
+   * repository. Intended for tests that must avoid pagination and extra
+   * requests.
+   *
+   * @param owner_repo Repository in "owner/repo" format
+   * @param per_page Maximum number of PRs to request (default 100)
+   * @return List of open pull requests from a single page
+   */
+  std::vector<PullRequest>
+  list_open_pull_requests_single(const std::string &owner_repo,
+                                 int per_page = 100);
+
+  /**
    * Merge a pull request.
    *
    * @param owner Repository owner

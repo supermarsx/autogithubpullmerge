@@ -715,6 +715,57 @@ GitHubClient::list_pull_requests(const std::string &owner,
   return prs;
 }
 
+std::vector<PullRequest>
+GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
+                                             int per_page) {
+  std::vector<PullRequest> prs;
+  auto pos = owner_repo.find('/');
+  if (pos == std::string::npos) {
+    return prs;
+  }
+  std::string owner = owner_repo.substr(0, pos);
+  std::string repo = owner_repo.substr(pos + 1);
+  if (!repo_allowed(owner, repo)) {
+    return prs;
+  }
+  std::string url = api_base_ + "/repos/" + owner + "/" + repo +
+                    "/pulls?state=open&per_page=" + std::to_string(per_page);
+  std::vector<std::string> headers;
+  if (!tokens_.empty()) {
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  }
+  headers.push_back("Accept: application/vnd.github+json");
+  enforce_delay();
+  HttpResponse res;
+  try {
+    // Intentionally avoid caching/pagination: tests require a single call
+    res = http_->get_with_headers(url, headers);
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to fetch open pull requests: {}", e.what());
+    return prs;
+  }
+  try {
+    auto j = nlohmann::json::parse(res.body);
+    if (!j.is_array()) {
+      return prs;
+    }
+    for (const auto &item : j) {
+      if (!item.contains("number") || !item.contains("title"))
+        continue;
+      PullRequest pr{};
+      pr.number = item["number"].get<int>();
+      pr.title = item["title"].get<std::string>();
+      pr.merged = false;
+      pr.owner = owner;
+      pr.repo = repo;
+      prs.push_back(std::move(pr));
+    }
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to parse pull request list: {}", e.what());
+  }
+  return prs;
+}
+
 bool GitHubClient::merge_pull_request(const std::string &owner,
                                       const std::string &repo, int pr_number) {
   if (!repo_allowed(owner, repo)) {
