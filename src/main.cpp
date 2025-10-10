@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 int main(int argc, char **argv) {
   agpm::App app;

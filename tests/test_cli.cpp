@@ -258,6 +258,19 @@ TEST_CASE("test cli") {
   REQUIRE(opts_max.max_download == 5000);
   REQUIRE(opts_max.max_upload == 6000);
 
+  // Single-call testing flags
+  char single_prs_flag[] = "--single-open-prs";
+  char owner_repo_val[] = "me/repo";
+  char *argv_single_prs[] = {prog, single_prs_flag, owner_repo_val};
+  agpm::CliOptions opts_single_prs = agpm::parse_cli(3, argv_single_prs);
+  REQUIRE(opts_single_prs.single_open_prs_repo == std::string("me/repo"));
+
+  char single_br_flag[] = "--single-branches";
+  char owner_repo_val2[] = "octo/repo";
+  char *argv_single_br[] = {prog, single_br_flag, owner_repo_val2};
+  agpm::CliOptions opts_single_br = agpm::parse_cli(3, argv_single_br);
+  REQUIRE(opts_single_br.single_branches_repo == std::string("octo/repo"));
+
   char export_csv_flag[] = "--export-csv";
   char csv_path[] = "out.csv";
   char export_json_flag[] = "--export-json";
