@@ -75,6 +75,17 @@ int main(int argc, char **argv) {
     agpm::GitHubGraphQLClient graphql_client(tokens, http_timeout * 1000,
                                              api_base);
 
+    // Testing-only: perform a single HTTP request for open PRs and exit
+    if (!opts.single_open_prs_repo.empty()) {
+      auto prs = client.list_open_pull_requests_single(opts.single_open_prs_repo);
+      for (const auto &pr : prs) {
+        // Simple, stable output for tests
+        std::cout << pr.owner << "/" << pr.repo << " #" << pr.number << ": "
+                  << pr.title << "\n";
+      }
+      return 0;
+    }
+
     int required_approvals = opts.required_approvals != 0
                                  ? opts.required_approvals
                                  : cfg.required_approvals();

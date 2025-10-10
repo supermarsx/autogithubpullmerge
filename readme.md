@@ -333,3 +333,25 @@ autogithubpullmerge --http-timeout 60 --http-retries 5 \
   --download-limit 1048576 --upload-limit 512000 \
   --max-download 10485760 --max-upload 5242880
 ```
+
+### Single Open-PR Poll (Testing)
+
+Fetch the current open pull requests for a single repository using exactly one
+HTTP request, then exit. This avoids pagination and is useful in tests/CI where
+we want to minimize API calls.
+
+```bash
+# Token can come from GITHUB_TOKEN
+autogithubpullmerge --single-open-prs owner/repo
+
+# Example output
+# owner/repo #123: Fix race in poller
+# owner/repo #124: Add unit tests
+```
+
+Notes:
+- `--single-open-prs` accepts `OWNER/REPO` format.
+- Only open PRs are returned; merged/closed are ignored.
+- This path bypasses the TUI and other polling activities.
+
+A small helper script is provided at `examples/single-open-prs.sh`.

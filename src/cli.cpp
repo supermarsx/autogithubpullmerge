@@ -300,6 +300,11 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("DURATION")
       ->default_val("0")
       ->group("Polling");
+  app
+      .add_option("--single-open-prs", options.single_open_prs_repo,
+                  "Fetch open PRs for a single repo via one HTTP request and exit")
+      ->type_name("OWNER/REPO")
+      ->group("Testing");
   app.add_option(
          "--sort", options.sort,
          "Sort pull requests: alpha, reverse, alphanum, reverse-alphanum")
