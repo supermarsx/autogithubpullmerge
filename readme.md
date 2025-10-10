@@ -143,71 +143,21 @@ integrate with other systems. See `docs/notifications.md` for details.
 
 ## API Key Options
 
-API keys can be provided in several ways:
-
-- `--api-key` to specify a token directly (repeatable but not recommended)
-- `--api-key-from-stream` to read tokens from standard input
-- `--api-key-url` to fetch tokens from a remote URL with optional basic auth
-- `--api-key-file` to load tokens from a JSON or YAML file
-- if no other tokens are supplied, `GITHUB_TOKEN` (or `AGPM_API_KEY`) from the
-  environment is used
-- explicit CLI options, files, URLs or stdin tokens override the environment
-  variable
+See Authentication in "CLI Options (Reference)" below for the full list. If no
+token is supplied via flags, the tool falls back to `GITHUB_TOKEN` (or
+`AGPM_API_KEY`).
 
 ## Polling Options
 
-- `--poll-interval` sets how often the application polls GitHub for updates in
-  seconds. A value of `0` disables polling.
-- `--max-request-rate` limits the maximum number of GitHub requests per minute
-  using a token bucket algorithm. When polling is enabled a background worker
-  thread periodically invokes the GitHub API.
-- `--pr-limit` limits how many pull requests to fetch when listing.
-- `--pr-since` filters pull requests newer than the given duration
-  (e.g. `30m`, `2h`, `1d`).
-- `--sort` orders pull request titles by `alpha`, `reverse`, `alphanum` or
-  `reverse-alphanum`.
-- `--include-merged` lists merged pull requests in addition to open ones (off by default).
-- `--only-poll-prs` polls only pull requests.
-- `--only-poll-stray` enters an isolated stray-branch purge mode.
-- `--reject-dirty` overrides protection and closes stray branches that have
-  diverged.
-- `--delete-stray` deletes stray branches without requiring a prefix.
-- `--yes` assumes "yes" to confirmation prompts.
-- `--purge-prefix` deletes branches with this prefix after their pull
-  request is closed or merged, integrating cleanup into the merge workflow.
-- `--auto-merge` merges pull requests automatically.
-
-Destructive options (`--reject-dirty`, `--delete-stray`, `--auto-merge`,
-`--purge-prefix`, `--purge-only`) prompt for confirmation unless `--yes` is
-supplied.
+See Polling and Actions in "CLI Options (Reference)" for the comprehensive list
+of flags and defaults.
 
 ## Networking
 
-- `--http-timeout` sets the HTTP request timeout in seconds (default `30`).
-- `--http-retries` sets how many times failed HTTP requests are retried (default `3`).
-- `--download-limit` caps the download rate in bytes per second (0 = unlimited).
-- `--upload-limit` caps the upload rate in bytes per second (0 = unlimited).
-- `--max-download` limits total downloaded bytes (0 = unlimited).
-- `--max-upload` limits total uploaded bytes (0 = unlimited).
+See Networking in "CLI Options (Reference)". Options can also be set via YAML
+or JSON configuration files using matching keys.
 
-These options may also be specified in JSON or YAML configuration files as
-`http_timeout`, `http_retries`, `download_limit`, `upload_limit`,
-`max_download` and `max_upload`.
-
-## Rate Limiting
-
-The `--max-request-rate` option throttles how many GitHub API calls are made
-per minute to stay within rate limits.
-
-```yaml
-max_request_rate: 60
-```
-
-```json
-{
-  "max_request_rate": 60
-}
-```
+<!-- Consolidated under CLI Options (Reference) -->
 
 ## Branch Protection Patterns
 
@@ -360,6 +310,7 @@ Authentication
 - `--api-key-url-password PASS` Basic auth password for `--api-key-url`.
 - `--api-key-file FILE` JSON/YAML file with `token` or `tokens` array.
 - `--api-base URL` Base URL for GitHub API (default `https://api.github.com`).
+  Note: if none are provided, falls back to `GITHUB_TOKEN` or `AGPM_API_KEY`.
 
 History / Export
 - `--history-db FILE` SQLite history database path (default `history.db`).
@@ -396,6 +347,7 @@ Actions
 - `--require-mergeable` Require PR to be mergeable.
 - `--purge-prefix PREFIX` Delete branches with this prefix after PR close/merge.
 - `--purge-only` Only purge branches; skip PR polling (dangerous).
+  Note: destructive options prompt for confirmation unless `--yes` is provided.
 
 Testing / Utilities
 - `--single-open-prs OWNER/REPO` Fetch open PRs for a repo via one HTTP request and exit.
