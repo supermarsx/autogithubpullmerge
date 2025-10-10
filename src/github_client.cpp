@@ -914,6 +914,49 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
   return branches;
 }
 
+std::vector<std::string>
+GitHubClient::list_branches_single(const std::string &owner_repo,
+                                   int per_page) {
+  std::vector<std::string> branches;
+  auto pos = owner_repo.find('/');
+  if (pos == std::string::npos) {
+    return branches;
+  }
+  std::string owner = owner_repo.substr(0, pos);
+  std::string repo = owner_repo.substr(pos + 1);
+  if (!repo_allowed(owner, repo)) {
+    return branches;
+  }
+  std::string url = api_base_ + "/repos/" + owner + "/" + repo +
+                    "/branches?per_page=" + std::to_string(per_page);
+  std::vector<std::string> headers;
+  if (!tokens_.empty())
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  headers.push_back("Accept: application/vnd.github+json");
+  enforce_delay();
+  HttpResponse res;
+  try {
+    // Single call, no pagination or extra default_branch metadata
+    res = http_->get_with_headers(url, headers);
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to fetch branches: {}", e.what());
+    return branches;
+  }
+  try {
+    auto j = nlohmann::json::parse(res.body);
+    if (!j.is_array())
+      return branches;
+    for (const auto &b : j) {
+      if (b.contains("name")) {
+        branches.push_back(b["name"].get<std::string>());
+      }
+    }
+  } catch (const std::exception &e) {
+    spdlog::error("Failed to parse branches list: {}", e.what());
+  }
+  return branches;
+}
+
 // Remove merged branches with the specified prefix. The implementation pages
 // through closed pull requests and deletes the associated head branch when the
 // name matches `prefix` and is not protected by user-specified patterns.

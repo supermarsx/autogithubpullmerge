@@ -305,6 +305,11 @@ CliOptions parse_cli(int argc, char **argv) {
                   "Fetch open PRs for a single repo via one HTTP request and exit")
       ->type_name("OWNER/REPO")
       ->group("Testing");
+  app
+      .add_option("--single-branches", options.single_branches_repo,
+                  "Fetch branches for a single repo via one HTTP request and exit")
+      ->type_name("OWNER/REPO")
+      ->group("Testing");
   app.add_option(
          "--sort", options.sort,
          "Sort pull requests: alpha, reverse, alphanum, reverse-alphanum")

@@ -273,6 +273,17 @@ public:
                                          const std::string &repo);
 
   /**
+   * Perform a single HTTP request to list branches for a repository. Intended
+   * for tests that must avoid pagination and extra metadata calls.
+   *
+   * @param owner_repo Repository in "owner/repo" format
+   * @param per_page Maximum number of branches to request (default 100)
+   * @return List of branch names from a single page
+   */
+  std::vector<std::string>
+  list_branches_single(const std::string &owner_repo, int per_page = 100);
+
+  /**
    * Delete branches whose associated pull request was closed or merged and
    * whose name begins with the given prefix.
    *

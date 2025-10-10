@@ -355,3 +355,24 @@ Notes:
 - This path bypasses the TUI and other polling activities.
 
 A small helper script is provided at `examples/single-open-prs.sh`.
+
+### Single Branches Poll (Testing)
+
+Fetch current branches for a single repository using exactly one HTTP request,
+then exit. This avoids pagination and extra metadata calls.
+
+```bash
+# Token can come from GITHUB_TOKEN
+autogithubpullmerge --single-branches owner/repo
+
+# Example output
+# owner/repo branch: main
+# owner/repo branch: feature/new-ui
+```
+
+Notes:
+- `--single-branches` accepts `OWNER/REPO` format.
+- Returns branch names as reported by the first page of the REST API.
+- This path bypasses the TUI and other polling activities.
+
+A small helper script is provided at `examples/single-branches.sh`.

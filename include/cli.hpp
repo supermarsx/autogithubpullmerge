@@ -62,6 +62,7 @@ struct CliOptions {
 
   // Testing utilities
   std::string single_open_prs_repo; ///< OWNER/REPO for single open-PR poll
+  std::string single_branches_repo; ///< OWNER/REPO for single-branch poll
 };
 
 /**

@@ -86,6 +86,20 @@ int main(int argc, char **argv) {
       return 0;
     }
 
+    // Testing-only: perform a single HTTP request for branches and exit
+    if (!opts.single_branches_repo.empty()) {
+      auto branches = client.list_branches_single(opts.single_branches_repo);
+      auto pos = opts.single_branches_repo.find('/');
+      std::string owner = pos == std::string::npos ? opts.single_branches_repo
+                                                   : opts.single_branches_repo.substr(0, pos);
+      std::string repo = pos == std::string::npos ? std::string{}
+                                                  : opts.single_branches_repo.substr(pos + 1);
+      for (const auto &b : branches) {
+        std::cout << owner << "/" << repo << " branch: " << b << "\n";
+      }
+      return 0;
+    }
+
     int required_approvals = opts.required_approvals != 0
                                  ? opts.required_approvals
                                  : cfg.required_approvals();
