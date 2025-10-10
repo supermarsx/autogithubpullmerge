@@ -14,17 +14,24 @@ fi
 brew update
 brew install cmake git curl libpsl sqlite3 spdlog ncurses pkg-config ninja gcc
 
-# Clone vcpkg if VCPKG_ROOT is not set
 echo "📦 Ensuring vcpkg is available..."
-if [[ -z "${VCPKG_ROOT}" ]]; then
-	echo "📥 Cloning vcpkg into ${SCRIPT_DIR}/../vcpkg"
-	git clone https://github.com/microsoft/vcpkg "${SCRIPT_DIR}/../vcpkg"
-	export VCPKG_ROOT="${SCRIPT_DIR}/../vcpkg"
+# Respect existing VCPKG_ROOT if provided; otherwise default to repo-local vcpkg
+TARGET_VCPKG_ROOT="${VCPKG_ROOT:-${SCRIPT_DIR}/../vcpkg}"
+if [[ ! -d "${TARGET_VCPKG_ROOT}" ]] || [[ ! -f "${TARGET_VCPKG_ROOT}/bootstrap-vcpkg.sh" && ! -f "${TARGET_VCPKG_ROOT}/vcpkg" ]]; then
+  echo "📥 Cloning vcpkg into ${TARGET_VCPKG_ROOT}"
+  mkdir -p "${TARGET_VCPKG_ROOT}"
+  # If directory exists but is empty/non-vcpkg, clone into it
+  if [[ -d "${TARGET_VCPKG_ROOT}/.git" ]]; then
+    echo "ℹ️  ${TARGET_VCPKG_ROOT} already looks like a git repo; skipping clone"
+  else
+    git clone https://github.com/microsoft/vcpkg "${TARGET_VCPKG_ROOT}"
+  fi
 fi
+export VCPKG_ROOT="${TARGET_VCPKG_ROOT}"
 
 echo "🚀 Bootstrapping vcpkg..."
 if [[ ! -f "${VCPKG_ROOT}/vcpkg" ]]; then
-	"${VCPKG_ROOT}/bootstrap-vcpkg.sh"
+  "${VCPKG_ROOT}/bootstrap-vcpkg.sh"
 fi
 
 echo "🎯 Setting up default vcpkg triplet..."
