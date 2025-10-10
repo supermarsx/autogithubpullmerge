@@ -539,9 +539,6 @@ GitHubClient::list_repositories() {
     HttpResponse res;
     try {
       res = get_with_cache(url, headers);
-      std::ofstream debug("/Users/mars/Documents/Projects/autogithubpullmerge/body.log",
-                          std::ios::app);
-      debug << url << "|" << res.body << "\n";
     } catch (const std::exception &e) {
       spdlog::error("HTTP GET failed: {}", e.what());
       break;

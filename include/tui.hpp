@@ -34,6 +34,7 @@ public:
    * @param log_limit Maximum number of log messages to keep in memory
    */
   Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit = 200);
+  ~Tui();
 
   /// Initialize the curses library and windows.
   void init();

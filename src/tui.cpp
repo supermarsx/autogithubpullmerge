@@ -41,6 +41,15 @@ Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit)
   poller_.set_log_callback([this](const std::string &msg) { log(msg); });
 }
 
+Tui::~Tui() {
+  // Ensure curses resources are released if init() succeeded
+  try {
+    cleanup();
+  } catch (...) {
+    // Never throw in a destructor
+  }
+}
+
 void Tui::init() {
   // Ensure all standard streams are attached to a real terminal. macOS
   // builds in CI environments may have one or more redirected which can

@@ -35,10 +35,10 @@ jobs:
 
       - name: Run cppcheck
         run: |
-          # Limit to project sources; suppress system include noise
+          # Use compile_commands for includes/flags; do not pass extra paths
+          # because --project cannot be combined with file arguments.
           cppcheck --project=build/compile_commands.json \
                    --enable=warning,style,performance,portability \
                    --inline-suppr --force --quiet \
                    --suppress=missingIncludeSystem \
-                   --error-exitcode=1 src
-
+                   --error-exitcode=1
