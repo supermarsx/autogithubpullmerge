@@ -3,10 +3,15 @@
 
 #include <nlohmann/json.hpp>
 
-#if __has_include(<sqlite3.h>)
+#if defined(__CPPCHECK__)
+// During static analysis, avoid hard failing if sqlite headers are not
+// discoverable. Forward-declare the opaque handle type used in the header.
+struct sqlite3;
+#elif __has_include(<sqlite3.h>)
 #include <sqlite3.h>
 #else
-#error "sqlite3.h not found"
+// Fallback for environments lacking header discovery; keep declarations usable.
+struct sqlite3;
 #endif
 #include <string>
 

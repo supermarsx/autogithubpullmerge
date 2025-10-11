@@ -1,14 +1,20 @@
 #ifndef AUTOGITHUBPULLMERGE_TUI_HPP
 #define AUTOGITHUBPULLMERGE_TUI_HPP
 
-#if __has_include(<curses.h>)
+#if defined(__CPPCHECK__)
+// For static analysis, avoid hard failure; provide opaque WINDOW type.
+struct _win_st;
+using WINDOW = _win_st;
+#elif __has_include(<curses.h>)
 #include <curses.h>
 #elif __has_include(<ncurses.h>)
 #include <ncurses.h>
 #elif __has_include(<ncurses/curses.h>)
 #include <ncurses/curses.h>
 #else
-#error "curses.h not found"
+// As a last resort, provide minimal opaque type for declarations.
+struct _win_st;
+using WINDOW = _win_st;
 #endif
 
 #include "github_client.hpp"
