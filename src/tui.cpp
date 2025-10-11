@@ -36,9 +36,6 @@ Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit)
 #endif
     return std::system(cmd.c_str());
   };
-  poller_.set_pr_callback(
-      [this](const std::vector<PullRequest> &prs) { update_prs(prs); });
-  poller_.set_log_callback([this](const std::string &msg) { log(msg); });
 }
 
 Tui::~Tui() {
@@ -63,6 +60,10 @@ void Tui::init() {
   if (initscr() == nullptr) {
     throw std::runtime_error("Failed to initialize curses");
   }
+  // Attach callbacks only when UI is truly active
+  poller_.set_pr_callback(
+      [this](const std::vector<PullRequest> &prs) { update_prs(prs); });
+  poller_.set_log_callback([this](const std::string &msg) { log(msg); });
   cbreak();
   noecho();
   keypad(stdscr, TRUE);
@@ -266,6 +267,9 @@ void Tui::run() {
 void Tui::cleanup() {
   if (!initialized_)
     return;
+  // Detach callbacks to avoid dangling references during teardown
+  poller_.set_pr_callback(nullptr);
+  poller_.set_log_callback(nullptr);
   if (pr_win_)
     delwin(pr_win_);
   if (log_win_)
