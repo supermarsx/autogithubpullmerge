@@ -11,6 +11,11 @@ Product specification list
 - Has extensive logging capabilities throughout the code
 - Provides install dependencies scripts for win, linux and macos
 - Provides compilation scripts for win, linux and macos
+- Dependencies managed via vcpkg manifest (vcpkg.json); no vendored
+  third‑party libraries are committed to the repo. The `libs/` directory is
+  ignored.
+- CMake optionally fetches fresh dependencies when configured with
+  `-DAGPM_FETCH_DEPS=ON` (requires `VCPKG_ROOT` to point to a vcpkg install).
 - Provides extensive logging facilities and configurations
 - Has an updated readme with every feature, config and so on
 - has extensive rules configurations for merging
@@ -38,3 +43,9 @@ Product specification list
 - compilation uses g++ on Linux and macOS, and MSVC on Windows
 - use the latest c++
 - ensure compilation uses good optimizations
+
+Contributor notes
+- Do not commit third‑party code under `libs/`. Use the vcpkg manifest to add
+  or update dependencies.
+- If removing previously vendored code, purge it from git tracking with
+  `git rm -r --cached libs` (then commit), and keep `libs/` in `.gitignore`.

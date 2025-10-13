@@ -14,6 +14,9 @@ Thumbs.db
 build_gpp/
 *.log
 
+# Do not commit vendored libraries; use vcpkg manifest instead
+/libs/
+
 # Local presets
 CMakeUserPresets.json
 vcpkg/

@@ -31,6 +31,48 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Optionally fetch/refresh dependencies via vcpkg manifest during configure.
+# This runs `vcpkg install` if enabled and vcpkg is available.
+option(AGPM_FETCH_DEPS "Run vcpkg install to fetch dependencies" OFF)
+if(AGPM_FETCH_DEPS)
+  if(DEFINED VCPKG_ROOT)
+    if(WIN32)
+      set(_VCPKG_EXE "${VCPKG_ROOT}/vcpkg.exe")
+    else()
+      set(_VCPKG_EXE "${VCPKG_ROOT}/vcpkg")
+    endif()
+    if(EXISTS "${_VCPKG_EXE}")
+      # Determine triplet preference
+      set(_TRIPLET "$ENV{VCPKG_DEFAULT_TRIPLET}")
+      if(NOT _TRIPLET AND DEFINED VCPKG_TARGET_TRIPLET)
+        set(_TRIPLET "${VCPKG_TARGET_TRIPLET}")
+      endif()
+      if(NOT _TRIPLET)
+        if(WIN32)
+          set(_TRIPLET "x64-windows-static")
+        elseif(APPLE)
+          set(_TRIPLET "x64-osx")
+        else()
+          set(_TRIPLET "x64-linux")
+        endif()
+      endif()
+      message(STATUS "Fetching dependencies via vcpkg (triplet=${_TRIPLET})")
+      execute_process(
+        COMMAND "${_VCPKG_EXE}" install --triplet "${_TRIPLET}"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        RESULT_VARIABLE _VCPKG_RES
+      )
+      if(NOT _VCPKG_RES EQUAL 0)
+        message(FATAL_ERROR "vcpkg install failed with code ${_VCPKG_RES}")
+      endif()
+    else()
+      message(WARNING "AGPM_FETCH_DEPS=ON but vcpkg not found under VCPKG_ROOT; skipping fetch")
+    endif()
+  else()
+    message(WARNING "AGPM_FETCH_DEPS=ON but VCPKG_ROOT is not set; skipping fetch")
+  endif()
+endif()
+
 # Ensure all targets link against the static MSVC runtime when building on
 # Windows. This avoids mismatches between /MT and /MD when linking against
 # vcpkg packages built with the static triplet.
