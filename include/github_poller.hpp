@@ -5,8 +5,8 @@
 #include "history.hpp"
 #include "notification.hpp"
 #include "poller.hpp"
-#include <chrono>
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <string>
 #include <thread>

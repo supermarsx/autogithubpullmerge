@@ -3,6 +3,7 @@
 #include "util/duration.hpp"
 #include <algorithm>
 #include <fstream>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -44,9 +45,10 @@ nlohmann::json yaml_to_json(const YAML::Node &node) {
   }
   case YAML::NodeType::Sequence: {
     json arr = json::array();
-    for (const auto &item : node) {
-      arr.push_back(yaml_to_json(item));
-    }
+    auto &array = arr.get_ref<json::array_t &>();
+    array.reserve(node.size());
+    std::transform(node.begin(), node.end(), std::back_inserter(array),
+                   [](const YAML::Node &item) { return yaml_to_json(item); });
     return arr;
   }
   case YAML::NodeType::Map: {

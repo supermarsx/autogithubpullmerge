@@ -192,25 +192,5 @@ basic color output. The interface supports the following hotkeys:
 
 ## Building
 
-Run the appropriate install script for your platform to bootstrap vcpkg, then
-build with the `vcpkg` CMake preset:
-
-```bash
-./scripts/install_linux.sh   # Linux
-./scripts/install_mac.sh     # macOS
-cmake --preset vcpkg
-cmake --build --preset vcpkg
-```
-
-```powershell
-./scripts/install_win.bat    # Windows
-./scripts/build_win.bat      # uses MSVC
-```
-
-The default preset uses `VCPKG_ROOT` to locate vcpkg. On Windows the build
-script locates `vswhere.exe` using the `VSWHERE` environment variable, the
-`PATH`, common Visual Studio Installer directories or a Chocolatey install
-before falling back to the standard location, then invokes `VsDevCmd.bat` so
-`cl.exe` is available without launching a dedicated developer shell. To use a
-custom vcpkg installation, create or edit `CMakeUserPresets.json` or export
-`VCPKG_ROOT` and add it to your `PATH`.
+See `dev/readme.md` for up-to-date vcpkg setup, build, test, lint and
+documentation instructions for all platforms.

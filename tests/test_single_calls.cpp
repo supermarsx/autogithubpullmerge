@@ -12,8 +12,9 @@ public:
   int hw_calls{0};
   std::string body;
 
-  HttpResponse get_with_headers(const std::string &url,
-                                const std::vector<std::string> &headers) override {
+  HttpResponse
+  get_with_headers(const std::string &url,
+                   const std::vector<std::string> &headers) override {
     (void)headers;
     last_url = url;
     ++hw_calls;
@@ -43,7 +44,8 @@ public:
 
 TEST_CASE("single open PRs via REST one call") {
   auto mock = std::make_unique<HeadersMockHttp>();
-  mock->body = R"([{"number":101,"title":"Fix bug"},{"number":102,"title":"Add tests"}])";
+  mock->body =
+      R"([{"number":101,"title":"Fix bug"},{"number":102,"title":"Add tests"}])";
   HeadersMockHttp *raw = mock.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(mock.release()));
   auto prs = client.list_open_pull_requests_single("me/repo");
@@ -52,7 +54,8 @@ TEST_CASE("single open PRs via REST one call") {
   REQUIRE(prs[0].owner == "me");
   REQUIRE(prs[0].repo == "repo");
   REQUIRE(raw->hw_calls == 1);
-  REQUIRE(raw->last_url.find("/repos/me/repo/pulls?state=open") != std::string::npos);
+  REQUIRE(raw->last_url.find("/repos/me/repo/pulls?state=open") !=
+          std::string::npos);
 }
 
 TEST_CASE("single branches via REST one call") {
@@ -64,7 +67,8 @@ TEST_CASE("single branches via REST one call") {
   REQUIRE(branches.size() == 2);
   REQUIRE(branches[0] == "main");
   REQUIRE(raw->hw_calls == 1);
-  REQUIRE(raw->last_url.find("/repos/me/repo/branches?per_page=") != std::string::npos);
+  REQUIRE(raw->last_url.find("/repos/me/repo/branches?per_page=") !=
+          std::string::npos);
 }
 
 TEST_CASE("poller uses single open PR when rate low") {
@@ -74,12 +78,13 @@ TEST_CASE("poller uses single open PR when rate low") {
   HeadersMockHttp *raw = mock.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(mock.release()));
   std::vector<std::pair<std::string, std::string>> repos = {{"me", "repo"}};
-  GitHubPoller poller(client, repos, 0, 1 /* max_rate <=1 forces single-call */);
+  GitHubPoller poller(client, repos, 0,
+                      1 /* max_rate <=1 forces single-call */);
   std::vector<PullRequest> seen;
-  poller.set_pr_callback([&](const std::vector<PullRequest> &prs) { seen = prs; });
+  poller.set_pr_callback(
+      [&](const std::vector<PullRequest> &prs) { seen = prs; });
   poller.poll_now();
   REQUIRE(!seen.empty());
   REQUIRE(seen[0].number == 7);
   REQUIRE(raw->last_url.find("/pulls?state=open") != std::string::npos);
 }
-

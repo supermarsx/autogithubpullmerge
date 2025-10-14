@@ -8,8 +8,11 @@ namespace agpm {
 Poller::Poller(int workers, int max_rate)
     : workers_(std::max(1, workers)), max_rate_(max_rate) {
   if (max_rate_ > 0) {
-    auto interval = std::chrono::duration<double>(60.0 / static_cast<double>(max_rate_));
-    min_interval_ = std::chrono::duration_cast<std::chrono::steady_clock::duration>(interval);
+    auto interval =
+        std::chrono::duration<double>(60.0 / static_cast<double>(max_rate_));
+    min_interval_ =
+        std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+            interval);
     if (min_interval_.count() <= 0) {
       min_interval_ = std::chrono::nanoseconds(1);
     }

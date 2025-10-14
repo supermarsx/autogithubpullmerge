@@ -37,12 +37,19 @@ public:
   }
 };
 
-TEST_CASE("test tui resize") {
+TEST_CASE("test tui resize", "[tui]") {
 #ifdef _WIN32
   _putenv_s("TERM", "xterm");
 #else
   setenv("TERM", "xterm", 1);
 #endif
+
+  // Skip entirely if not running on a real TTY to avoid ncurses aborts
+  if (!isatty(fileno(stdout)) || !isatty(fileno(stdin)) ||
+      !isatty(fileno(stderr))) {
+    WARN("Skipping TUI test: no TTY available");
+    return;
+  }
 
   auto mock = std::make_unique<MockHttpClient>();
   GitHubClient client({"token"}, std::move(mock));
@@ -57,7 +64,7 @@ TEST_CASE("test tui resize") {
 
   ui.update_prs({{1, "PR", false, "o", "r"}});
   ui.draw();
-  WINDOW *before = ui.pr_win();
+  const WINDOW *before = ui.pr_win();
   int h, w;
   getmaxyx(stdscr, h, w);
   resize_term(h / 2, w / 2);

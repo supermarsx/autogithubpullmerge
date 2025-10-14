@@ -6,7 +6,7 @@ namespace agpm {
 
 namespace {
 
-std::string shell_escape(const std::string &s) {
+[[maybe_unused]] std::string shell_escape(const std::string &s) {
   std::string out;
   out.reserve(s.size() + 2);
   out.push_back('\'');
@@ -21,7 +21,7 @@ std::string shell_escape(const std::string &s) {
   return out;
 }
 
-std::string escape_apple_script(const std::string &s) {
+[[maybe_unused]] std::string escape_apple_script(const std::string &s) {
   std::string out;
   out.reserve(s.size());
   for (char c : s) {
@@ -33,7 +33,7 @@ std::string escape_apple_script(const std::string &s) {
   return out;
 }
 
-std::string escape_powershell(const std::string &s) {
+[[maybe_unused]] std::string escape_powershell(const std::string &s) {
   std::string out;
   out.reserve(s.size());
   for (char c : s) {

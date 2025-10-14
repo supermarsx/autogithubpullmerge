@@ -7,7 +7,7 @@
 #include <iostream>
 #include <sstream>
 
-TEST_CASE("test cli") {
+TEST_CASE("test cli", "[cli]") {
   char prog[] = "prog";
   char verbose[] = "--verbose";
   char *argv1[] = {prog, verbose};
@@ -97,8 +97,8 @@ TEST_CASE("test cli") {
     f << "tokens:\n  - a\n  - b\n";
     f.close();
     char file_flag[] = "--api-key-file";
-    char path[] = "tok.yaml";
-    char *argv9[] = {prog, file_flag, path};
+    char token_path[] = "tok.yaml";
+    char *argv9[] = {prog, file_flag, token_path};
     agpm::CliOptions opts9 = agpm::parse_cli(3, argv9);
     REQUIRE(opts9.api_keys.size() == 2);
     REQUIRE(opts9.api_keys[0] == "a");
@@ -303,10 +303,10 @@ TEST_CASE("test cli") {
   REQUIRE(opts_workers_zero.workers == 0);
 
   {
-    char workers_neg[] = "-1";
-    char *argv_workers_neg[] = {prog, workers_flag, workers_neg};
     bool threw = false;
     try {
+      char workers_neg[] = "-1";
+      char *argv_workers_neg[] = {prog, workers_flag, workers_neg};
       agpm::parse_cli(3, argv_workers_neg);
     } catch (const std::exception &) {
       threw = true;
@@ -315,10 +315,10 @@ TEST_CASE("test cli") {
   }
 
   {
-    char bad[] = "--unknown";
-    char *argv_bad[] = {prog, bad};
     bool threw = false;
     try {
+      char bad[] = "--unknown";
+      char *argv_bad[] = {prog, bad};
       agpm::parse_cli(2, argv_bad);
     } catch (const std::exception &) {
       threw = true;
@@ -330,10 +330,10 @@ TEST_CASE("test cli") {
     std::istringstream input("n\n");
     auto *cinbuf = std::cin.rdbuf();
     std::cin.rdbuf(input.rdbuf());
-    char auto_merge_flag2[] = "--auto-merge";
-    char *argv_cancel[] = {prog, auto_merge_flag2};
     bool threw = false;
     try {
+      char auto_merge_flag2[] = "--auto-merge";
+      char *argv_cancel[] = {prog, auto_merge_flag2};
       agpm::parse_cli(2, argv_cancel);
     } catch (const std::exception &) {
       threw = true;

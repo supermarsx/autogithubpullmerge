@@ -31,6 +31,13 @@ out.csv
 out.json
 test_history.db
 
+# Local test/dev configs and debug scripts (root only)
+/run_config.yaml
+/test_config.yaml
+/test_config.json
+/graphql_config.yaml
+/run_lldb_commands
+
 # Local configs and secrets (root only)
 /tokens.yaml
 /config.yaml

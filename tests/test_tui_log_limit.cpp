@@ -14,6 +14,8 @@
 
 using namespace agpm;
 
+namespace {
+
 class MockHttpClient : public HttpClient {
 public:
   int get_count{0};
@@ -47,12 +49,21 @@ public:
   }
 };
 
-TEST_CASE("test tui log limit") {
+} // namespace
+
+TEST_CASE("test tui log limit", "[tui]") {
 #ifdef _WIN32
   _putenv_s("TERM", "xterm");
 #else
   setenv("TERM", "xterm", 1);
 #endif
+
+  // Skip entirely if not running on a real TTY to avoid ncurses aborts
+  if (!isatty(fileno(stdout)) || !isatty(fileno(stdin)) ||
+      !isatty(fileno(stderr))) {
+    WARN("Skipping TUI test: no TTY available");
+    return;
+  }
 
   auto mock = std::make_unique<MockHttpClient>();
   mock->put_response = "{\"merged\":true}";

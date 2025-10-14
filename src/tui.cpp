@@ -1,15 +1,5 @@
 #include "tui.hpp"
 #include "log.hpp"
-
-#if __has_include(<curses.h>)
-#include <curses.h>
-#elif __has_include(<ncurses.h>)
-#include <ncurses.h>
-#elif __has_include(<ncurses/curses.h>)
-#include <ncurses/curses.h>
-#else
-#error "curses.h not found"
-#endif
 #include <cstdlib>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
@@ -176,10 +166,11 @@ void Tui::draw() {
   wrefresh(help_win_);
 
   if (detail_visible_) {
-    int dh = h / 2;
-    int dw = w / 2;
-    if (!detail_win_)
+    const int dh = h / 2;
+    if (!detail_win_) {
+      const int dw = w / 2;
       detail_win_ = newwin(dh, dw, (h - dh) / 2, (w - dw) / 2);
+    }
     werase(detail_win_);
     box(detail_win_, 0, 0);
     mvwprintw(detail_win_, 0, 2, "PR Details");

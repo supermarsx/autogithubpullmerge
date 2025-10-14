@@ -4,11 +4,11 @@
 #include "history.hpp"
 #include "tui.hpp"
 
+#include <iostream>
 #include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <iostream>
 
 int main(int argc, char **argv) {
   agpm::App app;
@@ -78,7 +78,8 @@ int main(int argc, char **argv) {
 
     // Testing-only: perform a single HTTP request for open PRs and exit
     if (!opts.single_open_prs_repo.empty()) {
-      auto prs = client.list_open_pull_requests_single(opts.single_open_prs_repo);
+      auto prs =
+          client.list_open_pull_requests_single(opts.single_open_prs_repo);
       for (const auto &pr : prs) {
         // Simple, stable output for tests
         std::cout << pr.owner << "/" << pr.repo << " #" << pr.number << ": "
@@ -91,10 +92,12 @@ int main(int argc, char **argv) {
     if (!opts.single_branches_repo.empty()) {
       auto branches = client.list_branches_single(opts.single_branches_repo);
       auto pos = opts.single_branches_repo.find('/');
-      std::string owner = pos == std::string::npos ? opts.single_branches_repo
-                                                   : opts.single_branches_repo.substr(0, pos);
-      std::string repo = pos == std::string::npos ? std::string{}
-                                                  : opts.single_branches_repo.substr(pos + 1);
+      std::string owner = pos == std::string::npos
+                              ? opts.single_branches_repo
+                              : opts.single_branches_repo.substr(0, pos);
+      std::string repo = pos == std::string::npos
+                             ? std::string{}
+                             : opts.single_branches_repo.substr(pos + 1);
       for (const auto &b : branches) {
         std::cout << owner << "/" << repo << " branch: " << b << "\n";
       }

@@ -61,7 +61,7 @@ TEST_CASE("branch protection excludes override patterns") {
   auto http = std::make_unique<ProtectCleanupHttpClient>();
   http->response = "[{\"head\":{\"ref\":\"tmp/safe\"}},"
                    "{\"head\":{\"ref\":\"tmp/remove\"}}]";
-  ProtectCleanupHttpClient *raw = http.get();
+  const ProtectCleanupHttpClient *raw = http.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   client.cleanup_branches("me", "repo", "tmp/", {"tmp/.*"}, {"tmp/remove"});
   REQUIRE(raw->last_deleted ==

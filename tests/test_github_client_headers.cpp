@@ -36,7 +36,7 @@ public:
 TEST_CASE("test github client headers") {
   auto http = std::make_unique<HeaderHttpClient>();
   http->response = "[]";
-  HeaderHttpClient *raw = http.get();
+  const HeaderHttpClient *raw = http.get();
   GitHubClient client({"token123"},
                       std::unique_ptr<HttpClient>(http.release()));
   client.list_pull_requests("owner", "repo");
@@ -53,7 +53,7 @@ TEST_CASE("test github client headers") {
 
   auto http2 = std::make_unique<HeaderHttpClient>();
   http2->response = "{\"merged\":true}";
-  HeaderHttpClient *raw2 = http2.get();
+  const HeaderHttpClient *raw2 = http2.get();
   GitHubClient client2({"tok"}, std::unique_ptr<HttpClient>(http2.release()));
   bool merged = client2.merge_pull_request("owner", "repo", 1);
   REQUIRE(merged);

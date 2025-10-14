@@ -1,6 +1,7 @@
 #include "github_client.hpp"
 #include "curl/curl.h"
 #include "log.hpp"
+#include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <fstream>
@@ -70,24 +71,17 @@ std::string format_curl_error(const char *verb, const std::string &url,
 /// Return true if `name` matches any glob or regex in `patterns`.
 bool matches_pattern(const std::string &name,
                      const std::vector<std::string> &patterns) {
-  for (const auto &p : patterns) {
-    try {
-      if (p.find_first_of("*?") != std::string::npos) {
-        if (std::regex_match(name, glob_to_regex(p))) {
-          return true;
-        }
-      } else {
-        if (std::regex_match(name, std::regex(p))) {
-          return true;
-        }
-      }
-    } catch (const std::regex_error &) {
-      if (name == p) {
-        return true;
-      }
-    }
-  }
-  return false;
+  return std::any_of(patterns.begin(), patterns.end(),
+                     [&name](const std::string &p) {
+                       try {
+                         if (p.find_first_of("*?") != std::string::npos) {
+                           return std::regex_match(name, glob_to_regex(p));
+                         }
+                         return std::regex_match(name, std::regex(p));
+                       } catch (const std::regex_error &) {
+                         return name == p;
+                       }
+                     });
 }
 
 // Determine whether a branch name should be considered protected based on
@@ -466,15 +460,15 @@ GitHubClient::get_with_cache(const std::string &url,
     spdlog::debug("Cache hit for {}", url);
     return {it->second.body, it->second.headers, 200};
   }
-  for (const auto &h : res.headers) {
-    if (h.rfind("ETag:", 0) == 0) {
-      std::string etag = h.substr(5);
-      if (!etag.empty() && etag[0] == ' ')
-        etag.erase(0, 1);
-      cache_[url] = {etag, res.body, res.headers};
-      save_cache();
-      break;
-    }
+  const auto etag_it =
+      std::find_if(res.headers.begin(), res.headers.end(),
+                   [](const std::string &h) { return h.rfind("ETag:", 0) == 0; });
+  if (etag_it != res.headers.end()) {
+    std::string etag = etag_it->substr(5);
+    if (!etag.empty() && etag[0] == ' ')
+      etag.erase(0, 1);
+    cache_[url] = {etag, res.body, res.headers};
+    save_cache();
   }
   return res;
 }
@@ -646,7 +640,8 @@ GitHubClient::list_pull_requests(const std::string &owner,
         try {
           auto num_start = res.body.find_first_of("0123456789", num_pos);
           auto num_end = res.body.find_first_not_of("0123456789", num_start);
-          int number = std::stoi(res.body.substr(num_start, num_end - num_start));
+          int number =
+              std::stoi(res.body.substr(num_start, num_end - num_start));
           auto title_start = res.body.find('"', title_pos + 7);
           if (title_start != std::string::npos) {
             ++title_start;

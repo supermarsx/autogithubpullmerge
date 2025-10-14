@@ -280,8 +280,8 @@ public:
    * @param per_page Maximum number of branches to request (default 100)
    * @return List of branch names from a single page
    */
-  std::vector<std::string>
-  list_branches_single(const std::string &owner_repo, int per_page = 100);
+  std::vector<std::string> list_branches_single(const std::string &owner_repo,
+                                                int per_page = 100);
 
   /**
    * Delete branches whose associated pull request was closed or merged and

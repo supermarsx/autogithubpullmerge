@@ -207,7 +207,7 @@ TEST_CASE("test branch cleanup") {
   // Purge branches across paginated pull request pages.
   {
     auto http = std::make_unique<PagingCleanupHttpClient>();
-    PagingCleanupHttpClient *raw = http.get();
+    const PagingCleanupHttpClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.cleanup_branches("me", "repo", "tmp/");
     REQUIRE(raw->last_deleted ==
@@ -217,7 +217,7 @@ TEST_CASE("test branch cleanup") {
   // Dirty branch discovered on later page should be deleted.
   {
     auto http = std::make_unique<PagingBranchHttpClient>();
-    PagingBranchHttpClient *raw = http.get();
+    const PagingBranchHttpClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo");
     REQUIRE(raw->last_deleted == raw->base + "/git/refs/heads/feature2");

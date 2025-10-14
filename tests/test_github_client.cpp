@@ -7,6 +7,8 @@
 
 using namespace agpm;
 
+namespace {
+
 class MockHttpClient : public HttpClient {
 public:
   std::string last_url;
@@ -158,6 +160,8 @@ public:
   }
 };
 
+} // namespace
+
 TEST_CASE("test github client") {
   // Test listing pull requests
   auto mock = std::make_unique<MockHttpClient>();
@@ -205,7 +209,7 @@ TEST_CASE("test github client") {
                 std::gmtime(&old_t));
   auto multi_http = std::make_unique<MultiPageHttpClient>(
       std::string(old_buf), std::string(recent_buf1), std::string(recent_buf2));
-  MultiPageHttpClient *raw_multi = multi_http.get();
+  const MultiPageHttpClient *raw_multi = multi_http.get();
   GitHubClient client_multi({"tok"},
                             std::unique_ptr<HttpClient>(multi_http.release()));
   auto multi_prs =

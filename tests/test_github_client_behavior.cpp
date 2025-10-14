@@ -5,6 +5,8 @@
 
 using namespace agpm;
 
+namespace {
+
 class DummyHttpClient : public HttpClient {
 public:
   std::string last_url;
@@ -65,6 +67,8 @@ public:
   }
 };
 
+} // namespace
+
 TEST_CASE("test github client behavior") {
   auto dummy = std::make_unique<DummyHttpClient>();
   dummy->response = "[{\"number\":2,\"title\":\"Another\"}]";
@@ -91,8 +95,9 @@ TEST_CASE("test github client behavior") {
         "[{\"name\":\"main\"},{\"name\":\"feature\"}]";
     raw->responses[base + "/compare/main...feature"] =
         "{\"status\":\"identical\",\"ahead_by\":0}";
-    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    client.close_dirty_branches("me", "repo");
+    GitHubClient branch_client({"tok"},
+                               std::unique_ptr<HttpClient>(http.release()));
+    branch_client.close_dirty_branches("me", "repo");
     REQUIRE(raw->last_deleted.empty());
   }
 
@@ -106,8 +111,9 @@ TEST_CASE("test github client behavior") {
         "[{\"name\":\"main\"},{\"name\":\"feature\"}]";
     raw->responses[base + "/compare/main...feature"] =
         "{\"status\":\"ahead\",\"ahead_by\":1}";
-    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    client.close_dirty_branches("me", "repo");
+    GitHubClient branch_client({"tok"},
+                               std::unique_ptr<HttpClient>(http.release()));
+    branch_client.close_dirty_branches("me", "repo");
     REQUIRE(raw->last_deleted == base + "/git/refs/heads/feature");
   }
 }

@@ -40,7 +40,7 @@ TEST_CASE("merge rules allow merge") {
   auto http = std::make_unique<RuleHttpClient>();
   http->meta_response =
       "{\"approvals\":2,\"mergeable\":true,\"mergeable_state\":\"clean\"}";
-  RuleHttpClient *raw = http.get();
+  const RuleHttpClient *raw = http.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   client.set_required_approvals(1);
   client.set_require_status_success(true);
@@ -56,7 +56,7 @@ TEST_CASE("merge rules block approvals") {
   auto http = std::make_unique<RuleHttpClient>();
   http->meta_response =
       "{\"approvals\":0,\"mergeable\":true,\"mergeable_state\":\"clean\"}";
-  RuleHttpClient *raw = http.get();
+  const RuleHttpClient *raw = http.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   client.set_required_approvals(1);
   client.set_require_status_success(true);
@@ -70,7 +70,7 @@ TEST_CASE("merge rules block status") {
   auto http = std::make_unique<RuleHttpClient>();
   http->meta_response =
       "{\"approvals\":2,\"mergeable\":true,\"mergeable_state\":\"dirty\"}";
-  RuleHttpClient *raw = http.get();
+  const RuleHttpClient *raw = http.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   client.set_required_approvals(1);
   client.set_require_status_success(true);
@@ -84,7 +84,7 @@ TEST_CASE("merge rules block mergeable") {
   auto http = std::make_unique<RuleHttpClient>();
   http->meta_response =
       "{\"approvals\":2,\"mergeable\":false,\"mergeable_state\":\"clean\"}";
-  RuleHttpClient *raw = http.get();
+  const RuleHttpClient *raw = http.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   client.set_required_approvals(1);
   client.set_require_status_success(true);
@@ -97,7 +97,7 @@ TEST_CASE("merge rules ignored when disabled") {
   auto http = std::make_unique<RuleHttpClient>();
   http->meta_response =
       "{\"approvals\":0,\"mergeable\":false,\"mergeable_state\":\"dirty\"}";
-  RuleHttpClient *raw = http.get();
+  const RuleHttpClient *raw = http.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   bool merged = client.merge_pull_request("o", "r", 1);
   REQUIRE(merged);

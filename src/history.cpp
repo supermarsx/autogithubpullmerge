@@ -8,7 +8,8 @@ struct sqlite3;
 extern "C" {
 int sqlite3_open(const char *, sqlite3 **);
 int sqlite3_close(sqlite3 *);
-int sqlite3_exec(sqlite3 *, const char *, int (*)(void *, int, char **, char **), void *, char **);
+int sqlite3_exec(sqlite3 *, const char *,
+                 int (*)(void *, int, char **, char **), void *, char **);
 int sqlite3_prepare_v2(sqlite3 *, const char *, int, void **, const char **);
 int sqlite3_bind_int(void *, int, int);
 int sqlite3_bind_text(void *, int, const char *, int, void (*)(void *));
@@ -25,7 +26,7 @@ void sqlite3_free(void *);
 #define SQLITE_DONE 101
 #endif
 #ifndef SQLITE_TRANSIENT
-#define SQLITE_TRANSIENT ((void (*)(void *))-1)
+#define SQLITE_TRANSIENT ((void (*)(void *)) - 1)
 #endif
 #elif __has_include(<sqlite3.h>)
 #include <sqlite3.h>
@@ -34,11 +35,13 @@ void sqlite3_free(void *);
 struct sqlite3;
 #endif
 
+#include <spdlog/spdlog.h>
 #include <stdexcept>
 
 namespace agpm {
 
 PullRequestHistory::PullRequestHistory(const std::string &db_path) {
+  spdlog::debug("History: opening DB {}", db_path);
   if (sqlite3_open(db_path.c_str(), &db_) != SQLITE_OK) {
     throw std::runtime_error("Failed to open database");
   }
@@ -51,11 +54,14 @@ PullRequestHistory::PullRequestHistory(const std::string &db_path) {
     sqlite3_free(err);
     throw std::runtime_error("Failed to create table: " + msg);
   }
+  spdlog::debug("History: DB initialized");
 }
 
 PullRequestHistory::~PullRequestHistory() {
+  spdlog::debug("History: closing DB");
   if (db_) {
     sqlite3_close(db_);
+    db_ = nullptr;
   }
 }
 
@@ -92,6 +98,7 @@ void PullRequestHistory::update_merged(int number) {
 }
 
 void PullRequestHistory::export_csv(const std::string &path) {
+  spdlog::debug("History: export_csv -> {}", path);
   std::ofstream out(path);
   if (!out) {
     throw std::runtime_error("Failed to open CSV file");
@@ -132,9 +139,11 @@ void PullRequestHistory::export_csv(const std::string &path) {
         << ',' << escape_csv_field(std::to_string(merged)) << '\n';
   }
   sqlite3_finalize(stmt);
+  spdlog::debug("History: export_csv done");
 }
 
 void PullRequestHistory::export_json(const std::string &path) {
+  spdlog::debug("History: export_json -> {}", path);
   nlohmann::json j = nlohmann::json::array();
   const char *sql = "SELECT number,title,merged FROM pull_requests";
   sqlite3_stmt *stmt = nullptr;
@@ -157,6 +166,7 @@ void PullRequestHistory::export_json(const std::string &path) {
     throw std::runtime_error("Failed to open JSON file");
   }
   out << j.dump(2);
+  spdlog::debug("History: export_json done");
 }
 
 } // namespace agpm

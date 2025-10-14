@@ -2,6 +2,7 @@
 #include "curl/curl.h"
 #include "util/duration.hpp"
 #include <CLI/CLI.hpp>
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
@@ -10,6 +11,7 @@
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <stdexcept>
+#include <iterator>
 #include <yaml-cpp/yaml.h>
 
 namespace agpm {
@@ -48,17 +50,19 @@ static std::vector<std::string> load_tokens_from_file(const std::string &path) {
   if (ext == "yaml" || ext == "yml") {
     YAML::Node node = YAML::LoadFile(path);
     if (node.IsSequence()) {
-      for (const auto &n : node) {
-        tokens.push_back(n.as<std::string>());
-      }
+      tokens.reserve(tokens.size() + node.size());
+      std::transform(node.begin(), node.end(), std::back_inserter(tokens),
+                     [](const YAML::Node &n) { return n.as<std::string>(); });
     }
     if (node["token"]) {
       tokens.push_back(node["token"].as<std::string>());
     }
     if (node["tokens"]) {
-      for (const auto &n : node["tokens"]) {
-        tokens.push_back(n.as<std::string>());
-      }
+      const YAML::Node tokens_node = node["tokens"];
+      tokens.reserve(tokens.size() + tokens_node.size());
+      std::transform(tokens_node.begin(), tokens_node.end(),
+                     std::back_inserter(tokens),
+                     [](const YAML::Node &n) { return n.as<std::string>(); });
     }
   } else if (ext == "json") {
     std::ifstream f(path);
@@ -68,17 +72,22 @@ static std::vector<std::string> load_tokens_from_file(const std::string &path) {
     nlohmann::json j;
     f >> j;
     if (j.is_array()) {
-      for (const auto &item : j) {
-        tokens.push_back(item.get<std::string>());
-      }
+      tokens.reserve(tokens.size() + j.size());
+      std::transform(j.begin(), j.end(), std::back_inserter(tokens),
+                     [](const nlohmann::json &item) {
+                       return item.get<std::string>();
+                     });
     } else {
       if (j.contains("token")) {
         tokens.push_back(j["token"].get<std::string>());
       }
       if (j.contains("tokens")) {
-        for (const auto &item : j["tokens"]) {
-          tokens.push_back(item.get<std::string>());
-        }
+        const auto &array = j["tokens"];
+        tokens.reserve(tokens.size() + array.size());
+        std::transform(array.begin(), array.end(), std::back_inserter(tokens),
+                       [](const nlohmann::json &item) {
+                         return item.get<std::string>();
+                       });
       }
     }
   } else {
@@ -300,14 +309,14 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("DURATION")
       ->default_val("0")
       ->group("Polling");
-  app
-      .add_option("--single-open-prs", options.single_open_prs_repo,
-                  "Fetch open PRs for a single repo via one HTTP request and exit")
+  app.add_option(
+         "--single-open-prs", options.single_open_prs_repo,
+         "Fetch open PRs for a single repo via one HTTP request and exit")
       ->type_name("OWNER/REPO")
       ->group("Testing");
-  app
-      .add_option("--single-branches", options.single_branches_repo,
-                  "Fetch branches for a single repo via one HTTP request and exit")
+  app.add_option(
+         "--single-branches", options.single_branches_repo,
+         "Fetch branches for a single repo via one HTTP request and exit")
       ->type_name("OWNER/REPO")
       ->group("Testing");
   app.add_option(

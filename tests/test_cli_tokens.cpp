@@ -4,7 +4,7 @@
 #include <iostream>
 #include <sstream>
 
-TEST_CASE("test cli tokens") {
+TEST_CASE("test cli tokens", "[cli]") {
   // Load tokens from YAML file
   {
     std::ofstream f("tokens.yaml");

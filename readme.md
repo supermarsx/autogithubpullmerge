@@ -1,6 +1,6 @@
 # autogithubpullmerge
 
-A cross-platform tool to manage and monitor GitHub pull requests from a terminal user interface.
+A cross‑platform tool that both automates safe pull request merging and manages stray branches (detects, closes, deletes or purges), with a terminal UI and scriptable CLI.
 
 ## Features
 - Cross-platform build using CMake
@@ -23,97 +23,6 @@ A cross-platform tool to manage and monitor GitHub pull requests from a terminal
 - Rate limiting to control GitHub API usage
 - Branch protection patterns to guard important branches
 - Dry-run mode and HTTP/HTTPS proxy support
-
-## Building (Linux)
-```bash
-./scripts/install_linux.sh
-cmake --preset vcpkg --fresh
-cmake --build --preset vcpkg
-```
-
-## Building (macOS)
-```bash
-./scripts/install_mac.sh
-cmake --preset vcpkg --fresh
-cmake --build --preset vcpkg
-```
-
-## Building (Windows)
-```bat
-scripts\install_win.bat
-scripts\build_win.bat
-```
-
-The Windows build links against the static MSVC runtime to produce a
-fully self-contained executable. Ensure all dependencies are installed
-with the `x64-windows-static` vcpkg triplet to avoid `/MT` vs `/MD`
-runtime mismatches.
-
-The build script automatically locates `vswhere.exe` using the `VSWHERE`
-environment variable, the `PATH`, standard Visual Studio Installer
-directories or a Chocolatey installation before falling back to the default
-location. It then calls `VsDevCmd.bat` so `cl.exe`
-is available. Visual Studio Build Tools must be installed but the script can
-be run from a normal command prompt.
-
-
-The install scripts clone and bootstrap
-[vcpkg](https://github.com/microsoft/vcpkg) if `VCPKG_ROOT` is not set, then
-install all dependencies declared in `vcpkg.json`. Ninja is installed so the
-Windows and Unix builds work out of the box. On Linux and macOS the `vcpkg`
-CMake preset automatically locates the toolchain. To use a different vcpkg
-installation, create or edit `CMakeUserPresets.json` or export `VCPKG_ROOT` and
-add it to your `PATH`.
-
-## Compiling
-
-The `compile_*` scripts wrap the platform build commands:
-
-```bash
-./scripts/compile_linux.sh   # Linux (g++)
-./scripts/compile_mac.sh     # macOS (g++)
-./scripts/compile_win.bat    # Windows (MSVC)
-```
-Run the matching `install_*` script for your platform first to ensure vcpkg is
-bootstrapped and dependencies are installed. The Windows script mirrors the
-logic in `build_win.bat` and automatically configures the MSVC environment.
-
-## vcpkg Manual Setup
-
-To install vcpkg manually without the helper scripts:
-
-### Windows
-```powershell
-git clone https://github.com/microsoft/vcpkg %USERPROFILE%\vcpkg
-%USERPROFILE%\vcpkg\bootstrap-vcpkg.bat
-%USERPROFILE%\vcpkg\vcpkg.exe integrate install
-setx VCPKG_DEFAULT_TRIPLET x64-windows-static /M
-setx VCPKG_ROOT "%USERPROFILE%\vcpkg" /M
-setx PATH "%PATH%;%VCPKG_ROOT%" /M
-```
-
-### Linux
-```bash
-git clone https://github.com/microsoft/vcpkg ~/vcpkg
-~/vcpkg/bootstrap-vcpkg.sh
-echo "export VCPKG_ROOT=\"$HOME/vcpkg\"" >> ~/.bashrc
-echo "export PATH=\"\$VCPKG_ROOT:\$PATH\"" >> ~/.bashrc
-```
-
-### macOS
-```bash
-git clone https://github.com/microsoft/vcpkg ~/vcpkg
-~/vcpkg/bootstrap-vcpkg.sh
-echo "export VCPKG_ROOT=\"$HOME/vcpkg\"" >> ~/.zprofile
-echo "export PATH=\"\$VCPKG_ROOT:\$PATH\"" >> ~/.zprofile
-```
-
-After setting up vcpkg, configure and build with the `vcpkg` CMake preset:
-
-```bash
-cmake --preset vcpkg --fresh
-cmake --build --preset vcpkg
-```
 
 ## Generating Documentation
 
@@ -253,14 +162,18 @@ The terminal interface supports the following key bindings:
 
 Example configuration files can be found in the `examples` directory:
 
-- `config.example.yaml`
-- `config.example.json`
+- `config.example.yaml` (minimal)
+- `config.example.json` (minimal)
+- `config.full.example.yaml` (full)
+- `config.full.example.json` (full)
 
 To use these locally, copy an example to a real config filename in the repo root (these are gitignored):
 
 ```bash
-cp examples/config.example.yaml config.yaml
-cp examples/config.example.json config.json
+cp examples/config.example.yaml config.yaml          # minimal YAML
+cp examples/config.example.json config.json          # minimal JSON
+cp examples/config.full.example.yaml config.yaml     # full YAML
+cp examples/config.full.example.json config.json     # full JSON
 cp examples/tokens.example.yaml tokens.yaml
 ```
 
@@ -283,6 +196,13 @@ autogithubpullmerge --http-timeout 60 --http-retries 5 \
   --download-limit 1048576 --upload-limit 512000 \
   --max-download 10485760 --max-upload 5242880
 ```
+
+## Development
+
+For building, vcpkg setup, compiling, packaging, testing, linting, generating docs, and
+local debugging, see:
+
+- dev/readme.md
 
 ## CLI Options (Reference)
 

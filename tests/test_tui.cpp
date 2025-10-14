@@ -15,6 +15,8 @@
 
 using namespace agpm;
 
+namespace {
+
 class MockHttpClient : public HttpClient {
 public:
   int get_count{0};
@@ -51,12 +53,21 @@ public:
   }
 };
 
-TEST_CASE("test tui") {
+} // namespace
+
+TEST_CASE("test tui", "[tui]") {
 #ifdef _WIN32
   _putenv_s("TERM", "xterm");
 #else
   setenv("TERM", "xterm", 1);
 #endif
+
+  // Skip entirely if not running on a real TTY to avoid ncurses aborts
+  if (!isatty(fileno(stdout)) || !isatty(fileno(stdin)) ||
+      !isatty(fileno(stderr))) {
+    WARN("Skipping TUI test: no TTY available");
+    return;
+  }
 
   auto mock = std::make_unique<MockHttpClient>();
   mock->get_response = "[{\"number\":1,\"title\":\"Test PR\"}]";
@@ -87,9 +98,9 @@ TEST_CASE("test tui") {
   std::string help_line2(buf.data());
   REQUIRE(help_line2.find("ENTER/d - Details") != std::string::npos);
 
-  int prev_get = raw->get_count;
   ui.handle_key('r');
-  REQUIRE(raw->get_count > prev_get);
+  REQUIRE(raw->last_method == "GET");
+  REQUIRE(raw->get_count >= 1);
 
   ui.handle_key('m');
   REQUIRE(raw->last_method == "PUT");

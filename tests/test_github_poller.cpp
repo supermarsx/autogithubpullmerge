@@ -1,7 +1,9 @@
 #include "github_poller.hpp"
+#include <algorithm>
 #include <atomic>
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
+#include <iterator>
 #include <thread>
 
 using namespace agpm;
@@ -95,8 +97,9 @@ TEST_CASE("github poller sorts pull requests") {
                         false, "alphanum");
     std::vector<std::string> titles;
     poller.set_pr_callback([&](const std::vector<PullRequest> &prs) {
-      for (const auto &pr : prs)
-        titles.push_back(pr.title);
+      titles.reserve(titles.size() + prs.size());
+      std::transform(prs.begin(), prs.end(), std::back_inserter(titles),
+                     [](const PullRequest &pr) { return pr.title; });
     });
     poller.poll_now();
     REQUIRE(titles == std::vector<std::string>{"PR1", "PR2", "PR10"});
@@ -109,8 +112,9 @@ TEST_CASE("github poller sorts pull requests") {
                         false, "reverse");
     std::vector<std::string> titles;
     poller.set_pr_callback([&](const std::vector<PullRequest> &prs) {
-      for (const auto &pr : prs)
-        titles.push_back(pr.title);
+      titles.reserve(titles.size() + prs.size());
+      std::transform(prs.begin(), prs.end(), std::back_inserter(titles),
+                     [](const PullRequest &pr) { return pr.title; });
     });
     poller.poll_now();
     REQUIRE(titles == std::vector<std::string>{"PR2", "PR10", "PR1"});

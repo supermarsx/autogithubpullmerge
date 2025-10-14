@@ -1,10 +1,13 @@
 #include "config.hpp"
 #include <catch2/catch_test_macros.hpp>
+#include <filesystem>
 #include <fstream>
 
 TEST_CASE("test config loading") {
   {
-    std::ofstream f("config.yaml");
+    std::filesystem::path ypath =
+        std::filesystem::temp_directory_path() / "agpm_cfg.yaml";
+    std::ofstream f(ypath.string());
     f << "verbose: true\n";
     f << "poll_interval: 10\n";
     f << "max_request_rate: 20\n";
@@ -20,7 +23,8 @@ TEST_CASE("test config loading") {
     f << "use_graphql: true\n";
     f.close();
   }
-  agpm::Config ycfg = agpm::Config::from_file("config.yaml");
+  agpm::Config ycfg = agpm::Config::from_file(
+      (std::filesystem::temp_directory_path() / "agpm_cfg.yaml").string());
   REQUIRE(ycfg.verbose());
   REQUIRE(ycfg.poll_interval() == 10);
   REQUIRE(ycfg.max_request_rate() == 20);
@@ -36,7 +40,9 @@ TEST_CASE("test config loading") {
   REQUIRE(ycfg.use_graphql());
 
   {
-    std::ofstream f("config.json");
+    std::filesystem::path jpath =
+        std::filesystem::temp_directory_path() / "agpm_cfg.json";
+    std::ofstream f(jpath.string());
     f << "{";
     f << "\"verbose\":false,";
     f << "\"poll_interval\":5,";
@@ -54,7 +60,8 @@ TEST_CASE("test config loading") {
     f << "}";
     f.close();
   }
-  agpm::Config jcfg = agpm::Config::from_file("config.json");
+  agpm::Config jcfg = agpm::Config::from_file(
+      (std::filesystem::temp_directory_path() / "agpm_cfg.json").string());
   REQUIRE(!jcfg.verbose());
   REQUIRE(jcfg.poll_interval() == 5);
   REQUIRE(jcfg.max_request_rate() == 15);

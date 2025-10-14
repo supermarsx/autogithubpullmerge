@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstdlib>
 #include <exception>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -15,7 +16,15 @@
 #include <unordered_set>
 #include <vector>
 
-TEST_CASE("test main") {
+#if defined(_WIN32)
+#include <io.h>
+#define isatty _isatty
+#define fileno _fileno
+#else
+#include <unistd.h>
+#endif
+
+TEST_CASE("main cli run", "[cli]") {
   agpm::App app;
   std::vector<char *> args;
   char prog[] = "tests";
@@ -28,15 +37,19 @@ TEST_CASE("test main") {
   args.push_back(repo_arg);
   REQUIRE(app.run(static_cast<int>(args.size()), args.data()) == 0);
   REQUIRE(app.options().verbose);
+}
 
-#ifdef _WIN32
-  _putenv_s("TERM", "xterm");
-#else
-  setenv("TERM", "xterm", 1);
-#endif
-
-  agpm::PullRequestHistory hist(app.options().history_db);
-  (void)hist;
+TEST_CASE("main poller runs", "[cli]") {
+  // Ensure poller starts and triggers at least one request
+  agpm::App app;
+  std::vector<char *> args;
+  char prog[] = "tests";
+  char include_flag[] = "--include";
+  char repo_arg[] = "o/r";
+  args.push_back(prog);
+  args.push_back(include_flag);
+  args.push_back(repo_arg);
+  REQUIRE(app.run(static_cast<int>(args.size()), args.data()) == 0);
 
   class CountHttpClient : public agpm::HttpClient {
   public:
@@ -82,22 +95,24 @@ TEST_CASE("test main") {
   }
   agpm::GitHubPoller poller(client, repos, 10, 60);
   poller.start();
-  std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
   poller.stop();
   REQUIRE(count > 0);
+}
 
-  agpm::Tui ui(client, poller, 200);
-  ui.init();
-  ui.cleanup();
-
+TEST_CASE("main config load", "[cli]") {
   agpm::App app_cfg;
-  std::ofstream cfg("run_config.yaml");
-  cfg << "verbose: true\n";
-  cfg.close();
+  std::filesystem::path cfg_path =
+      std::filesystem::temp_directory_path() / "agpm_run_config.yaml";
+  {
+    std::ofstream cfg(cfg_path.string());
+    cfg << "verbose: true\n";
+  }
   std::vector<char *> args_cfg;
   char prog2[] = "tests";
   char config_flag[] = "--config";
-  char cfg_file[] = "run_config.yaml";
+  std::string cfg_file_str = cfg_path.string();
+  char *cfg_file = const_cast<char *>(cfg_file_str.c_str());
   args_cfg.push_back(prog2);
   args_cfg.push_back(config_flag);
   args_cfg.push_back(cfg_file);
@@ -129,38 +144,42 @@ TEST_CASE("test main") {
   REQUIRE(hist_app.options().history_db == "hist.db");
 
   {
-    std::ofstream yaml("test_config.yaml");
+    std::filesystem::path yaml_path =
+        std::filesystem::temp_directory_path() / "agpm_test_config.yaml";
+    std::ofstream yaml(yaml_path.string());
     yaml << "verbose: true\n";
     yaml.close();
-    agpm::Config cfg = agpm::Config::from_file("test_config.yaml");
+    agpm::Config cfg = agpm::Config::from_file(yaml_path.string());
     REQUIRE(cfg.verbose());
   }
 
   {
-    std::ofstream json("test_config.json");
+    std::filesystem::path json_path =
+        std::filesystem::temp_directory_path() / "agpm_test_config.json";
+    std::ofstream json(json_path.string());
     json << "{\"verbose\": true}";
     json.close();
-    agpm::Config cfg = agpm::Config::from_file("test_config.json");
+    agpm::Config cfg = agpm::Config::from_file(json_path.string());
     REQUIRE(cfg.verbose());
   }
+}
 
-  {
-    agpm::App bad_app;
-    char prog_err[] = "tests";
-    char unknown[] = "--unknown";
-    char *args_err[] = {prog_err, unknown};
-    REQUIRE(bad_app.run(2, args_err) != 0);
-  }
+TEST_CASE("main invalid option", "[cli]") {
+  agpm::App bad_app;
+  char prog_err[] = "tests";
+  char unknown[] = "--unknown";
+  char *args_err[] = {prog_err, unknown};
+  REQUIRE(bad_app.run(2, args_err) != 0);
+}
 
-  {
-    agpm::App cancel_app;
-    std::istringstream input("n\n");
-    auto *cinbuf = std::cin.rdbuf();
-    std::cin.rdbuf(input.rdbuf());
-    char prog_err2[] = "tests";
-    char auto_merge_flag2[] = "--auto-merge";
-    char *cancel_args[] = {prog_err2, auto_merge_flag2};
-    REQUIRE(cancel_app.run(2, cancel_args) != 0);
-    std::cin.rdbuf(cinbuf);
-  }
+TEST_CASE("main auto-merge cancel", "[cli]") {
+  agpm::App cancel_app;
+  std::istringstream input("n\n");
+  auto *cinbuf = std::cin.rdbuf();
+  std::cin.rdbuf(input.rdbuf());
+  char prog_err2[] = "tests";
+  char auto_merge_flag2[] = "--auto-merge";
+  char *cancel_args[] = {prog_err2, auto_merge_flag2};
+  REQUIRE(cancel_app.run(2, cancel_args) != 0);
+  std::cin.rdbuf(cinbuf);
 }

@@ -1,7 +1,9 @@
 #include "github_poller.hpp"
 #include "log.hpp"
 #include "sort.hpp"
+#include <algorithm>
 #include <future>
+#include <iterator>
 #include <mutex>
 #include <spdlog/spdlog.h>
 
@@ -18,20 +20,22 @@ GitHubPoller::GitHubPoller(
     GitHubGraphQLClient *graphql_client, bool delete_stray)
     : client_(client), repos_(std::move(repos)), poller_(workers, max_rate),
       interval_ms_(interval_ms), max_rate_(max_rate),
-      only_poll_prs_(only_poll_prs),
-      only_poll_stray_(only_poll_stray), reject_dirty_(reject_dirty),
-      delete_stray_(delete_stray), purge_prefix_(std::move(purge_prefix)),
-      auto_merge_(auto_merge), purge_only_(purge_only),
-      sort_mode_(std::move(sort_mode)), dry_run_(dry_run),
-      graphql_client_(graphql_client),
+      only_poll_prs_(only_poll_prs), only_poll_stray_(only_poll_stray),
+      reject_dirty_(reject_dirty), delete_stray_(delete_stray),
+      purge_prefix_(std::move(purge_prefix)), auto_merge_(auto_merge),
+      purge_only_(purge_only), sort_mode_(std::move(sort_mode)),
+      dry_run_(dry_run), graphql_client_(graphql_client),
       protected_branches_(std::move(protected_branches)),
       protected_branch_excludes_(std::move(protected_branch_excludes)),
       history_(history) {
   ensure_default_logger();
   next_allowed_poll_ = std::chrono::steady_clock::now();
   if (max_rate_ > 0) {
-    auto interval = std::chrono::duration<double>(60.0 / static_cast<double>(max_rate_));
-    min_poll_interval_ = std::chrono::duration_cast<std::chrono::steady_clock::duration>(interval);
+    auto interval =
+        std::chrono::duration<double>(60.0 / static_cast<double>(max_rate_));
+    min_poll_interval_ =
+        std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+            interval);
     if (min_poll_interval_.count() <= 0) {
       min_poll_interval_ = std::chrono::nanoseconds(1);
     }
@@ -88,16 +92,19 @@ void GitHubPoller::poll() {
     }
     next_allowed_poll_ = now + min_poll_interval_;
   }
-  bool skip_branch_ops =
-      only_poll_prs_ || (max_rate_ > 0 && max_rate_ <= 1);
+  bool skip_branch_ops = only_poll_prs_ || (max_rate_ > 0 && max_rate_ <= 1);
   spdlog::debug("Polling repositories");
   std::vector<PullRequest> all_prs;
   std::mutex pr_mutex;
   std::mutex log_mutex;
   std::vector<std::future<void>> futures;
-  for (const auto &repo : repos_) {
-    futures.push_back(poller_.submit([this, repo, skip_branch_ops, &all_prs,
-                                      &pr_mutex, &log_mutex] {
+  futures.reserve(repos_.size());
+  std::transform(
+      repos_.begin(), repos_.end(), std::back_inserter(futures),
+      [this, skip_branch_ops, &all_prs, &pr_mutex, &log_mutex](
+          const std::pair<std::string, std::string> &repo) {
+        return poller_.submit([this, repo, skip_branch_ops, &all_prs,
+                               &pr_mutex, &log_mutex] {
       if (purge_only_) {
         spdlog::debug("purge_only set - skipping repo {}/{}", repo.first,
                       repo.second);
@@ -112,17 +119,19 @@ void GitHubPoller::poll() {
         }
         return;
       }
-      std::vector<PullRequest> prs;
       if (!only_poll_stray_) {
-        if (graphql_client_) {
-          prs = graphql_client_->list_pull_requests(repo.first, repo.second);
-        } else if (max_rate_ > 0 && max_rate_ <= 1) {
-          // Tests require a single HTTP request when rate is extremely low
-          prs = client_.list_open_pull_requests_single(repo.first + "/" +
+        const std::vector<PullRequest> prs = [this, &repo]() {
+          if (graphql_client_) {
+            return graphql_client_->list_pull_requests(repo.first,
                                                        repo.second);
-        } else {
-          prs = client_.list_pull_requests(repo.first, repo.second);
-        }
+          }
+          if (max_rate_ > 0 && max_rate_ <= 1) {
+            // Tests require a single HTTP request when rate is extremely low
+            return client_.list_open_pull_requests_single(repo.first + "/" +
+                                                          repo.second);
+          }
+          return client_.list_pull_requests(repo.first, repo.second);
+        }();
         {
           std::lock_guard<std::mutex> lk(pr_mutex);
           all_prs.insert(all_prs.end(), prs.begin(), prs.end());
@@ -168,15 +177,16 @@ void GitHubPoller::poll() {
       if (!skip_branch_ops) {
         auto branches = client_.list_branches(repo.first, repo.second);
         std::vector<std::string> stray;
-        for (const auto &b : branches) {
-          if (purge_prefix_.empty() || b.rfind(purge_prefix_, 0) != 0) {
-            stray.push_back(b);
-          }
-        }
+        std::copy_if(branches.begin(), branches.end(),
+                     std::back_inserter(stray),
+                     [this](const std::string &branch) {
+                       return purge_prefix_.empty() ||
+                              branch.rfind(purge_prefix_, 0) != 0;
+                     });
         if (log_cb_) {
           std::lock_guard<std::mutex> lk(log_mutex);
           log_cb_(repo.first + "/" + repo.second +
-                   " stray branches: " + std::to_string(stray.size()));
+                  " stray branches: " + std::to_string(stray.size()));
         }
         if (delete_stray_) {
           for (const auto &b : stray) {
@@ -200,8 +210,8 @@ void GitHubPoller::poll() {
                                      protected_branches_,
                                      protected_branch_excludes_);
       }
-    }));
-  }
+        });
+      });
   for (auto &f : futures) {
     f.get();
   }
