@@ -45,24 +45,59 @@ jobs:
             const branch = context.payload.workflow_run.head_branch;
             const { owner, repo } = context.repo;
 
-            let allPassed = true;
-            for (const workflow of required) {
-              const runs = await github.paginate(
-                github.rest.actions.listWorkflowRuns,
-                {
-                  owner,
-                  repo,
-                  workflow_id: workflow.file,
-                  branch,
-                  per_page: 100
-                }
-              );
+            const maxAttempts = 20; // ~10 minutes with the delay below
+            const delayMs = 30_000;
+            const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-              const matched = runs.find(run => run.head_sha === sha && run.head_branch === branch);
-              if (!matched || matched.conclusion !== 'success') {
-                core.info(`Workflow "${workflow.name}" not successful yet for ${sha}.`);
-                allPassed = false;
+            let shouldRelease = false;
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              let allPassed = true;
+              const pending = [];
+              const failed = [];
+
+              for (const workflow of required) {
+                const runs = await github.paginate(
+                  github.rest.actions.listWorkflowRuns,
+                  {
+                    owner,
+                    repo,
+                    workflow_id: workflow.file,
+                    branch,
+                    per_page: 100
+                  }
+                );
+
+                const matched = runs.find(run => run.head_sha === sha && run.head_branch === branch);
+
+                if (!matched || matched.status !== 'completed') {
+                  pending.push(workflow.name);
+                  allPassed = false;
+                  continue;
+                }
+
+                if (matched.conclusion !== 'success') {
+                  failed.push(`${workflow.name} (${matched.conclusion ?? 'unknown'})`);
+                  allPassed = false;
+                  continue;
+                }
+              }
+
+              if (allPassed) {
+                shouldRelease = true;
                 break;
+              }
+
+              if (failed.length > 0) {
+                core.info(`One or more workflows failed for ${sha}: ${failed.join(', ')}`);
+                break;
+              }
+
+              if (attempt < maxAttempts) {
+                core.info(`Waiting for workflows to finish (${attempt}/${maxAttempts}): ${pending.join(', ')}`);
+                await delay(delayMs);
+              } else {
+                core.info(`Timed out waiting for workflows to finish for ${sha}: ${pending.join(', ')}`);
               }
             }
 
@@ -71,7 +106,7 @@ jobs:
             core.setOutput('sha', sha);
             core.setOutput('branch', branch);
             core.setOutput('commit_message', commitMessage.trim());
-            core.setOutput('should_release', allPassed ? 'true' : 'false');
+            core.setOutput('should_release', shouldRelease ? 'true' : 'false');
 
       - name: Determine rolling version
         id: version
