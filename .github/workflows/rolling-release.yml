@@ -159,11 +159,11 @@ jobs:
             triplet: x64-linux
             binary: autogithubpullmerge
             asset: autogithubpullmerge-linux-x64.tar.gz
-          - label: Ubuntu arm64
-            os: ubuntu-22.04-arm64
+          - label: Ubuntu arm
+            os: ubuntu-22.04-arm
             triplet: arm64-linux
             binary: autogithubpullmerge
-            asset: autogithubpullmerge-linux-arm64.tar.gz
+            asset: autogithubpullmerge-linux-arm.tar.gz
           - label: Windows x64
             os: windows-latest
             triplet: x64-windows-static
