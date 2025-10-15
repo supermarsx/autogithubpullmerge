@@ -2,10 +2,26 @@
 #define AUTOGITHUBPULLMERGE_CLI_HPP
 
 #include <chrono>
+#include <exception>
 #include <string>
 #include <vector>
 
 namespace agpm {
+
+/** Signals that CLI parsing requested an immediate exit (help, errors, etc.). */
+class CliParseExit : public std::exception {
+public:
+  explicit CliParseExit(int exit_code) noexcept : exit_code_(exit_code) {}
+
+  int exit_code() const noexcept { return exit_code_; }
+
+  const char *what() const noexcept override {
+    return "CLI parsing requested exit";
+  }
+
+private:
+  int exit_code_;
+};
 
 /** Parsed command line options. */
 struct CliOptions {

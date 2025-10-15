@@ -11,6 +11,8 @@ namespace agpm {
 int App::run(int argc, char **argv) {
   try {
     options_ = parse_cli(argc, argv);
+  } catch (const CliParseExit &exit) {
+    return exit.exit_code();
   } catch (const std::exception &e) {
     spdlog::error("{}", e.what());
     return 1;

@@ -364,7 +364,8 @@ CliOptions parse_cli(int argc, char **argv) {
     args.push_back(nullptr);
     app.parse(argc, args.data());
   } catch (const CLI::ParseError &e) {
-    throw std::runtime_error(e.what());
+    int exit_code = app.exit(e);
+    throw CliParseExit(exit_code);
   }
   if (!options.api_key_file.empty()) {
     auto tokens = load_tokens_from_file(options.api_key_file);
