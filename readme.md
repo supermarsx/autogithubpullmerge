@@ -1,5 +1,13 @@
 # autogithubpullmerge
 
+[![GitHub Repo stars](https://img.shields.io/github/stars/supermarsx/autogithubpullmerge?style=flat)](https://github.com/supermarsx/autogithubpullmerge/stargazers)
+[![GitHub watchers](https://img.shields.io/github/watchers/supermarsx/autogithubpullmerge?style=flat)](https://github.com/supermarsx/autogithubpullmerge/watchers)
+[![GitHub forks](https://img.shields.io/github/forks/supermarsx/autogithubpullmerge?style=flat)](https://github.com/supermarsx/autogithubpullmerge/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/supermarsx/autogithubpullmerge?style=flat)](https://github.com/supermarsx/autogithubpullmerge/issues)
+[![GitHub all releases](https://img.shields.io/github/downloads/supermarsx/autogithubpullmerge/total?style=flat)](https://github.com/supermarsx/autogithubpullmerge/releases)
+[![License](https://img.shields.io/github/license/supermarsx/autogithubpullmerge?style=flat)](https://github.com/supermarsx/autogithubpullmerge/blob/main/license.md)
+![Made with C++](https://img.shields.io/badge/Made%20with-C%2B%2B-00599C?style=flat&logo=c%2B%2B&logoColor=white)
+
 A cross‑platform tool that both automates safe pull request merging and manages stray branches (detects, closes, deletes or purges), with a terminal UI and scriptable CLI.
 
 ## Features
@@ -157,6 +165,7 @@ The terminal interface supports the following key bindings:
 [![Typecheck](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/typecheck.yml/badge.svg?branch=main)](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/typecheck.yml)
 [![Build](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/build.yml)
 [![Test](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/test.yml)
+[![Rolling Release](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/rolling-release.yml/badge.svg?branch=main)](https://github.com/supermarsx/autogithubpullmerge/actions/workflows/rolling-release.yml)
 
 ## Examples
 

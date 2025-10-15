@@ -1,0 +1,276 @@
+name: Rolling Release
+
+on:
+  workflow_run:
+    workflows:
+      - Test
+    types:
+      - completed
+
+concurrency:
+  group: rolling-release-${{ github.event.workflow_run.head_branch || 'unknown' }}-${{ github.event.workflow_run.head_sha || 'none' }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare rolling release
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      should_release: ${{ steps.validate.outputs.should_release }}
+      release_sha: ${{ steps.validate.outputs.sha }}
+      release_branch: ${{ steps.validate.outputs.branch }}
+      commit_message: ${{ steps.validate.outputs.commit_message }}
+      tag: ${{ steps.version.outputs.tag }}
+      release_name: ${{ steps.version.outputs.release_name }}
+      release_body: ${{ steps.version.outputs.release_body }}
+    steps:
+      - name: Validate workflow results
+        id: validate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const required = [
+              { file: 'format.yml', name: 'Format' },
+              { file: 'lint.yml', name: 'Lint' },
+              { file: 'typecheck.yml', name: 'Typecheck' },
+              { file: 'build.yml', name: 'Build' },
+              { file: 'test.yml', name: 'Test' }
+            ];
+
+            const sha = context.payload.workflow_run.head_sha;
+            const branch = context.payload.workflow_run.head_branch;
+            const { owner, repo } = context.repo;
+
+            let allPassed = true;
+            for (const workflow of required) {
+              const runs = await github.paginate(
+                github.rest.actions.listWorkflowRuns,
+                {
+                  owner,
+                  repo,
+                  workflow_id: workflow.file,
+                  branch,
+                  per_page: 100
+                }
+              );
+
+              const matched = runs.find(run => run.head_sha === sha && run.head_branch === branch);
+              if (!matched || matched.conclusion !== 'success') {
+                core.info(`Workflow "${workflow.name}" not successful yet for ${sha}.`);
+                allPassed = false;
+                break;
+              }
+            }
+
+            const commitMessage = context.payload.workflow_run.head_commit?.message ?? '';
+
+            core.setOutput('sha', sha);
+            core.setOutput('branch', branch);
+            core.setOutput('commit_message', commitMessage.trim());
+            core.setOutput('should_release', allPassed ? 'true' : 'false');
+
+      - name: Determine rolling version
+        id: version
+        if: ${{ steps.validate.outputs.should_release == 'true' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const now = new Date();
+            const year = String(now.getUTCFullYear()).slice(-2);
+            const { owner, repo } = context.repo;
+
+            const releases = await github.paginate(
+              github.rest.repos.listReleases,
+              {
+                owner,
+                repo,
+                per_page: 100
+              }
+            );
+
+            let maxSequence = 0;
+            for (const release of releases) {
+              if (!release.tag_name) {
+                continue;
+              }
+              const match = release.tag_name.match(new RegExp(`^${year}\\.(\\d+)$`));
+              if (match) {
+                const value = Number(match[1]);
+                if (!Number.isNaN(value)) {
+                  maxSequence = Math.max(maxSequence, value);
+                }
+              }
+            }
+
+            const nextSequence = maxSequence + 1;
+            const tag = `${year}.${nextSequence}`;
+
+            const sha = process.env.RELEASE_SHA ?? '';
+            const commitMessage = process.env.RELEASE_COMMIT_MESSAGE ?? '';
+            const shortSha = sha ? sha.substring(0, 7) : '';
+
+            const lines = [
+              `Automated rolling release for commit ${shortSha}.`,
+            ];
+            if (commitMessage) {
+              lines.push('');
+              lines.push('Commit message:');
+              lines.push('```');
+              lines.push(commitMessage);
+              lines.push('```');
+            }
+
+            core.setOutput('tag', tag);
+            core.setOutput('release_name', `Rolling Release ${tag}`);
+            core.setOutput('release_body', lines.join('\n'));
+        env:
+          RELEASE_SHA: ${{ steps.validate.outputs.sha }}
+          RELEASE_COMMIT_MESSAGE: ${{ steps.validate.outputs.commit_message }}
+
+  build:
+    name: Build ${{ matrix.label }}
+    needs: prepare
+    if: ${{ needs.prepare.outputs.should_release == 'true' }}
+    runs-on: ${{ matrix.os }}
+    env:
+      VCPKG_FEATURE_FLAGS: manifests
+      VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }}
+      VCPKG_TARGET_TRIPLET: ${{ matrix.triplet }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: macOS x64
+            os: macos-13
+            triplet: x64-osx
+            binary: autogithubpullmerge
+            asset: autogithubpullmerge-macos-x64.tar.gz
+          - label: macOS arm64
+            os: macos-14
+            triplet: arm64-osx
+            binary: autogithubpullmerge
+            asset: autogithubpullmerge-macos-arm64.tar.gz
+          - label: Ubuntu x64
+            os: ubuntu-22.04
+            triplet: x64-linux
+            binary: autogithubpullmerge
+            asset: autogithubpullmerge-linux-x64.tar.gz
+          - label: Ubuntu arm64
+            os: ubuntu-22.04-arm64
+            triplet: arm64-linux
+            binary: autogithubpullmerge
+            asset: autogithubpullmerge-linux-arm64.tar.gz
+          - label: Windows x64
+            os: windows-latest
+            triplet: x64-windows-static
+            binary: autogithubpullmerge.exe
+            asset: autogithubpullmerge-windows-x64.tar.gz
+          - label: Windows arm64
+            os: windows-11-arm
+            triplet: arm64-windows-static
+            binary: autogithubpullmerge.exe
+            asset: autogithubpullmerge-windows-arm64.tar.gz
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.release_sha }}
+
+      - name: Install dependencies (Linux)
+        if: startsWith(matrix.os, 'ubuntu')
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++ git
+
+      - name: Install dependencies (macOS)
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: |
+          brew update
+          brew install cmake ninja || true
+
+      - name: Install dependencies (Windows)
+        if: startsWith(matrix.os, 'windows')
+        shell: powershell
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ninja
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          runVcpkgInstall: true
+
+      - name: Configure
+        shell: bash
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DCMAKE_CXX_STANDARD=23 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DVCPKG_TARGET_TRIPLET="${{ matrix.triplet }}"
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config Release --parallel
+
+      - name: Package artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p package
+          binary=""
+          if [ -f "build/${{ matrix.binary }}" ]; then
+            binary="build/${{ matrix.binary }}"
+          elif [ -f "build/Release/${{ matrix.binary }}" ]; then
+            binary="build/Release/${{ matrix.binary }}"
+          fi
+          if [ -z "$binary" ]; then
+            echo "Built binary not found for ${{ matrix.label }}." >&2
+            ls -R build
+            exit 1
+          fi
+          cp "$binary" "package/${{ matrix.binary }}"
+          tar czf "${{ matrix.asset }}" -C package "${{ matrix.binary }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish rolling release
+    needs: 
+      - prepare
+      - build
+    if: ${{ needs.prepare.outputs.should_release == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.release_name }}
+          body: ${{ needs.prepare.outputs.release_body }}
+          draft: false
+          prerelease: false
+          target_commitish: ${{ needs.prepare.outputs.release_sha }}
+          make_latest: true
+          files: |
+            artifacts/**/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
