@@ -9,12 +9,15 @@
 namespace agpm {
 
 int App::run(int argc, char **argv) {
+  should_exit_ = false;
   try {
     options_ = parse_cli(argc, argv);
   } catch (const CliParseExit &exit) {
+    should_exit_ = true;
     return exit.exit_code();
   } catch (const std::exception &e) {
     spdlog::error("{}", e.what());
+    should_exit_ = true;
     return 1;
   }
   include_repos_ = options_.include_repos;

@@ -25,6 +25,9 @@ public:
   /** Retrieve the loaded configuration. */
   const Config &config() const { return config_; }
 
+  /** Whether the application should exit immediately after run(). */
+  bool should_exit() const { return should_exit_; }
+
   /// Repositories explicitly included via the CLI.
   const std::vector<std::string> &include_repos() const {
     return include_repos_;
@@ -40,6 +43,7 @@ private:
   Config config_;
   std::vector<std::string> include_repos_;
   std::vector<std::string> exclude_repos_;
+  bool should_exit_{false};
 };
 
 } // namespace agpm
