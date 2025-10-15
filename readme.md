@@ -1,4 +1,4 @@
-# autogithubpullmerge
+<img width="1536" height="1024" alt="intro-image" src="https://github.com/user-attachments/assets/afc97d8d-0dc9-4561-b7bc-e7518bfa82c5" />
 
 [![GitHub Repo stars](https://img.shields.io/github/stars/supermarsx/autogithubpullmerge?style=flat-square)](https://github.com/supermarsx/autogithubpullmerge/stargazers)
 [![GitHub watchers](https://img.shields.io/github/watchers/supermarsx/autogithubpullmerge?style=flat-square)](https://github.com/supermarsx/autogithubpullmerge/watchers)
