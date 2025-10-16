@@ -109,4 +109,55 @@ TEST_CASE("test config") {
   REQUIRE(json_cfg.max_upload() == 800);
   REQUIRE(json_cfg.http_proxy() == "http://proxy");
   REQUIRE(json_cfg.https_proxy() == "http://secureproxy");
+
+  // TOML config with extended options
+  {
+    std::ofstream f("cfg.toml");
+    f << "verbose = true\n";
+    f << "poll_interval = 8\n";
+    f << "max_request_rate = 12\n";
+    f << "log_level = \"info\"\n";
+    f << "include_repos = [\"repoTomlA\", \"repoTomlB\"]\n";
+    f << "exclude_repos = [\"repoTomlC\"]\n";
+    f << "api_keys = [\"tok1\", \"tok2\"]\n";
+    f << "history_db = \"history_toml.db\"\n";
+    f << "only_poll_stray = true\n";
+    f << "purge_only = false\n";
+    f << "purge_prefix = \"hotfix/\"\n";
+    f << "pr_limit = 15\n";
+    f << "pr_since = \"45m\"\n";
+    f << "sort = \"reverse-alphanum\"\n";
+    f << "download_limit = 1500\n";
+    f << "upload_limit = 1600\n";
+    f << "max_download = 1700\n";
+    f << "max_upload = 1800\n";
+    f << "http_timeout = 45\n";
+    f << "http_retries = 6\n";
+    f << "use_graphql = true\n";
+    f.close();
+  }
+  agpm::Config toml_cfg = agpm::Config::from_file("cfg.toml");
+  REQUIRE(toml_cfg.verbose());
+  REQUIRE(toml_cfg.poll_interval() == 8);
+  REQUIRE(toml_cfg.max_request_rate() == 12);
+  REQUIRE(toml_cfg.log_level() == "info");
+  REQUIRE(toml_cfg.include_repos().size() == 2);
+  REQUIRE(toml_cfg.include_repos()[1] == "repoTomlB");
+  REQUIRE(toml_cfg.exclude_repos().size() == 1);
+  REQUIRE(toml_cfg.exclude_repos()[0] == "repoTomlC");
+  REQUIRE(toml_cfg.api_keys().size() == 2);
+  REQUIRE(toml_cfg.history_db() == "history_toml.db");
+  REQUIRE(toml_cfg.only_poll_stray());
+  REQUIRE(!toml_cfg.purge_only());
+  REQUIRE(toml_cfg.purge_prefix() == "hotfix/");
+  REQUIRE(toml_cfg.pr_limit() == 15);
+  REQUIRE(toml_cfg.pr_since() == std::chrono::minutes(45));
+  REQUIRE(toml_cfg.sort_mode() == "reverse-alphanum");
+  REQUIRE(toml_cfg.download_limit() == 1500);
+  REQUIRE(toml_cfg.upload_limit() == 1600);
+  REQUIRE(toml_cfg.max_download() == 1700);
+  REQUIRE(toml_cfg.max_upload() == 1800);
+  REQUIRE(toml_cfg.http_timeout() == 45);
+  REQUIRE(toml_cfg.http_retries() == 6);
+  REQUIRE(toml_cfg.use_graphql());
 }

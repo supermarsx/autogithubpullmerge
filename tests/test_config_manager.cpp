@@ -33,4 +33,18 @@ TEST_CASE("test config manager") {
   REQUIRE(json_cfg.poll_interval() == 1);
   REQUIRE(json_cfg.max_request_rate() == 3);
   REQUIRE(json_cfg.log_level() == "error");
+
+  {
+    std::ofstream f("cfg.toml");
+    f << "verbose = true\n";
+    f << "poll_interval = 9\n";
+    f << "max_request_rate = 11\n";
+    f << "log_level = \"debug\"\n";
+    f.close();
+  }
+  agpm::Config toml_cfg = mgr.load("cfg.toml");
+  REQUIRE(toml_cfg.verbose());
+  REQUIRE(toml_cfg.poll_interval() == 9);
+  REQUIRE(toml_cfg.max_request_rate() == 11);
+  REQUIRE(toml_cfg.log_level() == "debug");
 }

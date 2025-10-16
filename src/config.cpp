@@ -2,14 +2,17 @@
 #include "log.hpp"
 #include "util/duration.hpp"
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <iterator>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
+#include <toml++/toml.h>
 #include <yaml-cpp/yaml.h>
 
 namespace agpm {
@@ -61,6 +64,50 @@ nlohmann::json yaml_to_json(const YAML::Node &node) {
   default:
     return nullptr;
   }
+}
+
+nlohmann::json toml_to_json(const toml::node &node) {
+  using nlohmann::json;
+  if (const auto *table = node.as_table()) {
+    json obj = json::object();
+    for (const auto &kv : *table) {
+      obj[kv.first.str()] = toml_to_json(kv.second);
+    }
+    return obj;
+  }
+
+  if (const auto *array = node.as_array()) {
+    json arr = json::array();
+    arr.get_ref<json::array_t &>().reserve(array->size());
+    for (const auto &item : *array) {
+      arr.push_back(toml_to_json(item));
+    }
+    return arr;
+  }
+
+  if (const auto *value = node.as_boolean())
+    return value->get();
+  if (const auto *value = node.as_integer())
+    return value->get();
+  if (const auto *value = node.as_floating_point())
+    return value->get();
+  if (const auto *value = node.as_string())
+    return value->get();
+
+  auto stringify_temporal = [](const auto &temporal) {
+    std::ostringstream oss;
+    oss << temporal;
+    return oss.str();
+  };
+
+  if (const auto *value = node.as_date())
+    return stringify_temporal(value->get());
+  if (const auto *value = node.as_time())
+    return stringify_temporal(value->get());
+  if (const auto *value = node.as_date_time())
+    return stringify_temporal(value->get());
+
+  return nullptr;
 }
 
 } // namespace
@@ -237,19 +284,25 @@ Config Config::from_file(const std::string &path) {
     throw std::runtime_error("Unknown config file extension");
   }
   std::string ext = path.substr(pos + 1);
-  spdlog::debug("Detected config file type: {}", ext);
+  std::string ext_lower = ext;
+  std::transform(ext_lower.begin(), ext_lower.end(), ext_lower.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  spdlog::debug("Detected config file type: {}", ext_lower);
   nlohmann::json j;
   try {
-    if (ext == "yaml" || ext == "yml") {
+    if (ext_lower == "yaml" || ext_lower == "yml") {
       YAML::Node node = YAML::LoadFile(path);
       j = yaml_to_json(node);
-    } else if (ext == "json") {
+    } else if (ext_lower == "json") {
       std::ifstream f(path);
       if (!f) {
         spdlog::error("Failed to open config file {}", path);
         throw std::runtime_error("Failed to open config file");
       }
       f >> j;
+    } else if (ext_lower == "toml" || ext_lower == "tml") {
+      toml::table tbl = toml::parse_file(path);
+      j = toml_to_json(tbl);
     } else {
       spdlog::error("Unsupported config format: {}", ext);
       throw std::runtime_error("Unsupported config format");

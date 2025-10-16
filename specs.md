@@ -8,6 +8,7 @@ Product specification list
 - commits follow "conventional commits structure"
 - Allows to use yaml configuration file
 - Allows to use json configuration file
+- Allows to use toml configuration file
 - Has extensive logging capabilities throughout the code
 - Provides install dependencies scripts for win, linux and macos
 - Provides compilation scripts for win, linux and macos

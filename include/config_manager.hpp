@@ -10,7 +10,7 @@ namespace agpm {
 class ConfigManager {
 public:
   /**
-   * Load a configuration from a YAML or JSON file.
+   * Load a configuration from a YAML, TOML, or JSON file.
    *
    * @param path Path to the configuration file on disk.
    * @return Parsed configuration object.

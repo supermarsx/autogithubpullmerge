@@ -30,6 +30,7 @@ A cross‑platform tool that both automates safe pull request merging and manage
 - CLI options for GitHub API keys (`--api-key`, `--api-key-from-stream`,
   `--api-key-url`, `--api-key-url-user`, `--api-key-url-password`,
   `--api-key-file`)
+- Supports YAML, TOML, and JSON configuration files
 - Rate limiting to control GitHub API usage
 - Branch protection patterns to guard important branches
 - Dry-run mode and HTTP/HTTPS proxy support
@@ -175,16 +176,20 @@ Example configuration files can be found in the `examples` directory:
 
 - `config.example.yaml` (minimal)
 - `config.example.json` (minimal)
+- `config.example.toml` (minimal)
 - `config.full.example.yaml` (full)
 - `config.full.example.json` (full)
+- `config.full.example.toml` (full)
 
 To use these locally, copy an example to a real config filename in the repo root (these are gitignored):
 
 ```bash
 cp examples/config.example.yaml config.yaml          # minimal YAML
 cp examples/config.example.json config.json          # minimal JSON
+cp examples/config.example.toml config.toml          # minimal TOML
 cp examples/config.full.example.yaml config.yaml     # full YAML
 cp examples/config.full.example.json config.json     # full JSON
+cp examples/config.full.example.toml config.toml     # full TOML
 cp examples/tokens.example.yaml tokens.yaml
 ```
 
@@ -198,6 +203,16 @@ download_limit: 1048576
 
 ```bash
 autogithubpullmerge --config examples/config.example.yaml --http-retries 5 --upload-limit 512000
+```
+
+```toml
+# examples/config.example.toml
+http_timeout = 45
+download_limit = 1048576
+```
+
+```bash
+autogithubpullmerge --config examples/config.example.toml --http-retries 5 --upload-limit 512000
 ```
 
 Or configure everything directly on the command line:
@@ -219,7 +234,7 @@ local debugging, see:
 
 General
 - `-v, --verbose` Enable verbose output (implies debug level unless overridden).
-- `--config FILE` Path to configuration file (YAML or JSON).
+- `--config FILE` Path to configuration file (YAML, TOML, or JSON).
 - `--log-level LEVEL` Set logging level: `trace|debug|info|warn|error|critical|off` (default `info`).
 - `--log-file FILE` Path to rotating log file.
 - `--log-limit N` Max number of in-memory log messages (default `200`).

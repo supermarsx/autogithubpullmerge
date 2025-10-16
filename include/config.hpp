@@ -8,7 +8,7 @@
 
 namespace agpm {
 
-/// Application configuration loaded from a YAML or JSON file.
+/// Application configuration loaded from a YAML, TOML, or JSON file.
 class Config {
 public:
   /** Check whether verbose output is enabled. */

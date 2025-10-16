@@ -19,6 +19,7 @@
     "spdlog",
     "sqlite3",
     "yaml-cpp",
+    "tomlplusplus",
     "zlib"
   ]
 }

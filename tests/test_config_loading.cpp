@@ -75,4 +75,39 @@ TEST_CASE("test config loading") {
   REQUIRE(jcfg.http_proxy() == "http://proxy");
   REQUIRE(jcfg.https_proxy() == "http://secureproxy");
   REQUIRE(!jcfg.use_graphql());
+
+  {
+    std::filesystem::path tpath =
+        std::filesystem::temp_directory_path() / "agpm_cfg.toml";
+    std::ofstream f(tpath.string());
+    f << "verbose = false\n";
+    f << "poll_interval = 12\n";
+    f << "max_request_rate = 18\n";
+    f << "log_level = \"info\"\n";
+    f << "http_timeout = 40\n";
+    f << "http_retries = 5\n";
+    f << "download_limit = 31\n";
+    f << "upload_limit = 32\n";
+    f << "max_download = 33\n";
+    f << "max_upload = 34\n";
+    f << "http_proxy = \"http://proxy\"\n";
+    f << "https_proxy = \"http://secureproxy\"\n";
+    f << "use_graphql = true\n";
+    f.close();
+  }
+  agpm::Config tcfg = agpm::Config::from_file(
+      (std::filesystem::temp_directory_path() / "agpm_cfg.toml").string());
+  REQUIRE(!tcfg.verbose());
+  REQUIRE(tcfg.poll_interval() == 12);
+  REQUIRE(tcfg.max_request_rate() == 18);
+  REQUIRE(tcfg.log_level() == "info");
+  REQUIRE(tcfg.http_timeout() == 40);
+  REQUIRE(tcfg.http_retries() == 5);
+  REQUIRE(tcfg.download_limit() == 31);
+  REQUIRE(tcfg.upload_limit() == 32);
+  REQUIRE(tcfg.max_download() == 33);
+  REQUIRE(tcfg.max_upload() == 34);
+  REQUIRE(tcfg.http_proxy() == "http://proxy");
+  REQUIRE(tcfg.https_proxy() == "http://secureproxy");
+  REQUIRE(tcfg.use_graphql());
 }

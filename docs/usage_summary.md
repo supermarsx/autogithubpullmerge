@@ -15,7 +15,7 @@ to build the project on supported platforms.
 ### General
 
 - `-v/--verbose` - enable verbose output.
-- `--config` - path to a YAML or JSON configuration file.
+- `--config` - path to a YAML, TOML, or JSON configuration file.
 - `--log-level` - set verbosity (`trace`, `debug`, `info`, `warn`, `error`,
   `critical`, `off`).
 - `--history-db` - path to the SQLite history database.

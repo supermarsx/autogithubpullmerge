@@ -1,0 +1,5 @@
+# Example configuration for autogithubpullmerge
+verbose = true
+poll_interval = 60
+max_request_rate = 100
+use_graphql = true

@@ -1,0 +1,13 @@
+verbose = true
+poll_interval = 10
+max_request_rate = 20
+log_level = "debug"
+http_timeout = 60
+http_retries = 7
+download_limit = 11
+upload_limit = 12
+max_download = 13
+max_upload = 14
+http_proxy = "http://proxy"
+https_proxy = "http://secureproxy"
+use_graphql = true
