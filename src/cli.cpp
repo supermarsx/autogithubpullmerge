@@ -391,6 +391,37 @@ CliOptions parse_cli(int argc, char **argv) {
       app.add_flag("--purge-only", options.purge_only,
                "Only purge branches and skip PR polling")
       ->group("Branch Management");
+  protect_branch->alias("-pb");
+  protect_branch_exclude->alias("-px");
+  api_key_opt->alias("-ak");
+  api_key_stream->alias("-ks");
+  api_key_url->alias("-ku");
+  api_key_url_user->alias("-kU");
+  api_key_url_password->alias("-kp");
+  api_key_file->alias("-kf");
+  export_csv->alias("-ec");
+  export_json->alias("-ej");
+  http_retries->alias("-hr");
+  download_limit->alias("-dl");
+  upload_limit->alias("-ul");
+  max_download->alias("-md");
+  max_upload->alias("-mu");
+  http_proxy->alias("-hp");
+  https_proxy->alias("-hs");
+  pr_limit->alias("-pl");
+  pr_since->alias("-ps");
+  single_open_prs->alias("-so");
+  single_branches->alias("-sb");
+  only_poll_prs->alias("-op");
+  only_poll_stray->alias("-os");
+  reject_dirty->alias("-rd");
+  delete_stray->alias("-ds");
+  auto_merge->alias("-am");
+  require_approval->alias("-ra");
+  require_status_success->alias("-rs");
+  require_mergeable->alias("-rm");
+  purge_prefix->alias("-pp");
+  purge_only->alias("-po");
   try {
     std::vector<char *> args(argv, argv + argc);
     args.push_back(nullptr);
