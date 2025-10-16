@@ -160,19 +160,21 @@ CliOptions parse_cli(int argc, char **argv) {
   std::string pr_since_str{"0"};
   app.add_flag("-v,--verbose", options.verbose, "Enable verbose output")
       ->group("General");
-  app.add_option("--config", options.config_file, "Path to configuration file")
+  app.add_option("-C,--config", options.config_file,
+                 "Path to configuration file")
       ->type_name("FILE")
       ->group("General");
   app.add_option(
-         "--log-level", options.log_level,
+         "-G,--log-level", options.log_level,
          "Set logging level (trace, debug, info, warn, error, critical, off)")
       ->type_name("LEVEL")
       ->default_val("info")
       ->group("General");
-  app.add_option("--log-file", options.log_file, "Path to rotating log file")
+  app.add_option("-F,--log-file", options.log_file,
+                 "Path to rotating log file")
       ->type_name("FILE")
       ->group("General");
-  app.add_option("--log-limit", options.log_limit,
+  app.add_option("-L,--log-limit", options.log_limit,
                  "Maximum number of log messages to retain")
       ->type_name("N")
       ->default_val("200")
@@ -180,186 +182,213 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("-y,--yes", options.assume_yes,
                "Assume yes to confirmation prompts")
       ->group("General");
-  app.add_flag("--dry-run", options.dry_run,
+  app.add_flag("-D,--dry-run", options.dry_run,
                "Perform a trial run with no changes")
       ->group("General");
-  app.add_option("--include", options.include_repos,
+  app.add_option("-I,--include", options.include_repos,
                  "Repository to include; repeatable")
       ->type_name("REPO")
       ->expected(-1)
       ->group("Repositories");
-  app.add_option("--exclude", options.exclude_repos,
+  app.add_option("-X,--exclude", options.exclude_repos,
                  "Repository to exclude; repeatable")
       ->type_name("REPO")
       ->expected(-1)
       ->group("Repositories");
-  app.add_option("--protect-branch,--protected-branch",
+  auto protect_branch = app.add_option("-B,--protect-branch,--protected-branch",
                  options.protected_branches,
                  "Branch pattern to protect from deletion; repeatable")
       ->type_name("PATTERN")
       ->expected(-1)
       ->group("Branch Management");
-  app.add_option("--protect-branch-exclude", options.protected_branch_excludes,
+  auto protect_branch_exclude =
+      app.add_option("--protect-branch-exclude",
                  "Branch pattern to remove protection; repeatable")
       ->type_name("PATTERN")
       ->expected(-1)
       ->group("Branch Management");
-  app.add_flag("--include-merged", options.include_merged,
+  app.add_flag("-m,--include-merged", options.include_merged,
                "Include merged pull requests")
       ->group("Pull Request Management");
-  app.add_option("--api-key", options.api_keys,
+  auto api_key_opt =
+      app.add_option("-k,--api-key", options.api_keys,
                  "Personal access token (repeatable, not recommended)")
       ->type_name("TOKEN")
       ->expected(-1)
       ->group("Authentication");
-  app.add_flag("--api-key-from-stream", options.api_key_from_stream,
+  auto api_key_stream =
+      app.add_flag("--api-key-from-stream", options.api_key_from_stream,
                "Read API key(s) from stdin")
       ->group("Authentication");
-  app.add_option("--api-key-url", options.api_key_url,
+  auto api_key_url =
+      app.add_option("--api-key-url", options.api_key_url,
                  "URL to fetch API key(s)")
       ->type_name("URL")
       ->group("Authentication");
-  app.add_option("--api-key-url-user", options.api_key_url_user,
+  auto api_key_url_user =
+      app.add_option("--api-key-url-user", options.api_key_url_user,
                  "Basic auth username")
       ->type_name("USER")
       ->group("Authentication");
-  app.add_option("--api-key-url-password", options.api_key_url_password,
+  auto api_key_url_password = app.add_option(
+      "--api-key-url-password", options.api_key_url_password,
                  "Basic auth password")
       ->type_name("PASS")
       ->group("Authentication");
-  app.add_option("--api-key-file", options.api_key_file,
+  auto api_key_file =
+      app.add_option("--api-key-file", options.api_key_file,
                  "Path to JSON/YAML file with API key(s)")
       ->type_name("FILE")
       ->group("Authentication");
-  app.add_option("--api-base", options.api_base,
+  app.add_option("-A,--api-base", options.api_base,
                  "Base URL for GitHub API (default: https://api.github.com)")
       ->type_name("URL")
       ->group("Networking");
-  app.add_option("--history-db", options.history_db,
+  app.add_option("-H,--history-db", options.history_db,
                  "Path to SQLite history database")
       ->type_name("FILE")
       ->default_val("history.db")
       ->group("General");
-  app.add_option("--export-csv", options.export_csv,
+  auto export_csv =
+      app.add_option("--export-csv", options.export_csv,
                  "Export pull request history to CSV file after each poll")
       ->type_name("FILE")
       ->group("General");
-  app.add_option("--export-json", options.export_json,
+  auto export_json =
+      app.add_option("--export-json", options.export_json,
                  "Export pull request history to JSON file after each poll")
       ->type_name("FILE")
       ->group("General");
-  app.add_option("--poll-interval", options.poll_interval,
+  app.add_option("-p,--poll-interval", options.poll_interval,
                  "Polling interval in seconds")
       ->type_name("SECONDS")
       ->default_val("0")
       ->group("Polling");
-  app.add_option("--max-request-rate", options.max_request_rate,
+  app.add_option("-r,--max-request-rate", options.max_request_rate,
                  "Maximum requests per minute")
       ->type_name("RATE")
       ->default_val("60")
       ->group("Polling");
-  app.add_option("--workers", options.workers, "Number of worker threads")
+  app.add_option("-W,--workers", options.workers,
+                 "Number of worker threads")
       ->type_name("N")
       ->check(CLI::NonNegativeNumber)
       ->group("Polling");
-  app.add_option("--http-timeout", options.http_timeout,
+  app.add_option("-t,--http-timeout", options.http_timeout,
                  "HTTP request timeout in seconds")
       ->type_name("SECONDS")
       ->default_val("30")
       ->group("Networking");
-  app.add_option("--http-retries", options.http_retries,
+  auto http_retries =
+      app.add_option("--http-retries", options.http_retries,
                  "Number of HTTP retry attempts")
       ->type_name("N")
       ->default_val("3")
       ->group("Networking");
-  app.add_option("--download-limit", options.download_limit,
+  auto download_limit =
+      app.add_option("--download-limit", options.download_limit,
                  "Maximum download rate in bytes per second")
       ->type_name("BPS")
       ->group("Networking");
-  app.add_option("--upload-limit", options.upload_limit,
+  auto upload_limit =
+      app.add_option("--upload-limit", options.upload_limit,
                  "Maximum upload rate in bytes per second")
       ->type_name("BPS")
       ->group("Networking");
-  app.add_option("--max-download", options.max_download,
+  auto max_download =
+      app.add_option("--max-download", options.max_download,
                  "Maximum total download in bytes")
       ->type_name("BYTES")
       ->group("Networking");
-  app.add_option("--max-upload", options.max_upload,
+  auto max_upload =
+      app.add_option("--max-upload", options.max_upload,
                  "Maximum total upload in bytes")
       ->type_name("BYTES")
       ->group("Networking");
-  app.add_option("--http-proxy", options.http_proxy,
+  auto http_proxy = app.add_option("--http-proxy", options.http_proxy,
                  "Proxy URL for HTTP requests")
       ->type_name("URL")
       ->group("Networking");
-  app.add_option("--https-proxy", options.https_proxy,
+  auto https_proxy =
+      app.add_option("--https-proxy", options.https_proxy,
                  "Proxy URL for HTTPS requests")
       ->type_name("URL")
       ->group("Networking");
-  app.add_flag("--use-graphql", options.use_graphql,
+  app.add_flag("-g,--use-graphql", options.use_graphql,
                "Use GraphQL API for pull requests")
       ->group("Networking");
-  app.add_option("--pr-limit", options.pr_limit,
+  auto pr_limit =
+      app.add_option("--pr-limit", options.pr_limit,
                  "Number of pull requests to fetch")
       ->type_name("N")
       ->default_val("50")
       ->group("Pull Request Management");
-  app.add_option("--pr-since", pr_since_str,
+  auto pr_since = app.add_option("--pr-since", pr_since_str,
                  "Only list pull requests newer than given duration")
       ->type_name("DURATION")
       ->default_val("0")
       ->group("Pull Request Management");
-  app.add_option(
+  auto single_open_prs = app.add_option(
          "--single-open-prs", options.single_open_prs_repo,
          "Fetch open PRs for a single repo via one HTTP request and exit")
       ->type_name("OWNER/REPO")
       ->group("Testing");
-  app.add_option(
+  auto single_branches = app.add_option(
          "--single-branches", options.single_branches_repo,
          "Fetch branches for a single repo via one HTTP request and exit")
       ->type_name("OWNER/REPO")
       ->group("Testing");
-  app.add_option(
-         "--sort", options.sort,
+  auto sort_opt = app.add_option(
+         "-S,--sort", options.sort,
          "Sort pull requests: alpha, reverse, alphanum, reverse-alphanum")
       ->type_name("MODE")
       ->check(
           CLI::IsMember({"alpha", "reverse", "alphanum", "reverse-alphanum"}))
       ->group("Pull Request Management");
-  app.add_flag("--only-poll-prs", options.only_poll_prs,
+  auto only_poll_prs =
+      app.add_flag("--only-poll-prs", options.only_poll_prs,
                "Only poll pull requests")
       ->group("Pull Request Management");
-  app.add_flag("--only-poll-stray", options.only_poll_stray,
+  auto only_poll_stray =
+      app.add_flag("--only-poll-stray", options.only_poll_stray,
                "Only poll stray branches")
       ->group("Branch Management");
-  app.add_flag("--reject-dirty", options.reject_dirty,
+  auto reject_dirty =
+      app.add_flag("--reject-dirty", options.reject_dirty,
                "Close dirty stray branches automatically")
       ->group("Branch Management");
-  app.add_flag("--delete-stray", options.delete_stray,
+  auto delete_stray =
+      app.add_flag("--delete-stray", options.delete_stray,
                "Delete stray branches without requiring a prefix")
       ->group("Branch Management");
   app.add_flag("--allow-delete-base-branch", options.allow_delete_base_branch,
                "Allow deletion of base branches such as main/master (dangerous)")
       ->group("Branch Management");
-  app.add_flag("--auto-merge", options.auto_merge,
+  auto auto_merge =
+      app.add_flag("--auto-merge", options.auto_merge,
                "Automatically merge pull requests")
       ->group("Pull Request Management");
-  app.add_option("--require-approval", options.required_approvals,
+  auto require_approval =
+      app.add_option("--require-approval", options.required_approvals,
                  "Minimum number of approvals required before merging")
       ->type_name("N")
       ->default_val("0")
       ->group("Pull Request Management");
-  app.add_flag("--require-status-success", options.require_status_success,
+  auto require_status_success = app.add_flag(
+      "--require-status-success", options.require_status_success,
                "Require all status checks to succeed before merging")
       ->group("Pull Request Management");
-  app.add_flag("--require-mergeable", options.require_mergeable_state,
+  auto require_mergeable =
+      app.add_flag("--require-mergeable", options.require_mergeable_state,
                "Require pull request to be mergeable")
       ->group("Pull Request Management");
-  app.add_option("--purge-prefix", options.purge_prefix,
+  auto purge_prefix =
+      app.add_option("--purge-prefix", options.purge_prefix,
                  "Delete branches with this prefix after PR close")
       ->type_name("PREFIX")
       ->group("Branch Management");
-  app.add_flag("--purge-only", options.purge_only,
+  auto purge_only =
+      app.add_flag("--purge-only", options.purge_only,
                "Only purge branches and skip PR polling")
       ->group("Branch Management");
   try {
