@@ -177,6 +177,11 @@ TEST_CASE("test cli", "[cli]") {
   agpm::CliOptions opts_delete = agpm::parse_cli(3, argv_delete);
   REQUIRE(opts_delete.delete_stray);
 
+  char allow_delete_flag[] = "--allow-delete-base-branch";
+  char *argv_allow_delete[] = {prog, yes_flag, allow_delete_flag};
+  agpm::CliOptions opts_allow_delete = agpm::parse_cli(3, argv_allow_delete);
+  REQUIRE(opts_allow_delete.allow_delete_base_branch);
+
   char limit_flag[] = "--pr-limit";
   char limit_val[] = "25";
   char *argv16[] = {prog, limit_flag, limit_val};
@@ -217,6 +222,7 @@ TEST_CASE("test cli", "[cli]") {
   agpm::CliOptions opts22 = agpm::parse_cli(1, argv22);
   REQUIRE(!opts22.auto_merge);
   REQUIRE(!opts22.purge_only);
+  REQUIRE(!opts22.allow_delete_base_branch);
 
   char sort_flag[] = "--sort";
   char sort_alpha[] = "alpha";

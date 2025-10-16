@@ -1,7 +1,9 @@
 #include "github_poller.hpp"
 #include <catch2/catch_test_macros.hpp>
+#include <algorithm>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 using namespace agpm;
 
@@ -94,11 +96,16 @@ TEST_CASE("test poller branch") {
     BranchListClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, 1, false, true);
-    std::string msg;
-    poller.set_log_callback([&](const std::string &m) { msg = m; });
+    std::vector<std::string> logs;
+    poller.set_log_callback([&](const std::string &m) {
+      logs.push_back(m);
+    });
     poller.poll_now();
     REQUIRE(raw->branch_get_count == 1);
-    REQUIRE(msg.find("stray branches: 1") != std::string::npos);
+    bool stray_reported = std::any_of(logs.begin(), logs.end(), [](const auto &m) {
+      return m.find("stray branches: 1") != std::string::npos;
+    });
+    REQUIRE(stray_reported);
     REQUIRE(raw->last_deleted.empty());
   }
 

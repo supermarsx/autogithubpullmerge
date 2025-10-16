@@ -10,6 +10,8 @@
 
 A cross‑platform tool that both automates safe pull request merging and manages stray branches (detects, closes, deletes or purges), with a terminal UI and scriptable CLI.
 
+> **Warning:** autogithubpullmerge can delete branches, merge pull requests, and modify repositories on your behalf. Misconfiguration or casual experimentation may cause irreversible changes across your organization. This tool is intended for experienced operators who understand the impact of every option they enable.
+
 ## Features
 - Cross-platform build using CMake
 - Linux, macOS and Windows install/build scripts
@@ -66,8 +68,8 @@ token is supplied via flags, the tool falls back to `GITHUB_TOKEN` (or
 
 ## Polling Options
 
-See Polling and Actions in "CLI Options (Reference)" for the comprehensive list
-of flags and defaults.
+See Polling, Branch Management, and Pull Request Management in
+"CLI Options (Reference)" for the comprehensive list of flags and defaults.
 
 ## Networking
 
@@ -227,9 +229,27 @@ General
 Repositories
 - `--include REPO` Repository to include (repeatable). Format `OWNER/REPO`.
 - `--exclude REPO` Repository to exclude (repeatable). Format `OWNER/REPO`.
+
+Branch Management
 - `--protect-branch, --protected-branch PATTERN` Protect matching branches (repeatable). Glob or regex.
 - `--protect-branch-exclude PATTERN` Remove protection for matching branches (repeatable).
+- `--only-poll-stray` Poll only stray branches.
+- `--reject-dirty` Close dirty stray branches automatically (dangerous).
+- `--delete-stray` Delete stray branches without requiring a prefix (dangerous).
+- `--allow-delete-base-branch` Permit deleting base branches such as `main` or `master` (very dangerous).
+- `--purge-prefix PREFIX` Delete branches with this prefix after PR close/merge.
+- `--purge-only` Only purge branches; skip PR polling (dangerous).
+
+Pull Request Management
 - `--include-merged` Include merged PRs when listing.
+- `--pr-limit N` Number of PRs to fetch when listing (default `50`).
+- `--pr-since DURATION` Only list PRs newer than duration (e.g. `30m`, `2h`, `1d`).
+- `--sort MODE` Sort titles: `alpha|reverse|alphanum|reverse-alphanum`.
+- `--only-poll-prs` Poll only pull requests (skip branch operations).
+- `--auto-merge` Automatically merge PRs (dangerous).
+- `--require-approval N` Minimum approvals required before merge (default `0`).
+- `--require-status-success` Require all status checks to pass before merge.
+- `--require-mergeable` Require PR to be mergeable.
 
 Authentication
 - `--api-key TOKEN` Personal access token (repeatable; not recommended).
@@ -261,22 +281,6 @@ Polling
 - `--poll-interval SECONDS` Poll frequency; `0` disables background polling (default `0`).
 - `--max-request-rate RATE` Max requests per minute (default `60`).
 - `--workers N` Number of worker threads (non-negative; default from config or 1).
-- `--pr-limit N` Number of PRs to fetch when listing (default `50`).
-- `--pr-since DURATION` Only list PRs newer than duration (e.g. `30m`, `2h`, `1d`).
-- `--sort MODE` Sort titles: `alpha|reverse|alphanum|reverse-alphanum`.
-- `--only-poll-prs` Only poll pull requests (skip branch ops).
-- `--only-poll-stray` Only poll stray branches mode.
-
-Actions
-- `--reject-dirty` Close dirty stray branches automatically (dangerous).
-- `--delete-stray` Delete stray branches without requiring a prefix (dangerous).
-- `--auto-merge` Automatically merge PRs (dangerous).
-- `--require-approval N` Minimum approvals required before merge (default `0`).
-- `--require-status-success` Require all status checks to pass before merge.
-- `--require-mergeable` Require PR to be mergeable.
-- `--purge-prefix PREFIX` Delete branches with this prefix after PR close/merge.
-- `--purge-only` Only purge branches; skip PR polling (dangerous).
-  Note: destructive options prompt for confirmation unless `--yes` is provided.
 
 Testing / Utilities
 - `--single-open-prs OWNER/REPO` Fetch open PRs for a repo via one HTTP request and exit.
@@ -295,6 +299,7 @@ autogithubpullmerge --single-open-prs owner/repo
 # Example output
 # owner/repo #123: Fix race in poller
 # owner/repo #124: Add unit tests
+# owner/repo pull requests: 2
 ```
 
 Notes:
@@ -316,6 +321,7 @@ autogithubpullmerge --single-branches owner/repo
 # Example output
 # owner/repo branch: main
 # owner/repo branch: feature/new-ui
+# owner/repo branches: 2
 ```
 
 Notes:

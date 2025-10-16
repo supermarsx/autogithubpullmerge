@@ -149,6 +149,28 @@ TEST_CASE("test branch cleanup") {
             "https://api.github.com/repos/me/repo/git/refs/heads/tmp/feature");
   }
 
+  // Base branch should never be deleted without override.
+  {
+    auto http = std::make_unique<CleanupHttpClient>();
+    http->response = "[{\"head\":{\"ref\":\"main\"}}]";
+    CleanupHttpClient *raw = http.get();
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+    client.cleanup_branches("me", "repo", "main");
+    REQUIRE(raw->last_deleted.empty());
+  }
+
+  // Override allows deleting the base branch explicitly.
+  {
+    auto http = std::make_unique<CleanupHttpClient>();
+    http->response = "[{\"head\":{\"ref\":\"main\"}}]";
+    CleanupHttpClient *raw = http.get();
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+    client.set_allow_delete_base_branch(true);
+    client.cleanup_branches("me", "repo", "main");
+    REQUIRE(raw->last_deleted ==
+            "https://api.github.com/repos/me/repo/git/refs/heads/main");
+  }
+
   // Protected branch matching pattern should not be deleted.
   {
     auto http = std::make_unique<CleanupHttpClient>();
@@ -221,5 +243,36 @@ TEST_CASE("test branch cleanup") {
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.close_dirty_branches("me", "repo");
     REQUIRE(raw->last_deleted == raw->base + "/git/refs/heads/feature2");
+  }
+
+  // Base branch named main should not be deleted when default branch differs.
+  {
+    auto http = std::make_unique<BranchHttpClient>();
+    BranchHttpClient *raw = http.get();
+    std::string base = "https://api.github.com/repos/me/repo";
+    raw->responses[base] = "{\"default_branch\":\"develop\"}";
+    raw->responses[base + "/branches"] =
+        "[{\"name\":\"develop\"},{\"name\":\"main\"}]";
+    raw->responses[base + "/compare/develop...main"] =
+        "{\"status\":\"ahead\",\"ahead_by\":1}";
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+    client.close_dirty_branches("me", "repo");
+    REQUIRE(raw->last_deleted.empty());
+  }
+
+  // Override permits deleting the base branch even when named main.
+  {
+    auto http = std::make_unique<BranchHttpClient>();
+    BranchHttpClient *raw = http.get();
+    std::string base = "https://api.github.com/repos/me/repo";
+    raw->responses[base] = "{\"default_branch\":\"develop\"}";
+    raw->responses[base + "/branches"] =
+        "[{\"name\":\"develop\"},{\"name\":\"main\"}]";
+    raw->responses[base + "/compare/develop...main"] =
+        "{\"status\":\"ahead\",\"ahead_by\":1}";
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+    client.set_allow_delete_base_branch(true);
+    client.close_dirty_branches("me", "repo");
+    REQUIRE(raw->last_deleted == base + "/git/refs/heads/main");
   }
 }

@@ -2,6 +2,7 @@
 #include "curl/curl.h"
 #include "log.hpp"
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <ctime>
 #include <fstream>
@@ -82,6 +83,19 @@ bool matches_pattern(const std::string &name,
                          return name == p;
                        }
                      });
+}
+
+std::string to_lower_copy(const std::string &s) {
+  std::string out = s;
+  std::transform(out.begin(), out.end(), out.begin(), [](unsigned char c) {
+    return static_cast<char>(std::tolower(c));
+  });
+  return out;
+}
+
+bool is_base_branch_name(const std::string &name) {
+  const std::string lower = to_lower_copy(name);
+  return lower == "main" || lower == "master";
 }
 
 // Determine whether a branch name should be considered protected based on
@@ -961,14 +975,32 @@ void GitHubClient::cleanup_branches(
     spdlog::debug("Skipping branch cleanup for {}/{}", owner, repo);
     return;
   }
+  if (!allow_delete_base_branch_ && is_base_branch_name(prefix)) {
+    spdlog::warn("Refusing to delete protected base branch {} in {}/{}", prefix,
+                 owner, repo);
+    return;
+  }
   spdlog::info("Cleaning up branches in {}/{} with prefix {}", owner, repo,
                prefix);
-  std::string url =
-      api_base_ + "/repos/" + owner + "/" + repo + "/pulls?state=closed";
+  std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
+  std::string url = repo_url + "/pulls?state=closed";
   std::vector<std::string> headers;
   if (!tokens_.empty())
     headers.push_back("Authorization: token " + tokens_[token_index_]);
   headers.push_back("Accept: application/vnd.github+json");
+  std::string default_branch;
+  if (!allow_delete_base_branch_) {
+    try {
+      auto repo_res = get_with_cache(repo_url, headers);
+      auto repo_json = nlohmann::json::parse(repo_res.body);
+      if (repo_json.is_object() && repo_json.contains("default_branch")) {
+        default_branch = repo_json["default_branch"].get<std::string>();
+      }
+    } catch (const std::exception &e) {
+      spdlog::debug("Failed to retrieve default branch for {}/{}: {}", owner,
+                    repo, e.what());
+    }
+  }
   while (true) {
     enforce_delay();
     HttpResponse res;
@@ -994,6 +1026,19 @@ void GitHubClient::cleanup_branches(
         if (branch.rfind(prefix, 0) == 0 &&
             !is_protected_branch(branch, protected_branches,
                                  protected_branch_excludes)) {
+          if (!allow_delete_base_branch_ &&
+              (!default_branch.empty() && branch == default_branch)) {
+            spdlog::warn(
+                "Skipping deletion of repository default branch {} in {}/{}",
+                branch, owner, repo);
+            continue;
+          }
+          if (!allow_delete_base_branch_ && is_base_branch_name(branch)) {
+            spdlog::warn(
+                "Skipping deletion of protected base branch {} in {}/{}",
+                branch, owner, repo);
+            continue;
+          }
           enforce_delay();
           std::string del_url = api_base_ + "/repos/" + owner + "/" + repo +
                                 "/git/refs/heads/" + branch;
@@ -1100,8 +1145,16 @@ void GitHubClient::close_dirty_branches(
         continue;
       }
       std::string branch = b["name"].get<std::string>();
-      if (branch == default_branch ||
-          is_protected_branch(branch, protected_branches,
+      if (!allow_delete_base_branch_ && branch == default_branch) {
+        continue;
+      }
+      if (!allow_delete_base_branch_ && is_base_branch_name(branch)) {
+        spdlog::warn(
+            "Skipping deletion of protected base branch {} in {}/{}", branch,
+            owner, repo);
+        continue;
+      }
+      if (is_protected_branch(branch, protected_branches,
                               protected_branch_excludes)) {
         continue;
       }

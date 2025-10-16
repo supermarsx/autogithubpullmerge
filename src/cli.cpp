@@ -198,15 +198,15 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Branch pattern to protect from deletion; repeatable")
       ->type_name("PATTERN")
       ->expected(-1)
-      ->group("Repositories");
+      ->group("Branch Management");
   app.add_option("--protect-branch-exclude", options.protected_branch_excludes,
                  "Branch pattern to remove protection; repeatable")
       ->type_name("PATTERN")
       ->expected(-1)
-      ->group("Repositories");
+      ->group("Branch Management");
   app.add_flag("--include-merged", options.include_merged,
                "Include merged pull requests")
-      ->group("Repositories");
+      ->group("Pull Request Management");
   app.add_option("--api-key", options.api_keys,
                  "Personal access token (repeatable, not recommended)")
       ->type_name("TOKEN")
@@ -303,12 +303,12 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Number of pull requests to fetch")
       ->type_name("N")
       ->default_val("50")
-      ->group("Polling");
+      ->group("Pull Request Management");
   app.add_option("--pr-since", pr_since_str,
                  "Only list pull requests newer than given duration")
       ->type_name("DURATION")
       ->default_val("0")
-      ->group("Polling");
+      ->group("Pull Request Management");
   app.add_option(
          "--single-open-prs", options.single_open_prs_repo,
          "Fetch open PRs for a single repo via one HTTP request and exit")
@@ -325,40 +325,43 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("MODE")
       ->check(
           CLI::IsMember({"alpha", "reverse", "alphanum", "reverse-alphanum"}))
-      ->group("Polling");
+      ->group("Pull Request Management");
   app.add_flag("--only-poll-prs", options.only_poll_prs,
                "Only poll pull requests")
-      ->group("Polling");
+      ->group("Pull Request Management");
   app.add_flag("--only-poll-stray", options.only_poll_stray,
                "Only poll stray branches")
-      ->group("Polling");
+      ->group("Branch Management");
   app.add_flag("--reject-dirty", options.reject_dirty,
                "Close dirty stray branches automatically")
-      ->group("Actions");
+      ->group("Branch Management");
   app.add_flag("--delete-stray", options.delete_stray,
                "Delete stray branches without requiring a prefix")
-      ->group("Actions");
+      ->group("Branch Management");
+  app.add_flag("--allow-delete-base-branch", options.allow_delete_base_branch,
+               "Allow deletion of base branches such as main/master (dangerous)")
+      ->group("Branch Management");
   app.add_flag("--auto-merge", options.auto_merge,
                "Automatically merge pull requests")
-      ->group("Actions");
+      ->group("Pull Request Management");
   app.add_option("--require-approval", options.required_approvals,
                  "Minimum number of approvals required before merging")
       ->type_name("N")
       ->default_val("0")
-      ->group("Actions");
+      ->group("Pull Request Management");
   app.add_flag("--require-status-success", options.require_status_success,
                "Require all status checks to succeed before merging")
-      ->group("Actions");
+      ->group("Pull Request Management");
   app.add_flag("--require-mergeable", options.require_mergeable_state,
                "Require pull request to be mergeable")
-      ->group("Actions");
+      ->group("Pull Request Management");
   app.add_option("--purge-prefix", options.purge_prefix,
                  "Delete branches with this prefix after PR close")
       ->type_name("PREFIX")
-      ->group("Actions");
+      ->group("Branch Management");
   app.add_flag("--purge-only", options.purge_only,
                "Only purge branches and skip PR polling")
-      ->group("Actions");
+      ->group("Branch Management");
   try {
     std::vector<char *> args(argv, argv + argc);
     args.push_back(nullptr);
@@ -398,7 +401,8 @@ CliOptions parse_cli(int argc, char **argv) {
   }
   options.pr_since = parse_duration(pr_since_str);
   bool destructive =
-      (options.reject_dirty || options.delete_stray || options.auto_merge ||
+      (options.reject_dirty || options.delete_stray ||
+       options.allow_delete_base_branch || options.auto_merge ||
        !options.purge_prefix.empty() || options.purge_only) &&
       !options.dry_run;
   if (destructive && !options.assume_yes) {

@@ -216,6 +216,11 @@ public:
   /// Set whether a PR must be mergeable before merging.
   void set_require_mergeable_state(bool v) { require_mergeable_state_ = v; }
 
+  /// Set whether base branches such as main/master may be deleted.
+  void set_allow_delete_base_branch(bool v) {
+    allow_delete_base_branch_ = v;
+  }
+
   /**
    * List repositories accessible to the authenticated user.
    *
@@ -338,6 +343,7 @@ private:
 
   int delay_ms_;
   std::chrono::steady_clock::time_point last_request_;
+  bool allow_delete_base_branch_{false};
 
   bool repo_allowed(const std::string &owner, const std::string &repo) const;
   void enforce_delay();

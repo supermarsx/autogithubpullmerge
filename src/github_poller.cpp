@@ -2,6 +2,7 @@
 #include "log.hpp"
 #include "sort.hpp"
 #include <algorithm>
+#include <atomic>
 #include <future>
 #include <iterator>
 #include <mutex>
@@ -97,14 +98,14 @@ void GitHubPoller::poll() {
   std::vector<PullRequest> all_prs;
   std::mutex pr_mutex;
   std::mutex log_mutex;
+  std::atomic<std::size_t> total_pr_count{0};
+  std::atomic<std::size_t> total_branch_count{0};
   std::vector<std::future<void>> futures;
   futures.reserve(repos_.size());
-  std::transform(
-      repos_.begin(), repos_.end(), std::back_inserter(futures),
-      [this, skip_branch_ops, &all_prs, &pr_mutex, &log_mutex](
-          const std::pair<std::string, std::string> &repo) {
-        return poller_.submit([this, repo, skip_branch_ops, &all_prs,
-                               &pr_mutex, &log_mutex] {
+  for (const auto &repo : repos_) {
+    futures.emplace_back(poller_.submit(
+        [this, repo, skip_branch_ops, &all_prs, &pr_mutex, &log_mutex,
+         &total_pr_count, &total_branch_count] {
       if (purge_only_) {
         spdlog::debug("purge_only set - skipping repo {}/{}", repo.first,
                       repo.second);
@@ -141,6 +142,15 @@ void GitHubPoller::poll() {
             }
           }
         }
+        total_pr_count.fetch_add(prs.size(), std::memory_order_relaxed);
+        if (log_cb_) {
+          std::lock_guard<std::mutex> lk(log_mutex);
+          log_cb_(repo.first + "/" + repo.second + " pull requests: " +
+                  std::to_string(prs.size()));
+        } else {
+          spdlog::info("Fetched {} pull requests for {}/{}", prs.size(),
+                       repo.first, repo.second);
+        }
         if (auto_merge_) {
           for (const auto &pr : prs) {
             if (dry_run_) {
@@ -176,6 +186,16 @@ void GitHubPoller::poll() {
       }
       if (!skip_branch_ops) {
         auto branches = client_.list_branches(repo.first, repo.second);
+        total_branch_count.fetch_add(branches.size(),
+                                     std::memory_order_relaxed);
+        if (log_cb_) {
+          std::lock_guard<std::mutex> lk(log_mutex);
+          log_cb_(repo.first + "/" + repo.second + " branches: " +
+                  std::to_string(branches.size()));
+        } else {
+          spdlog::info("Fetched {} branches for {}/{}", branches.size(),
+                       repo.first, repo.second);
+        }
         std::vector<std::string> stray;
         std::copy_if(branches.begin(), branches.end(),
                      std::back_inserter(stray),
@@ -187,6 +207,9 @@ void GitHubPoller::poll() {
           std::lock_guard<std::mutex> lk(log_mutex);
           log_cb_(repo.first + "/" + repo.second +
                   " stray branches: " + std::to_string(stray.size()));
+        } else {
+          spdlog::info("{} / {} stray branches: {}", repo.first, repo.second,
+                       stray.size());
         }
         if (delete_stray_) {
           for (const auto &b : stray) {
@@ -210,14 +233,31 @@ void GitHubPoller::poll() {
                                      protected_branches_,
                                      protected_branch_excludes_);
       }
-        });
-      });
+        }));
+  }
   for (auto &f : futures) {
     f.get();
+  }
+  const std::size_t total_prs = total_pr_count.load(std::memory_order_relaxed);
+  if (log_cb_) {
+    std::lock_guard<std::mutex> lk(log_mutex);
+    log_cb_("Total pull requests fetched: " + std::to_string(total_prs));
+  } else {
+    spdlog::info("Total pull requests fetched: {}", total_prs);
   }
   sort_pull_requests(all_prs, sort_mode_);
   if (pr_cb_) {
     pr_cb_(all_prs);
+  }
+  if (!skip_branch_ops) {
+    const std::size_t total_branches =
+        total_branch_count.load(std::memory_order_relaxed);
+    if (log_cb_) {
+      std::lock_guard<std::mutex> lk(log_mutex);
+      log_cb_("Total branches fetched: " + std::to_string(total_branches));
+    } else {
+      spdlog::info("Total branches fetched: {}", total_branches);
+    }
   }
   if (export_cb_) {
     spdlog::info("Running export callback");

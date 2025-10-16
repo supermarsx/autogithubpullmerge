@@ -76,17 +76,20 @@ int main(int argc, char **argv) {
   agpm::GitHubClient client(tokens, std::move(http_client), include_set,
                             exclude_set, delay_ms, http_timeout * 1000,
                             http_retries, api_base, opts.dry_run);
+  client.set_allow_delete_base_branch(opts.allow_delete_base_branch);
   agpm::GitHubGraphQLClient graphql_client(tokens, http_timeout * 1000,
                                            api_base);
 
   // Testing-only: perform a single HTTP request for open PRs and exit
   if (!opts.single_open_prs_repo.empty()) {
     auto prs = client.list_open_pull_requests_single(opts.single_open_prs_repo);
+    std::size_t count = prs.size();
     for (const auto &pr : prs) {
       // Simple, stable output for tests
       std::cout << pr.owner << "/" << pr.repo << " #" << pr.number << ": "
                 << pr.title << "\n";
     }
+    std::cout << opts.single_open_prs_repo << " pull requests: " << count << "\n";
     return 0;
   }
 
@@ -100,9 +103,12 @@ int main(int argc, char **argv) {
     std::string repo = pos == std::string::npos
                            ? std::string{}
                            : opts.single_branches_repo.substr(pos + 1);
+    std::string repo_name = owner + (repo.empty() ? "" : "/" + repo);
+    std::size_t count = branches.size();
     for (const auto &b : branches) {
-      std::cout << owner << "/" << repo << " branch: " << b << "\n";
+      std::cout << repo_name << " branch: " << b << "\n";
     }
+    std::cout << repo_name << " branches: " << count << "\n";
     return 0;
   }
 

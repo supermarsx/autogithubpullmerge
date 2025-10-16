@@ -64,6 +64,7 @@ struct CliOptions {
   bool only_poll_stray = false;          ///< Only poll stray branches
   bool reject_dirty = false;             ///< Auto close dirty branches
   bool delete_stray{false};            ///< Delete stray branches automatically
+  bool allow_delete_base_branch{false}; ///< Permit deleting base branches (dangerous)
   bool auto_merge{false};              ///< Automatically merge pull requests
   int required_approvals{0};           ///< Required approvals before merge
   bool require_status_success{false};  ///< Require status checks to succeed
