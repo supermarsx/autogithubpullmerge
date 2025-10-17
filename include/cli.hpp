@@ -76,6 +76,8 @@ struct CliOptions {
       0};                  ///< Only list pull requests newer than this duration
   std::string sort;        ///< Sorting mode for pull requests
   bool use_graphql{false}; ///< Use GraphQL API for pull requests
+  bool hotkeys_enabled{true};       ///< Whether interactive hotkeys are enabled
+  bool hotkeys_explicit{false};     ///< True if CLI explicitly toggled hotkeys
 
   // Testing utilities
   std::string single_open_prs_repo; ///< OWNER/REPO for single open-PR poll

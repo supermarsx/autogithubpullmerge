@@ -52,6 +52,32 @@ std::regex glob_to_regex(const std::string &glob) {
   return std::regex(rx);
 }
 
+std::string mixed_to_regex(const std::string &value) {
+  std::string out;
+  out.reserve(value.size() * 2);
+  for (char c : value) {
+    switch (c) {
+    case '*':
+      out += ".*";
+      break;
+    case '?':
+      out += '.';
+      break;
+    default:
+      out.push_back(c);
+      break;
+    }
+  }
+  return out;
+}
+
+std::string to_lower_copy(const std::string &value) {
+  std::string out = value;
+  std::transform(out.begin(), out.end(), out.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return out;
+}
+
 std::string format_curl_error(const char *verb, const std::string &url,
                               CURLcode code, const char *errbuf) {
   std::ostringstream oss;
@@ -73,24 +99,64 @@ std::string format_curl_error(const char *verb, const std::string &url,
 bool matches_pattern(const std::string &name,
                      const std::vector<std::string> &patterns) {
   return std::any_of(patterns.begin(), patterns.end(),
-                     [&name](const std::string &p) {
-                       try {
-                         if (p.find_first_of("*?") != std::string::npos) {
-                           return std::regex_match(name, glob_to_regex(p));
+                     [&name](const std::string &pattern) {
+                       const std::string raw = pattern;
+                       auto colon = raw.find(':');
+                       if (colon != std::string::npos) {
+                         std::string tag = to_lower_copy(raw.substr(0, colon));
+                         std::string value = raw.substr(colon + 1);
+                         if (tag == "prefix") {
+                           if (value.empty()) {
+                             return true;
+                           }
+                           return name.rfind(value, 0) == 0;
                          }
-                         return std::regex_match(name, std::regex(p));
+                         if (tag == "suffix") {
+                           if (value.empty()) {
+                             return true;
+                           }
+                           return name.size() >= value.size() &&
+                                  name.compare(name.size() - value.size(), value.size(), value) == 0;
+                         }
+                         if (tag == "contains") {
+                           return name.find(value) != std::string::npos;
+                         }
+                         if (tag == "literal") {
+                           return name == value;
+                         }
+                         if (tag == "glob" || tag == "wildcard") {
+                           try {
+                             return std::regex_match(name, glob_to_regex(value));
+                           } catch (const std::regex_error &) {
+                             return false;
+                           }
+                         }
+                         if (tag == "regex") {
+                           try {
+                             return std::regex_match(name, std::regex(value));
+                           } catch (const std::regex_error &) {
+                             return false;
+                           }
+                         }
+                         if (tag == "mixed") {
+                           try {
+                             std::regex re("^" + mixed_to_regex(value) + "$");
+                             return std::regex_match(name, re);
+                           } catch (const std::regex_error &) {
+                             return false;
+                           }
+                         }
+                         // Unknown tag: fall through to default handling using the raw pattern.
+                       }
+                       try {
+                         if (raw.find_first_of("*?") != std::string::npos) {
+                           return std::regex_match(name, glob_to_regex(raw));
+                         }
+                         return std::regex_match(name, std::regex(raw));
                        } catch (const std::regex_error &) {
-                         return name == p;
+                         return name == raw;
                        }
                      });
-}
-
-std::string to_lower_copy(const std::string &s) {
-  std::string out = s;
-  std::transform(out.begin(), out.end(), out.begin(), [](unsigned char c) {
-    return static_cast<char>(std::tolower(c));
-  });
-  return out;
 }
 
 bool is_base_branch_name(const std::string &name) {

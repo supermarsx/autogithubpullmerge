@@ -12,6 +12,10 @@ to build the project on supported platforms.
 
 ## CLI Options
 
+All long options have short aliases (1–2 characters). For example, `-C` maps to
+`--config`, `--pb` maps to `--protect-branch`, and `-1` toggles
+`--only-poll-prs`.
+
 ### General
 
 - `-v/--verbose` - enable verbose output.
@@ -115,6 +119,15 @@ Glob patterns can designate branches that must never be modified. Provide
 patterns with `--protect-branch` and use `--protect-branch-exclude` to remove
 protection for specific names.
 
+Supported helpers:
+
+- `prefix:<value>` (literal prefix match)
+- `suffix:<value>` (literal suffix match)
+- `contains:<value>` (literal substring match)
+- `glob:<value>` or plain `*`/`?` wildcards
+- `regex:<value>` (ECMAScript regex)
+- `mixed:<value>` (wildcards plus regex tokens, e.g. `mixed:^release-*rc$`)
+
 YAML:
 ```yaml
 protected_branches:
@@ -172,6 +185,29 @@ JSON:
   "poll_interval": 30,
   "max_request_rate": 50
 }
+```
+
+## Hotkey Configuration
+
+- Toggle interactive shortcuts at startup with `--hotkeys on|off` or the
+  configuration key `hotkeys.enabled`.
+- Individual bindings can be disabled or reassigned via
+  `hotkeys.bindings`. Provide either a string (comma or pipe separated) or an
+  array of key names. Supported names include single characters (`r`), control
+  chords (`Ctrl+R`), `Enter`, `Up`, `Down`, `Space`, and `Escape`. Use `none` or
+  an empty value to disable an action, and `default` to keep the built-in
+  mapping.
+
+Example YAML:
+```yaml
+hotkeys:
+  enabled: true
+  bindings:
+    refresh:
+      - Ctrl+R
+      - r
+    merge: none
+    details: "enter|d"
 ```
 
 ## Logging

@@ -83,9 +83,17 @@ or JSON configuration files using matching keys.
 
 `--protect-branch` marks branches that must not be modified. Use
 `--protect-branch-exclude` to remove protection for matching patterns.
-Patterns support glob or regular expression syntax, and exclude patterns take
-precedence over protections. Regular expressions should be provided without
-surrounding delimiters, for example `^hotfix-[0-9]+$`.
+Patterns accept tagged helpers:
+
+- `prefix:<value>` – literal prefix match, e.g. `prefix:release/`.
+- `suffix:<value>` – literal suffix match, e.g. `suffix:-stable`.
+- `contains:<value>` – literal substring match.
+- `glob:<value>` or plain `*`/`?` wildcards – glob expressions (`glob:hotfix-*`).
+- `regex:<value>` – ECMAScript regular expressions (`regex:^feature-[0-9]+$`).
+- `mixed:<value>` – combine wildcards with regex tokens; `*` expands to `.*`
+  while regex anchors such as `^`/`$` are honoured (`mixed:^release-*rc$`).
+
+Exclude patterns take precedence over protections.
 
 ### Command Line
 
@@ -93,7 +101,9 @@ surrounding delimiters, for example `^hotfix-[0-9]+$`.
 autogithubpullmerge --protect-branch main \
   --protect-branch 'release/*' \
   --protect-branch '^hotfix-[0-9]+$' \
-  --protect-branch-exclude 'release/temp/*'
+  --protect-branch 'prefix:hotfix/' \
+  --protect-branch 'mixed:^support-*2024$' \
+  --protect-branch-exclude 'suffix:-temp'
 ```
 
 ### Configuration
@@ -103,14 +113,22 @@ protected_branches:
   - main
   - release/*
   - '^hotfix-[0-9]+$'
+  - prefix:hotfix/
+  - mixed:^support-*2024$
 protected_branch_excludes:
-  - release/temp/*
+  - suffix:-temp
 ```
 
 ```json
 {
-  "protected_branches": ["main", "release/*", "^hotfix-[0-9]+$"],
-  "protected_branch_excludes": ["release/temp/*"]
+  "protected_branches": [
+    "main",
+    "release/*",
+    "^hotfix-[0-9]+$",
+    "prefix:hotfix/",
+    "mixed:^support-*2024$"
+  ],
+  "protected_branch_excludes": ["suffix:-temp"]
 }
 ```
 
@@ -231,6 +249,10 @@ local debugging, see:
 - dev/readme.md
 
 ## CLI Options (Reference)
+
+Every long-form option has a short alias (1–2 characters). Examples: `-C` for
+`--config`, `--pb` for `--protect-branch`, `-1` for `--only-poll-prs`, and `-n`
+for `--download-limit`.
 
 General
 - `-v, --verbose` Enable verbose output (implies debug level unless overridden).

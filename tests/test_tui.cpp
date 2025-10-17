@@ -12,6 +12,7 @@
 #include <unistd.h>
 #endif
 #include <memory>
+#include <unordered_map>
 
 using namespace agpm;
 
@@ -93,14 +94,31 @@ TEST_CASE("test tui", "[tui]") {
 
   mvwinnstr(ui.help_win(), 3, 1, buf.data(), 79);
   std::string help_line(buf.data());
-  REQUIRE(help_line.find("o - Open PR") != std::string::npos);
+  REQUIRE(help_line.find("Open PR") != std::string::npos);
+  REQUIRE(help_line.find("o") != std::string::npos);
   mvwinnstr(ui.help_win(), 4, 1, buf.data(), 79);
   std::string help_line2(buf.data());
-  REQUIRE(help_line2.find("ENTER/d - Details") != std::string::npos);
+  REQUIRE(help_line2.find("Toggle Details") != std::string::npos);
+  REQUIRE(help_line2.find("Enter") != std::string::npos);
 
   ui.handle_key('r');
   REQUIRE(raw->last_method == "GET");
   REQUIRE(raw->get_count >= 1);
+
+  const int refresh_count = raw->get_count;
+  std::unordered_map<std::string, std::string> overrides{
+      {"refresh", "Ctrl+R"},
+      {"quit", "Ctrl+Q"}};
+  ui.configure_hotkeys(overrides);
+  ui.handle_key('r');
+  REQUIRE(raw->get_count == refresh_count);
+  int ctrl_r = static_cast<int>('R' & 0x1f);
+  ui.handle_key(ctrl_r);
+  REQUIRE(raw->get_count == refresh_count + 1);
+  ui.set_hotkeys_enabled(false);
+  ui.handle_key(ctrl_r);
+  REQUIRE(raw->get_count == refresh_count + 1);
+  ui.set_hotkeys_enabled(true);
 
   ui.handle_key('m');
   REQUIRE(raw->last_method == "PUT");

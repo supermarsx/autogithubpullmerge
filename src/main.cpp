@@ -174,6 +174,15 @@ int main(int argc, char **argv) {
     });
   }
   agpm::Tui ui(client, poller, opts.log_limit);
+  bool hotkeys_enabled = cfg.hotkeys_enabled();
+  if (opts.hotkeys_explicit) {
+    hotkeys_enabled = opts.hotkeys_enabled;
+  }
+  ui.set_hotkeys_enabled(hotkeys_enabled);
+  const auto &hotkey_overrides = cfg.hotkey_bindings();
+  if (!hotkey_overrides.empty()) {
+    ui.configure_hotkeys(hotkey_overrides);
+  }
   poller.start();
   try {
     ui.init();

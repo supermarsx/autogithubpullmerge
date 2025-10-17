@@ -1,8 +1,17 @@
 #include "tui.hpp"
 #include "log.hpp"
+#include <algorithm>
+#include <cctype>
 #include <cstdlib>
+#include <iterator>
+#include <optional>
+#include <sstream>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 #if defined(_WIN32)
 #include <io.h>
 #define isatty _isatty
@@ -11,11 +20,163 @@
 #include <unistd.h>
 #endif
 
+namespace {
+
+struct ParsedBinding {
+  int key;
+  std::string label;
+};
+
+std::string trim_copy(const std::string &s) {
+  auto begin = std::find_if_not(s.begin(), s.end(), [](unsigned char ch) {
+    return static_cast<bool>(std::isspace(ch));
+  });
+  auto end = std::find_if_not(s.rbegin(), s.rend(), [](unsigned char ch) {
+               return static_cast<bool>(std::isspace(ch));
+             }).base();
+  if (begin >= end) {
+    return {};
+  }
+  return std::string(begin, end);
+}
+
+std::string to_lower_copy(const std::string &s) {
+  std::string result;
+  result.reserve(s.size());
+  std::transform(s.begin(), s.end(), std::back_inserter(result),
+                 [](unsigned char ch) {
+                   return static_cast<char>(std::tolower(ch));
+                 });
+  return result;
+}
+
+std::vector<std::string> split_binding_list(const std::string &spec) {
+  std::vector<std::string> parts;
+  std::string current;
+  for (char ch : spec) {
+    if (ch == ',' || ch == '|') {
+      std::string trimmed = trim_copy(current);
+      if (!trimmed.empty()) {
+        parts.push_back(trimmed);
+      }
+      current.clear();
+    } else {
+      current.push_back(ch);
+    }
+  }
+  std::string trimmed = trim_copy(current);
+  if (!trimmed.empty()) {
+    parts.push_back(trimmed);
+  }
+  return parts;
+}
+
+std::vector<ParsedBinding> parse_binding_spec(const std::string &spec) {
+  std::vector<ParsedBinding> result;
+  if (spec.empty()) {
+    return result;
+  }
+  std::string lower = to_lower_copy(spec);
+  if (lower == "\\n" || lower == "enter" || lower == "return" ||
+      lower == "newline" || lower == "key_enter") {
+#ifdef KEY_ENTER
+    result.push_back({KEY_ENTER, "Enter"});
+#endif
+    result.push_back({static_cast<int>('\n'), "Enter"});
+    return result;
+  }
+  if (lower == "space" || lower == "spacebar") {
+    result.push_back({static_cast<int>(' '), "Space"});
+    return result;
+  }
+  if (lower == "\\t" || lower == "tab") {
+    result.push_back({static_cast<int>('\t'), "Tab"});
+    return result;
+  }
+  if (lower == "escape" || lower == "esc") {
+    result.push_back({27, "Escape"});
+    return result;
+  }
+  if (lower == "up" || lower == "arrow_up" || lower == "key_up" ||
+      lower == "cursor_up") {
+#ifdef KEY_UP
+    result.push_back({KEY_UP, "Up Arrow"});
+#endif
+    return result;
+  }
+  if (lower == "down" || lower == "arrow_down" || lower == "key_down" ||
+      lower == "cursor_down") {
+#ifdef KEY_DOWN
+    result.push_back({KEY_DOWN, "Down Arrow"});
+#endif
+    return result;
+  }
+  if (lower.rfind("ctrl+", 0) == 0) {
+    std::string suffix = trim_copy(spec.substr(5));
+    if (suffix.size() == 1) {
+      unsigned char ch = static_cast<unsigned char>(suffix[0]);
+      unsigned char upper = static_cast<unsigned char>(std::toupper(ch));
+      int key = static_cast<int>(upper & 0x1F);
+      std::string label = "Ctrl+";
+      label.push_back(static_cast<char>(upper));
+      result.push_back({key, label});
+    }
+    return result;
+  }
+  if (lower.size() == 1) {
+    unsigned char ch = static_cast<unsigned char>(spec[0]);
+    std::string label(1, static_cast<char>(spec[0]));
+    result.push_back({static_cast<int>(ch), label});
+    return result;
+  }
+  return result;
+}
+
+const std::unordered_map<std::string, std::string> &action_descriptions() {
+  static const std::unordered_map<std::string, std::string> descriptions{
+      {"refresh", "Refresh"},
+      {"merge", "Merge"},
+      {"open", "Open PR"},
+      {"details", "Toggle Details"},
+      {"quit", "Quit"},
+      {"navigate_up", "Select Previous"},
+      {"navigate_down", "Select Next"}};
+  return descriptions;
+}
+
+const std::unordered_set<std::string> &valid_actions() {
+  static const std::unordered_set<std::string> actions{
+      "refresh",      "merge",        "open",        "details",
+      "quit",         "navigate_up",  "navigate_down"};
+  return actions;
+}
+
+std::string canonicalize_action(const std::string &action) {
+  std::string lower = to_lower_copy(action);
+  if (lower == "open_pr" || lower == "open-pr" || lower == "openpr") {
+    return "open";
+  }
+  if (lower == "detail" || lower == "toggle_detail" ||
+      lower == "toggle_details" || lower == "toggle-details") {
+    return "details";
+  }
+  if (lower == "up" || lower == "previous" || lower == "prev") {
+    return "navigate_up";
+  }
+  if (lower == "down" || lower == "next") {
+    return "navigate_down";
+  }
+  return lower;
+}
+
+} // namespace
+
 namespace agpm {
 
 Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit)
     : client_(client), poller_(poller), log_limit_(log_limit) {
   ensure_default_logger();
+  initialize_default_hotkeys();
   open_cmd_ = [](const std::string &url) {
 #if defined(_WIN32)
     std::string cmd = "start \"\" \"" + url + "\"";
@@ -26,6 +187,131 @@ Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit)
 #endif
     return std::system(cmd.c_str());
   };
+}
+
+void Tui::initialize_default_hotkeys() {
+  hotkey_help_order_ = {"refresh",      "merge",        "open",
+                        "details",      "quit",         "navigate_up",
+                        "navigate_down"};
+  action_bindings_.clear();
+  key_to_action_.clear();
+  set_bindings_for_action("refresh",
+                          {HotkeyBinding{static_cast<int>('r'), "r"}});
+  set_bindings_for_action("merge",
+                          {HotkeyBinding{static_cast<int>('m'), "m"}});
+  set_bindings_for_action("open",
+                          {HotkeyBinding{static_cast<int>('o'), "o"}});
+  std::vector<HotkeyBinding> detail_bindings;
+  detail_bindings.push_back(
+      HotkeyBinding{static_cast<int>('d'), std::string("d")});
+#ifdef KEY_ENTER
+  if (KEY_ENTER != '\n') {
+    detail_bindings.push_back(HotkeyBinding{KEY_ENTER, "Enter"});
+  }
+#endif
+  detail_bindings.push_back(
+      HotkeyBinding{static_cast<int>('\n'), std::string("Enter")});
+  set_bindings_for_action("details", detail_bindings);
+  set_bindings_for_action("quit",
+                          {HotkeyBinding{static_cast<int>('q'), "q"}});
+#ifdef KEY_UP
+  set_bindings_for_action("navigate_up", {HotkeyBinding{KEY_UP, "Up Arrow"}});
+#else
+  set_bindings_for_action("navigate_up",
+                          {HotkeyBinding{static_cast<int>('k'), "k"}});
+#endif
+#ifdef KEY_DOWN
+  set_bindings_for_action("navigate_down",
+                          {HotkeyBinding{KEY_DOWN, "Down Arrow"}});
+#else
+  set_bindings_for_action("navigate_down",
+                          {HotkeyBinding{static_cast<int>('j'), "j"}});
+#endif
+}
+
+void Tui::clear_action_bindings(const std::string &action) {
+  auto it = action_bindings_.find(action);
+  if (it == action_bindings_.end()) {
+    action_bindings_.emplace(action, std::vector<HotkeyBinding>{});
+    return;
+  }
+  for (const auto &binding : it->second) {
+    auto key_it = key_to_action_.find(binding.key);
+    if (key_it != key_to_action_.end() && key_it->second == action) {
+      key_to_action_.erase(key_it);
+    }
+  }
+  it->second.clear();
+}
+
+void Tui::set_bindings_for_action(
+    const std::string &action, const std::vector<HotkeyBinding> &bindings) {
+  clear_action_bindings(action);
+  auto &vec = action_bindings_[action];
+  vec.reserve(bindings.size());
+  std::unordered_set<int> seen;
+  for (const auto &binding : bindings) {
+    if (!seen.insert(binding.key).second) {
+      continue;
+    }
+    auto existing = key_to_action_.find(binding.key);
+    if (existing != key_to_action_.end() && existing->second != action) {
+      spdlog::warn(
+          "Hotkey '{}' already assigned to '{}'; '{}' will take precedence",
+          binding.label, existing->second, action);
+    }
+    key_to_action_[binding.key] = action;
+    vec.push_back(binding);
+  }
+}
+
+void Tui::configure_hotkeys(
+    const std::unordered_map<std::string, std::string> &bindings) {
+  for (const auto &entry : bindings) {
+    std::string canonical = canonicalize_action(entry.first);
+    if (valid_actions().count(canonical) == 0) {
+      spdlog::warn("Unknown hotkey action '{}' in configuration", entry.first);
+      continue;
+    }
+    std::string value = trim_copy(entry.second);
+    if (value.empty()) {
+      spdlog::info("Disabling hotkey bindings for action '{}'", canonical);
+      set_bindings_for_action(canonical, {});
+      continue;
+    }
+    std::string lower_value = to_lower_copy(value);
+    if (lower_value == "default") {
+      continue;
+    }
+    if (lower_value == "none" || lower_value == "disabled" ||
+        lower_value == "off") {
+      spdlog::info("Disabling hotkey bindings for action '{}'", canonical);
+      set_bindings_for_action(canonical, {});
+      continue;
+    }
+    std::vector<std::string> specs = split_binding_list(value);
+    std::vector<HotkeyBinding> parsed;
+    for (const auto &spec : specs) {
+      std::vector<ParsedBinding> parsed_list = parse_binding_spec(spec);
+      if (parsed_list.empty()) {
+        spdlog::warn(
+            "Ignoring unrecognized hotkey binding '{}' for action '{}'", spec,
+            canonical);
+        continue;
+      }
+      for (const auto &p : parsed_list) {
+        parsed.push_back(HotkeyBinding{p.key, p.label});
+      }
+    }
+    if (parsed.empty()) {
+      spdlog::warn(
+          "No valid hotkey bindings provided for action '{}'; keeping existing "
+          "bindings",
+          canonical);
+      continue;
+    }
+    set_bindings_for_action(canonical, parsed);
+  }
 }
 
 Tui::~Tui() {
@@ -154,13 +440,32 @@ void Tui::draw() {
   werase(help_win_);
   box(help_win_, 0, 0);
   mvwprintw(help_win_, 0, 2, "Hotkeys");
+  const auto &descriptions = action_descriptions();
+  int line = 1;
+  int max_lines = log_h - 2;
   if (has_colors())
     wattron(help_win_, COLOR_PAIR(3));
-  mvwprintw(help_win_, 1, 1, "r - Refresh");
-  mvwprintw(help_win_, 2, 1, "m - Merge");
-  mvwprintw(help_win_, 3, 1, "o - Open PR");
-  mvwprintw(help_win_, 4, 1, "ENTER/d - Details");
-  mvwprintw(help_win_, 5, 1, "q - Quit");
+  for (const auto &action : hotkey_help_order_) {
+    if (line > max_lines)
+      break;
+    auto desc_it = descriptions.find(action);
+    if (desc_it == descriptions.end())
+      continue;
+    std::string keys_text;
+    auto binding_it = action_bindings_.find(action);
+    if (binding_it != action_bindings_.end() && !binding_it->second.empty()) {
+      const auto &bindings = binding_it->second;
+      for (std::size_t i = 0; i < bindings.size(); ++i) {
+        if (i > 0)
+          keys_text += ", ";
+        keys_text += bindings[i].label;
+      }
+    } else {
+      keys_text = "disabled";
+    }
+    mvwprintw(help_win_, line++, 1, "%s - %s", keys_text.c_str(),
+              desc_it->second.c_str());
+  }
   if (has_colors())
     wattroff(help_win_, COLOR_PAIR(3));
   wrefresh(help_win_);
@@ -190,16 +495,26 @@ void Tui::handle_key(int ch) {
   if (!initialized_)
     return;
   spdlog::debug("Key pressed: {}", ch);
-  switch (ch) {
-  case 'q':
+  auto it = key_to_action_.find(ch);
+  if (it == key_to_action_.end()) {
+    spdlog::debug("Unhandled key: {}", ch);
+    return;
+  }
+  const std::string &action = it->second;
+  const bool is_navigation =
+      (action == "navigate_up" || action == "navigate_down");
+  const bool is_quit = (action == "quit");
+  if (!hotkeys_enabled_ && !is_navigation && !is_quit) {
+    spdlog::debug("Hotkeys disabled; ignoring action {}", action);
+    return;
+  }
+  if (action == "quit") {
     spdlog::info("Quit requested");
     running_ = false;
-    break;
-  case 'r':
+  } else if (action == "refresh") {
     spdlog::info("Manual refresh requested");
     poller_.poll_now();
-    break;
-  case 'm':
+  } else if (action == "merge") {
     if (selected_ < static_cast<int>(prs_.size())) {
       const auto &pr = prs_[selected_];
       spdlog::info("Merge requested for PR #{}", pr.number);
@@ -207,17 +522,14 @@ void Tui::handle_key(int ch) {
         log("Merged PR #" + std::to_string(pr.number));
       }
     }
-    break;
-  case 'o':
+  } else if (action == "open") {
     if (selected_ < static_cast<int>(prs_.size())) {
       const auto &pr = prs_[selected_];
       std::string url = "https://github.com/" + pr.owner + "/" + pr.repo +
                         "/pull/" + std::to_string(pr.number);
       open_cmd_(url);
     }
-    break;
-  case 'd':
-  case '\n':
+  } else if (action == "details") {
     if (detail_visible_) {
       detail_visible_ = false;
     } else if (selected_ < static_cast<int>(prs_.size())) {
@@ -225,22 +537,18 @@ void Tui::handle_key(int ch) {
       detail_text_ = pr.title;
       detail_visible_ = true;
     }
-    break;
-  case KEY_UP:
+  } else if (action == "navigate_up") {
     if (selected_ > 0) {
       --selected_;
       spdlog::debug("Moved selection up to {}", selected_);
     }
-    break;
-  case KEY_DOWN:
+  } else if (action == "navigate_down") {
     if (selected_ + 1 < static_cast<int>(prs_.size())) {
       ++selected_;
       spdlog::debug("Moved selection down to {}", selected_);
     }
-    break;
-  default:
-    spdlog::debug("Unhandled key: {}", ch);
-    break;
+  } else {
+    spdlog::debug("Unhandled action '{}' for key {}", action, ch);
   }
 }
 

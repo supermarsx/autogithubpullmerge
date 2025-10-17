@@ -226,6 +226,41 @@ TEST_CASE("test branch cleanup") {
     REQUIRE(raw->last_deleted.empty());
   }
 
+  // Prefix patterns protect matching branches.
+  {
+    auto http = std::make_unique<CleanupHttpClient>();
+    http->response = "[{\"head\":{\"ref\":\"release/v1\"}}]";
+    CleanupHttpClient *raw = http.get();
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+    client.cleanup_branches("me", "repo", "release/", {"prefix:release/"});
+    REQUIRE(raw->last_deleted.empty());
+  }
+
+  // Suffix patterns protect matching branches.
+  {
+    auto http = std::make_unique<CleanupHttpClient>();
+    http->response = "[{\"head\":{\"ref\":\"feature-hotfix\"}}]";
+    CleanupHttpClient *raw = http.get();
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+    client.cleanup_branches("me", "repo", "feature", {"suffix:-hotfix"});
+    REQUIRE(raw->last_deleted.empty());
+  }
+
+  // Mixed patterns allow combined wildcard and regex semantics.
+  {
+    auto http = std::make_unique<BranchHttpClient>();
+    BranchHttpClient *raw = http.get();
+    std::string base = "https://api.github.com/repos/me/repo";
+    raw->responses[base] = "{\"default_branch\":\"main\"}";
+    raw->responses[base + "/branches"] =
+        "[{\"name\":\"main\"},{\"name\":\"feature-123-rc\"}]";
+    raw->responses[base + "/compare/main...feature-123-rc"] =
+        "{\"status\":\"ahead\",\"ahead_by\":1}";
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+    client.close_dirty_branches("me", "repo", {"mixed:feature-*rc"});
+    REQUIRE(raw->last_deleted.empty());
+  }
+
   // Purge branches across paginated pull request pages.
   {
     auto http = std::make_unique<PagingCleanupHttpClient>();

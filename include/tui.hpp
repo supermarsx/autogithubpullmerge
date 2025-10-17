@@ -22,6 +22,7 @@ using WINDOW = _win_st;
 #include <cstddef>
 #include <functional>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -96,8 +97,27 @@ public:
     open_cmd_ = std::move(cmd);
   }
 
+  /// Enable or disable interactive hotkeys at runtime.
+  void set_hotkeys_enabled(bool enabled) { hotkeys_enabled_ = enabled; }
+
+  /**
+   * Override the configured hotkey bindings.
+   *
+   * @param bindings Mapping from action name to binding specification string.
+   */
+  void configure_hotkeys(
+      const std::unordered_map<std::string, std::string> &bindings);
+
 private:
   void log(const std::string &msg);
+  struct HotkeyBinding {
+    int key;
+    std::string label;
+  };
+  void initialize_default_hotkeys();
+  void clear_action_bindings(const std::string &action);
+  void set_bindings_for_action(const std::string &action,
+                               const std::vector<HotkeyBinding> &bindings);
 
   GitHubClient &client_;
   GitHubPoller &poller_;
@@ -116,6 +136,10 @@ private:
   bool initialized_{false};
   int last_h_{0}; ///< Cached terminal height for resize detection.
   int last_w_{0}; ///< Cached terminal width for resize detection.
+  bool hotkeys_enabled_{true};
+  std::vector<std::string> hotkey_help_order_;
+  std::unordered_map<std::string, std::vector<HotkeyBinding>> action_bindings_;
+  std::unordered_map<int, std::string> key_to_action_;
 };
 
 } // namespace agpm

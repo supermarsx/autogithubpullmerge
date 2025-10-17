@@ -239,6 +239,42 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("use_graphql")) {
     set_use_graphql(j["use_graphql"].get<bool>());
   }
+  if (j.contains("hotkeys_enabled")) {
+    set_hotkeys_enabled(j["hotkeys_enabled"].get<bool>());
+  }
+  if (j.contains("hotkeys")) {
+    const auto &hot = j["hotkeys"];
+    if (hot.is_boolean()) {
+      set_hotkeys_enabled(hot.get<bool>());
+    } else if (hot.is_object()) {
+      if (hot.contains("enabled") && hot["enabled"].is_boolean()) {
+        set_hotkeys_enabled(hot["enabled"].get<bool>());
+      }
+      if (hot.contains("bindings") && hot["bindings"].is_object()) {
+        for (const auto &[action, value] : hot["bindings"].items()) {
+          if (value.is_string()) {
+            set_hotkey_binding(action, value.get<std::string>());
+          } else if (value.is_array()) {
+            std::string merged;
+            for (const auto &item : value) {
+              if (!item.is_string()) {
+                continue;
+              }
+              if (!merged.empty()) {
+                merged.push_back(',');
+              }
+              merged += item.get<std::string>();
+            }
+            set_hotkey_binding(action, merged);
+          } else if (value.is_boolean()) {
+            set_hotkey_binding(action, value.get<bool>() ? "default" : "none");
+          } else if (value.is_null()) {
+            set_hotkey_binding(action, "");
+          }
+        }
+      }
+    }
+  }
 
   // Warn on repositories appearing in both include and exclude lists.
   if (!include_repos_.empty() && !exclude_repos_.empty()) {

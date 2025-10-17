@@ -42,6 +42,19 @@ TEST_CASE("test cli", "[cli]") {
   agpm::CliOptions opts4c = agpm::parse_cli(3, argv4c);
   REQUIRE(opts4c.log_limit == 123);
 
+  char hotkeys_flag[] = "--hotkeys";
+  char hotkeys_on[] = "on";
+  char *argv_hot_on[] = {prog, hotkeys_flag, hotkeys_on};
+  agpm::CliOptions opts_hot_on = agpm::parse_cli(3, argv_hot_on);
+  REQUIRE(opts_hot_on.hotkeys_enabled);
+  REQUIRE(opts_hot_on.hotkeys_explicit);
+
+  char hotkeys_off[] = "off";
+  char *argv_hot_off[] = {prog, hotkeys_flag, hotkeys_off};
+  agpm::CliOptions opts_hot_off = agpm::parse_cli(3, argv_hot_off);
+  REQUIRE_FALSE(opts_hot_off.hotkeys_enabled);
+  REQUIRE(opts_hot_off.hotkeys_explicit);
+
   char *argv5[] = {prog};
   agpm::CliOptions opts5 = agpm::parse_cli(1, argv5);
   REQUIRE(opts5.log_level == "info");
@@ -224,6 +237,48 @@ TEST_CASE("test cli", "[cli]") {
   REQUIRE(!opts22.purge_only);
   REQUIRE(!opts22.allow_delete_base_branch);
 
+  // Short option aliases
+  {
+    char short_config[] = "-C";
+    char cfg_path[] = "cfg.yaml";
+    char *argv_short_cfg[] = {prog, short_config, cfg_path};
+    agpm::CliOptions short_cfg = agpm::parse_cli(3, argv_short_cfg);
+    REQUIRE(short_cfg.config_file == std::string("cfg.yaml"));
+  }
+
+  {
+    char poll_flag[] = "-p";
+    char poll_val[] = "12";
+    char *argv_poll[] = {prog, poll_flag, poll_val};
+    agpm::CliOptions opts_poll = agpm::parse_cli(3, argv_poll);
+    REQUIRE(opts_poll.poll_interval == 12);
+  }
+
+  {
+    char dl_alias[] = "-n";
+    char dl_val_alias[] = "2048";
+    char *argv_dl_alias[] = {prog, dl_alias, dl_val_alias};
+    agpm::CliOptions opts_dl_alias = agpm::parse_cli(3, argv_dl_alias);
+    REQUIRE(opts_dl_alias.download_limit == 2048);
+  }
+
+  {
+    char only_pr_flag[] = "-1";
+    char *argv_only_pr[] = {prog, only_pr_flag};
+    agpm::CliOptions opts_only_pr = agpm::parse_cli(2, argv_only_pr);
+    REQUIRE(opts_only_pr.only_poll_prs);
+  }
+
+  {
+    char protect_alias[] = "--pb";
+    char pattern[] = "main";
+    char *argv_protect_alias[] = {prog, protect_alias, pattern};
+    agpm::CliOptions opts_protect_alias =
+        agpm::parse_cli(3, argv_protect_alias);
+    REQUIRE(opts_protect_alias.protected_branches.size() == 1);
+    REQUIRE(opts_protect_alias.protected_branches[0] == std::string("main"));
+  }
+
   char sort_flag[] = "--sort";
   char sort_alpha[] = "alpha";
   char *argv_sort_alpha[] = {prog, sort_flag, sort_alpha};
@@ -327,6 +382,19 @@ TEST_CASE("test cli", "[cli]") {
       char *argv_bad[] = {prog, bad};
       agpm::parse_cli(2, argv_bad);
     } catch (const std::exception &) {
+      threw = true;
+    }
+    REQUIRE(threw);
+  }
+
+  {
+    bool threw = false;
+    try {
+      char bad_val[] = "maybe";
+      char hotkeys[] = "--hotkeys";
+      char *argv_bad_val[] = {prog, hotkeys, bad_val};
+      agpm::parse_cli(3, argv_bad_val);
+    } catch (const agpm::CliParseExit &) {
       threw = true;
     }
     REQUIRE(threw);

@@ -30,6 +30,14 @@ TEST_CASE("test config") {
     f << "max_upload: 4000\n";
     f << "http_proxy: http://proxy\n";
     f << "https_proxy: http://secureproxy\n";
+    f << "hotkeys:\n";
+    f << "  enabled: false\n";
+    f << "  bindings:\n";
+    f << "    refresh:\n";
+    f << "      - Ctrl+R\n";
+    f << "      - r\n";
+    f << "    merge: null\n";
+    f << "    details: \"enter|d\"\n";
     f.close();
   }
   agpm::Config yaml_cfg = agpm::Config::from_file("cfg.yaml");
@@ -58,6 +66,10 @@ TEST_CASE("test config") {
   REQUIRE(yaml_cfg.max_upload() == 4000);
   REQUIRE(yaml_cfg.http_proxy() == "http://proxy");
   REQUIRE(yaml_cfg.https_proxy() == "http://secureproxy");
+  REQUIRE_FALSE(yaml_cfg.hotkeys_enabled());
+  REQUIRE(yaml_cfg.hotkey_bindings().at("refresh") == "Ctrl+R,r");
+  REQUIRE(yaml_cfg.hotkey_bindings().at("merge").empty());
+  REQUIRE(yaml_cfg.hotkey_bindings().at("details") == "enter|d");
 
   // JSON config with extended options
   {
@@ -82,7 +94,9 @@ TEST_CASE("test config") {
     f << "\"max_download\":700,";
     f << "\"max_upload\":800,";
     f << "\"http_proxy\":\"http://proxy\",";
-    f << "\"https_proxy\":\"http://secureproxy\"";
+    f << "\"https_proxy\":\"http://secureproxy\",";
+    f << "\"hotkeys\":{\"enabled\":true,"
+          "\"bindings\":{\"open\":\"o\",\"quit\":[\"Ctrl+Q\",\"q\"]}}";
     f << "}";
     f.close();
   }
@@ -109,6 +123,9 @@ TEST_CASE("test config") {
   REQUIRE(json_cfg.max_upload() == 800);
   REQUIRE(json_cfg.http_proxy() == "http://proxy");
   REQUIRE(json_cfg.https_proxy() == "http://secureproxy");
+  REQUIRE(json_cfg.hotkeys_enabled());
+  REQUIRE(json_cfg.hotkey_bindings().at("open") == "o");
+  REQUIRE(json_cfg.hotkey_bindings().at("quit") == "Ctrl+Q,q");
 
   // TOML config with extended options
   {

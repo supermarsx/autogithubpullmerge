@@ -25,6 +25,9 @@ int App::run(int argc, char **argv) {
   if (!options_.config_file.empty()) {
     config_ = Config::from_file(options_.config_file);
   }
+  if (options_.hotkeys_explicit) {
+    config_.set_hotkeys_enabled(options_.hotkeys_enabled);
+  }
   std::string level_str = options_.verbose ? "debug" : "info";
   if (options_.log_level != "info") {
     level_str = options_.log_level;

@@ -4,6 +4,7 @@
 #include <chrono>
 #include <nlohmann/json_fwd.hpp>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace agpm {
@@ -282,6 +283,27 @@ public:
   /// Enable or disable GraphQL usage.
   void set_use_graphql(bool v) { use_graphql_ = v; }
 
+  /// Determine whether TUI hotkeys are enabled.
+  bool hotkeys_enabled() const { return hotkeys_enabled_; }
+
+  /// Set hotkey enablement.
+  void set_hotkeys_enabled(bool enabled) { hotkeys_enabled_ = enabled; }
+
+  /// Retrieve custom hotkey bindings (action -> key spec).
+  const std::unordered_map<std::string, std::string> &hotkey_bindings() const {
+    return hotkey_bindings_;
+  }
+
+  /// Replace hotkey bindings.
+  void set_hotkey_bindings(std::unordered_map<std::string, std::string> values) {
+    hotkey_bindings_ = std::move(values);
+  }
+
+  /// Assign or update a single hotkey binding.
+  void set_hotkey_binding(const std::string &action, const std::string &key) {
+    hotkey_bindings_[action] = key;
+  }
+
   /// Load configuration from the file at `path`.
   static Config from_file(const std::string &path);
 
@@ -324,6 +346,8 @@ private:
   std::chrono::seconds pr_since_{0};
   std::string sort_mode_;
   bool use_graphql_ = false;
+  bool hotkeys_enabled_ = true;
+  std::unordered_map<std::string, std::string> hotkey_bindings_;
   int http_timeout_ = 30;
   int http_retries_ = 3;
   std::string api_base_ = "https://api.github.com";

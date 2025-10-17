@@ -20,6 +20,12 @@ TEST_CASE("test config from json") {
   j["http_proxy"] = "http://proxy";
   j["https_proxy"] = "http://secureproxy";
   j["use_graphql"] = true;
+  j["hotkeys"] = {
+      {"enabled", false},
+      {"bindings",
+       {{"refresh", nlohmann::json::array({"Ctrl+R", "r"})},
+        {"merge", nullptr},
+        {"details", "enter"}}}};
 
   agpm::Config cfg = agpm::Config::from_json(j);
 
@@ -38,4 +44,8 @@ TEST_CASE("test config from json") {
   REQUIRE(cfg.http_proxy() == "http://proxy");
   REQUIRE(cfg.https_proxy() == "http://secureproxy");
   REQUIRE(cfg.use_graphql());
+  REQUIRE_FALSE(cfg.hotkeys_enabled());
+  REQUIRE(cfg.hotkey_bindings().at("refresh") == "Ctrl+R,r");
+  REQUIRE(cfg.hotkey_bindings().at("merge").empty());
+  REQUIRE(cfg.hotkey_bindings().at("details") == "enter");
 }
