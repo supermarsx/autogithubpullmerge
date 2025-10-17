@@ -12,13 +12,12 @@ to build the project on supported platforms.
 
 ## CLI Options
 
-All long options have short aliases (1–2 characters). For example, `-C` maps to
-`--config`, `--pb` maps to `--protect-branch`, and `-1` toggles
-`--only-poll-prs`.
+Whenever possible each long option provides a single-character short alias.
+For example, `-C` maps to `--config` and `-1` toggles `--only-poll-prs`.
 
 ### General
 
-- `-v/--verbose` - enable verbose output.
+- `-v, --verbose` - enable verbose output.
 - `--config` - path to a YAML, TOML, or JSON configuration file.
 - `--log-level` - set verbosity (`trace`, `debug`, `info`, `warn`, `error`,
   `critical`, `off`).
@@ -37,6 +36,12 @@ All long options have short aliases (1–2 characters). For example, `-C` maps t
 - `--api-key-url`/`--api-key-url-user`/`--api-key-url-password` - fetch tokens
   from a remote URL with optional basic authentication.
 - `--api-key-file` - load tokens from a local YAML or JSON file.
+- `--open-pat-page` - launch the GitHub PAT creation page in the default
+  browser and exit immediately.
+- `--save-pat FILE` - save a personal access token to `FILE`, prompting if no
+  value is supplied.
+- `--pat-value TOKEN` - provide the token inline when using `--save-pat` to
+  avoid the interactive prompt.
 
 ### Polling
 

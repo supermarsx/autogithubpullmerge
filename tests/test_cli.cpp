@@ -55,6 +55,21 @@ TEST_CASE("test cli", "[cli]") {
   REQUIRE_FALSE(opts_hot_off.hotkeys_enabled);
   REQUIRE(opts_hot_off.hotkeys_explicit);
 
+  char open_pat_flag[] = "--open-pat-page";
+  char *argv_open_pat[] = {prog, open_pat_flag};
+  agpm::CliOptions opts_open_pat = agpm::parse_cli(2, argv_open_pat);
+  REQUIRE(opts_open_pat.open_pat_window);
+
+  char save_pat_flag[] = "--save-pat";
+  char pat_file[] = "pat.txt";
+  char pat_value_flag[] = "--pat-value";
+  char pat_value_arg[] = "ghp_example";
+  char *argv_save_pat[] = {prog, save_pat_flag, pat_file, pat_value_flag,
+                           pat_value_arg};
+  agpm::CliOptions opts_save_pat = agpm::parse_cli(5, argv_save_pat);
+  REQUIRE(opts_save_pat.pat_save_path == "pat.txt");
+  REQUIRE(opts_save_pat.pat_value == "ghp_example");
+
   char *argv5[] = {prog};
   agpm::CliOptions opts5 = agpm::parse_cli(1, argv5);
   REQUIRE(opts5.log_level == "info");
@@ -270,7 +285,7 @@ TEST_CASE("test cli", "[cli]") {
   }
 
   {
-    char protect_alias[] = "--pb";
+    char protect_alias[] = "-B";
     char pattern[] = "main";
     char *argv_protect_alias[] = {prog, protect_alias, pattern};
     agpm::CliOptions opts_protect_alias =
@@ -395,6 +410,34 @@ TEST_CASE("test cli", "[cli]") {
       char *argv_bad_val[] = {prog, hotkeys, bad_val};
       agpm::parse_cli(3, argv_bad_val);
     } catch (const agpm::CliParseExit &) {
+      threw = true;
+    }
+    REQUIRE(threw);
+  }
+
+  {
+    bool threw = false;
+    try {
+      char pat_value_flag_only[] = "--pat-value";
+      char pat_value_only[] = "ghp_value";
+      char *argv_pat_value[] = {prog, pat_value_flag_only, pat_value_only};
+      agpm::parse_cli(3, argv_pat_value);
+    } catch (const std::exception &) {
+      threw = true;
+    }
+    REQUIRE(threw);
+  }
+
+  {
+    bool threw = false;
+    try {
+      char open_pat_flag_only[] = "--open-pat-page";
+      char save_pat_flag_only[] = "--save-pat";
+      char save_pat_file[] = "token.txt";
+      char *argv_conflict[] = {prog, open_pat_flag_only, save_pat_flag_only,
+                               save_pat_file};
+      agpm::parse_cli(4, argv_conflict);
+    } catch (const std::exception &) {
       threw = true;
     }
     REQUIRE(threw);

@@ -183,3 +183,71 @@ TEST_CASE("main auto-merge cancel", "[cli]") {
   REQUIRE(cancel_app.run(2, cancel_args) != 0);
   std::cin.rdbuf(cinbuf);
 }
+
+TEST_CASE("app open pat page exits after launch", "[cli]") {
+#ifdef _WIN32
+  _putenv_s("AGPM_TEST_SKIP_BROWSER", "1");
+#else
+  setenv("AGPM_TEST_SKIP_BROWSER", "1", 1);
+#endif
+  agpm::App app;
+  char prog[] = "tests";
+  char open_pat_flag[] = "--open-pat-page";
+  char *argv[] = {prog, open_pat_flag};
+  REQUIRE(app.run(2, argv) == 0);
+  REQUIRE(app.should_exit());
+#ifdef _WIN32
+  _putenv_s("AGPM_TEST_SKIP_BROWSER", "0");
+#else
+  setenv("AGPM_TEST_SKIP_BROWSER", "0", 1);
+#endif
+}
+
+TEST_CASE("app saves pat from cli value", "[cli]") {
+  agpm::App app;
+  std::filesystem::path pat_path =
+      std::filesystem::temp_directory_path() / "agpm_test_pat.txt";
+  std::filesystem::remove(pat_path);
+  char prog[] = "tests";
+  char save_pat_flag[] = "--save-pat";
+  std::string pat_path_str = pat_path.string();
+  char *pat_file = pat_path_str.data();
+  char pat_value_flag[] = "--pat-value";
+  std::string value_str = "ghp_cli_value";
+  char *value_cstr = value_str.data();
+  char *argv[] = {prog, save_pat_flag, pat_file, pat_value_flag, value_cstr};
+  REQUIRE(app.run(5, argv) == 0);
+  REQUIRE(app.should_exit());
+  std::ifstream in(pat_path);
+  REQUIRE(in.good());
+  std::string stored;
+  std::getline(in, stored);
+  REQUIRE(stored == value_str);
+  in.close();
+  std::filesystem::remove(pat_path);
+}
+
+TEST_CASE("app saves pat via prompt", "[cli]") {
+  agpm::App app;
+  std::filesystem::path pat_path =
+      std::filesystem::temp_directory_path() / "agpm_test_pat_prompt.txt";
+  std::filesystem::remove(pat_path);
+  char prog[] = "tests";
+  char save_pat_flag[] = "--save-pat";
+  std::string pat_path_str = pat_path.string();
+  char *pat_file = pat_path_str.data();
+  char *argv[] = {prog, save_pat_flag, pat_file};
+  std::istringstream input("ghp_prompt_value\n");
+  auto *cinbuf = std::cin.rdbuf();
+  std::cin.rdbuf(input.rdbuf());
+  REQUIRE(app.run(3, argv) == 0);
+  std::cin.rdbuf(cinbuf);
+  REQUIRE(app.should_exit());
+  std::ifstream in(pat_path);
+  REQUIRE(in.good());
+  std::string stored;
+  std::getline(in, stored);
+  REQUIRE(stored == "ghp_prompt_value");
+  in.close();
+  std::filesystem::remove(pat_path);
+}

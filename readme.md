@@ -250,8 +250,8 @@ local debugging, see:
 
 ## CLI Options (Reference)
 
-Every long-form option has a short alias (1–2 characters). Examples: `-C` for
-`--config`, `--pb` for `--protect-branch`, `-1` for `--only-poll-prs`, and `-n`
+Whenever possible long-form options expose a single-character short alias.
+Examples include `-C` for `--config`, `-1` for `--only-poll-prs`, and `-n`
 for `--download-limit`.
 
 General
@@ -262,6 +262,7 @@ General
 - `--log-limit N` Max number of in-memory log messages (default `200`).
 - `-y, --yes` Assume yes to confirmation prompts.
 - `--dry-run` Perform a trial run with no changes.
+- `--hotkeys on|off` Explicitly enable or disable interactive hotkeys.
 
 Repositories
 - `--include REPO` Repository to include (repeatable). Format `OWNER/REPO`.
@@ -295,6 +296,9 @@ Authentication
 - `--api-key-url-user USER` Basic auth user for `--api-key-url`.
 - `--api-key-url-password PASS` Basic auth password for `--api-key-url`.
 - `--api-key-file FILE` JSON/YAML file with `token` or `tokens` array.
+- `--open-pat-page` Open the GitHub PAT creation page in your browser and exit.
+- `--save-pat FILE` Save a PAT to `FILE`, prompting if no value is provided.
+- `--pat-value TOKEN` Supply the PAT inline when using `--save-pat`.
 - `--api-base URL` Base URL for GitHub API (default `https://api.github.com`).
   Note: if none are provided, falls back to `GITHUB_TOKEN` or `AGPM_API_KEY`.
 
@@ -343,6 +347,7 @@ Notes:
 - `--single-open-prs` accepts `OWNER/REPO` format.
 - Only open PRs are returned; merged/closed are ignored.
 - This path bypasses the TUI and other polling activities.
+- GitHub limits a single response to the first 100 open pull requests.
 
 A small helper script is provided at `examples/single-open-prs.sh`.
 
@@ -365,5 +370,6 @@ Notes:
 - `--single-branches` accepts `OWNER/REPO` format.
 - Returns branch names as reported by the first page of the REST API.
 - This path bypasses the TUI and other polling activities.
+- GitHub returns at most 100 branches per call for this endpoint.
 
 A small helper script is provided at `examples/single-branches.sh`.

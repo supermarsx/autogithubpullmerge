@@ -237,13 +237,13 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("REPO")
       ->expected(-1)
       ->group("Repositories");
-  app.add_option("-B,--pb,--protect-branch,--protected-branch",
+  app.add_option("-B,--protect-branch,--protected-branch",
                  options.protected_branches,
                  "Branch pattern to protect from deletion; repeatable")
       ->type_name("PATTERN")
       ->expected(-1)
       ->group("Branch Management");
-  app.add_option("-b,--px,--protect-branch-exclude",
+  app.add_option("-b,--protect-branch-exclude",
                  options.protected_branch_excludes,
                  "Branch pattern to remove protection; repeatable")
       ->type_name("PATTERN")
@@ -252,31 +252,42 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("-m,--include-merged", options.include_merged,
                "Include merged pull requests")
       ->group("Pull Request Management");
-  app.add_option("-k,--ak,--api-key", options.api_keys,
+  app.add_option("-k,--api-key", options.api_keys,
                  "Personal access token (repeatable, not recommended)")
       ->type_name("TOKEN")
       ->expected(-1)
       ->group("Authentication");
-  app.add_flag("-K,--ks,--api-key-from-stream", options.api_key_from_stream,
+  app.add_flag("-K,--api-key-from-stream", options.api_key_from_stream,
                "Read API key(s) from stdin")
       ->group("Authentication");
-  app.add_option("-u,--ku,--api-key-url", options.api_key_url,
+  app.add_option("-u,--api-key-url", options.api_key_url,
                  "URL to fetch API key(s)")
       ->type_name("URL")
       ->group("Authentication");
-  app.add_option("-U,--kU,--api-key-url-user", options.api_key_url_user,
+  app.add_option("-U,--api-key-url-user", options.api_key_url_user,
                  "Basic auth username")
       ->type_name("USER")
       ->group("Authentication");
-  app.add_option("-P,--kp,--api-key-url-password", options.api_key_url_password,
+  app.add_option("-P,--api-key-url-password", options.api_key_url_password,
                  "Basic auth password")
       ->type_name("PASS")
       ->group("Authentication");
-  app.add_option("-f,--kf,--api-key-file", options.api_key_file,
+  app.add_option("-f,--api-key-file", options.api_key_file,
                  "Path to JSON/YAML file with API key(s)")
       ->type_name("FILE")
       ->group("Authentication");
-  app.add_option("-A,--ab,--api-base", options.api_base,
+  app.add_flag("--open-pat-page", options.open_pat_window,
+               "Open the GitHub PAT creation page in a browser and exit")
+      ->group("Authentication");
+  app.add_option("--save-pat", options.pat_save_path,
+                 "Write a personal access token to the given file and exit")
+      ->type_name("FILE")
+      ->group("Authentication");
+  app.add_option("--pat-value", options.pat_value,
+                 "Personal access token value used with --save-pat")
+      ->type_name("TOKEN")
+      ->group("Authentication");
+  app.add_option("-A,--api-base", options.api_base,
                  "Base URL for GitHub API (default: https://api.github.com)")
       ->type_name("URL")
       ->group("Networking");
@@ -285,11 +296,11 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("FILE")
       ->default_val("history.db")
       ->group("General");
-  app.add_option("-c,--ec,--export-csv", options.export_csv,
+  app.add_option("-c,--export-csv", options.export_csv,
                  "Export pull request history to CSV file after each poll")
       ->type_name("FILE")
       ->group("General");
-  app.add_option("-j,--ej,--export-json", options.export_json,
+  app.add_option("-j,--export-json", options.export_json,
                  "Export pull request history to JSON file after each poll")
       ->type_name("FILE")
       ->group("General");
@@ -313,96 +324,96 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("SECONDS")
       ->default_val("30")
       ->group("Networking");
-  app.add_option("-R,--hr,--http-retries", options.http_retries,
+  app.add_option("-R,--http-retries", options.http_retries,
                  "Number of HTTP retry attempts")
       ->type_name("N")
       ->default_val("3")
       ->group("Networking");
-  app.add_option("-n,--dl,--download-limit", options.download_limit,
+  app.add_option("-n,--download-limit", options.download_limit,
                  "Maximum download rate in bytes per second")
       ->type_name("BPS")
       ->group("Networking");
-  app.add_option("-o,--ul,--upload-limit", options.upload_limit,
+  app.add_option("-o,--upload-limit", options.upload_limit,
                  "Maximum upload rate in bytes per second")
       ->type_name("BPS")
       ->group("Networking");
-  app.add_option("-d,--md,--max-download", options.max_download,
+  app.add_option("-d,--max-download", options.max_download,
                  "Maximum total download in bytes")
       ->type_name("BYTES")
       ->group("Networking");
-  app.add_option("-V,--mu,--max-upload", options.max_upload,
+  app.add_option("-V,--max-upload", options.max_upload,
                  "Maximum total upload in bytes")
       ->type_name("BYTES")
       ->group("Networking");
-  app.add_option("-x,--hp,--http-proxy", options.http_proxy,
+  app.add_option("-x,--http-proxy", options.http_proxy,
                  "Proxy URL for HTTP requests")
       ->type_name("URL")
       ->group("Networking");
-  app.add_option("-z,--hs,--https-proxy", options.https_proxy,
+  app.add_option("-z,--https-proxy", options.https_proxy,
                  "Proxy URL for HTTPS requests")
       ->type_name("URL")
       ->group("Networking");
   app.add_flag("-g,--use-graphql", options.use_graphql,
                "Use GraphQL API for pull requests")
       ->group("Networking");
-  app.add_option("-Q,--pl,--pr-limit", options.pr_limit,
+  app.add_option("-Q,--pr-limit", options.pr_limit,
                  "Number of pull requests to fetch")
       ->type_name("N")
       ->default_val("50")
       ->group("Pull Request Management");
-  app.add_option("-S,--ps,--pr-since", pr_since_str,
+  app.add_option("-S,--pr-since", pr_since_str,
                  "Only list pull requests newer than given duration")
       ->type_name("DURATION")
       ->default_val("0")
       ->group("Pull Request Management");
-  app.add_option("-O,--so,--single-open-prs", options.single_open_prs_repo,
+  app.add_option("-O,--single-open-prs", options.single_open_prs_repo,
                  "Fetch open PRs for a single repo via one HTTP request and exit")
       ->type_name("OWNER/REPO")
       ->group("Testing");
-  app.add_option("-N,--sb,--single-branches", options.single_branches_repo,
+  app.add_option("-N,--single-branches", options.single_branches_repo,
                  "Fetch branches for a single repo via one HTTP request and exit")
       ->type_name("OWNER/REPO")
       ->group("Testing");
-  app.add_option("-s,--st,--sort", options.sort,
+  app.add_option("-s,--sort", options.sort,
                  "Sort pull requests: alpha, reverse, alphanum, reverse-alphanum")
       ->type_name("MODE")
       ->check(
           CLI::IsMember({"alpha", "reverse", "alphanum", "reverse-alphanum"}))
       ->group("Pull Request Management");
-  app.add_flag("-1,--op,--only-poll-prs", options.only_poll_prs,
+  app.add_flag("-1,--only-poll-prs", options.only_poll_prs,
                "Only poll pull requests")
       ->group("Pull Request Management");
-  app.add_flag("-2,--os,--only-poll-stray", options.only_poll_stray,
+  app.add_flag("-2,--only-poll-stray", options.only_poll_stray,
                "Only poll stray branches")
       ->group("Branch Management");
-  app.add_flag("-3,--rd,--reject-dirty", options.reject_dirty,
+  app.add_flag("-3,--reject-dirty", options.reject_dirty,
                "Close dirty stray branches automatically")
       ->group("Branch Management");
-  app.add_flag("-4,--ds,--delete-stray", options.delete_stray,
+  app.add_flag("-4,--delete-stray", options.delete_stray,
                "Delete stray branches without requiring a prefix")
       ->group("Branch Management");
-  app.add_flag("-5,--db,--allow-delete-base-branch", options.allow_delete_base_branch,
+  app.add_flag("-5,--allow-delete-base-branch", options.allow_delete_base_branch,
                "Allow deletion of base branches such as main/master (dangerous)")
       ->group("Branch Management");
-  app.add_flag("-6,--am,--auto-merge", options.auto_merge,
+  app.add_flag("-6,--auto-merge", options.auto_merge,
                "Automatically merge pull requests")
       ->group("Pull Request Management");
-  app.add_option("-7,--ra,--require-approval", options.required_approvals,
+  app.add_option("-7,--require-approval", options.required_approvals,
                  "Minimum number of approvals required before merging")
       ->type_name("N")
       ->default_val("0")
       ->group("Pull Request Management");
-  app.add_flag("-8,--rs,--require-status-success", options.require_status_success,
+  app.add_flag("-8,--require-status-success", options.require_status_success,
                "Require all status checks to succeed before merging")
       ->group("Pull Request Management");
-  app.add_flag("-9,--rm,--require-mergeable", options.require_mergeable_state,
+  app.add_flag("-9,--require-mergeable", options.require_mergeable_state,
                "Require pull request to be mergeable")
       ->group("Pull Request Management");
-  app.add_option("-0,--pp,--purge-prefix", options.purge_prefix,
+  app.add_option("-0,--purge-prefix", options.purge_prefix,
                  "Delete branches with this prefix after PR close")
       ->type_name("PREFIX")
       ->group("Branch Management");
-  app.add_flag("-Y,--po,--purge-only", options.purge_only,
+  app.add_flag("-Y,--purge-only", options.purge_only,
                "Only purge branches and skip PR polling")
       ->group("Branch Management");
   try {
@@ -424,6 +435,14 @@ CliOptions parse_cli(int argc, char **argv) {
                              options.api_key_url_password);
     options.api_keys.insert(options.api_keys.end(), tokens.begin(),
                             tokens.end());
+  }
+  if (!options.pat_value.empty() && options.pat_save_path.empty()) {
+    throw CLI::ValidationError(
+        "--pat-value requires --save-pat to specify an output file");
+  }
+  if (options.open_pat_window && !options.pat_save_path.empty()) {
+    throw CLI::ValidationError(
+        "--open-pat-page cannot be combined with --save-pat");
   }
   if (options.api_key_from_stream) {
     std::string line;
