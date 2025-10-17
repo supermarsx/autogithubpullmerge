@@ -251,3 +251,38 @@ TEST_CASE("app saves pat via prompt", "[cli]") {
   in.close();
   std::filesystem::remove(pat_path);
 }
+
+TEST_CASE("config overrides populate cli options", "[cli]") {
+  std::filesystem::path cfg_path =
+      std::filesystem::temp_directory_path() / "agpm_config_merge.yaml";
+  {
+    std::ofstream cfg(cfg_path.string());
+    cfg << "dry_run: true\n";
+    cfg << "assume_yes: true\n";
+    cfg << "log_limit: 321\n";
+    cfg << "export_csv: config-export.csv\n";
+    cfg << "export_json: config-export.json\n";
+    cfg << "delete_stray: true\n";
+    cfg << "single_open_prs_repo: foo/bar\n";
+    cfg << "single_branches_repo: foo/bar\n";
+  }
+  agpm::App app;
+  std::vector<char *> args;
+  char prog[] = "tests";
+  char config_flag[] = "--config";
+  std::string cfg_path_str = cfg_path.string();
+  char *cfg_cstr = cfg_path_str.data();
+  args.push_back(prog);
+  args.push_back(config_flag);
+  args.push_back(cfg_cstr);
+  REQUIRE(app.run(static_cast<int>(args.size()), args.data()) == 0);
+  REQUIRE(app.options().dry_run);
+  REQUIRE(app.options().assume_yes);
+  REQUIRE(app.options().log_limit == 321);
+  REQUIRE(app.options().export_csv == "config-export.csv");
+  REQUIRE(app.options().export_json == "config-export.json");
+  REQUIRE(app.options().delete_stray);
+  REQUIRE(app.options().single_open_prs_repo == "foo/bar");
+  REQUIRE(app.options().single_branches_repo == "foo/bar");
+  std::filesystem::remove(cfg_path);
+}

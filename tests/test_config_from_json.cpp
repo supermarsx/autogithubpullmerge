@@ -9,6 +9,7 @@ TEST_CASE("test config from json") {
   j["poll_interval"] = 12;
   j["max_request_rate"] = 42;
   j["log_level"] = "debug";
+  j["log_limit"] = 210;
   j["include_repos"] = {"a", "b"};
   j["pr_since"] = "5m";
   j["http_timeout"] = 40;
@@ -20,6 +21,17 @@ TEST_CASE("test config from json") {
   j["http_proxy"] = "http://proxy";
   j["https_proxy"] = "http://secureproxy";
   j["use_graphql"] = true;
+  j["assume_yes"] = true;
+  j["dry_run"] = true;
+  j["delete_stray"] = true;
+  j["allow_delete_base_branch"] = true;
+  j["export_csv"] = "cfg.csv";
+  j["export_json"] = "cfg.json";
+  j["open_pat_page"] = false;
+  j["pat_save_path"] = "cfg_pat.txt";
+  j["pat_value"] = "cfg_pat_value";
+  j["single_open_prs_repo"] = "cfg/open";
+  j["single_branches_repo"] = "cfg/branches";
   j["hotkeys"] = {
       {"enabled", false},
       {"bindings",
@@ -33,6 +45,7 @@ TEST_CASE("test config from json") {
   REQUIRE(cfg.poll_interval() == 12);
   REQUIRE(cfg.max_request_rate() == 42);
   REQUIRE(cfg.log_level() == "debug");
+  REQUIRE(cfg.log_limit() == 210);
   REQUIRE(cfg.include_repos().size() == 2);
   REQUIRE(cfg.pr_since() == std::chrono::minutes(5));
   REQUIRE(cfg.http_timeout() == 40);
@@ -44,6 +57,17 @@ TEST_CASE("test config from json") {
   REQUIRE(cfg.http_proxy() == "http://proxy");
   REQUIRE(cfg.https_proxy() == "http://secureproxy");
   REQUIRE(cfg.use_graphql());
+  REQUIRE(cfg.assume_yes());
+  REQUIRE(cfg.dry_run());
+  REQUIRE(cfg.delete_stray());
+  REQUIRE(cfg.allow_delete_base_branch());
+  REQUIRE(cfg.export_csv() == "cfg.csv");
+  REQUIRE(cfg.export_json() == "cfg.json");
+  REQUIRE_FALSE(cfg.open_pat_page());
+  REQUIRE(cfg.pat_save_path() == "cfg_pat.txt");
+  REQUIRE(cfg.pat_value() == "cfg_pat_value");
+  REQUIRE(cfg.single_open_prs_repo() == "cfg/open");
+  REQUIRE(cfg.single_branches_repo() == "cfg/branches");
   REQUIRE_FALSE(cfg.hotkeys_enabled());
   REQUIRE(cfg.hotkey_bindings().at("refresh") == "Ctrl+R,r");
   REQUIRE(cfg.hotkey_bindings().at("merge").empty());

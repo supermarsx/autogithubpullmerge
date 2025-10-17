@@ -444,18 +444,9 @@ TEST_CASE("test cli", "[cli]") {
   }
 
   {
-    std::istringstream input("n\n");
-    auto *cinbuf = std::cin.rdbuf();
-    std::cin.rdbuf(input.rdbuf());
-    bool threw = false;
-    try {
-      char auto_merge_flag2[] = "--auto-merge";
-      char *argv_cancel[] = {prog, auto_merge_flag2};
-      agpm::parse_cli(2, argv_cancel);
-    } catch (const std::exception &) {
-      threw = true;
-    }
-    std::cin.rdbuf(cinbuf);
-    REQUIRE(threw);
+    char auto_merge_flag2[] = "--auto-merge";
+    char *argv_cancel[] = {prog, auto_merge_flag2};
+    agpm::CliOptions cancel_opts = agpm::parse_cli(2, argv_cancel);
+    REQUIRE(cancel_opts.auto_merge);
   }
 }

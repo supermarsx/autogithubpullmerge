@@ -76,7 +76,9 @@ int main(int argc, char **argv) {
   agpm::GitHubClient client(tokens, std::move(http_client), include_set,
                             exclude_set, delay_ms, http_timeout * 1000,
                             http_retries, api_base, opts.dry_run);
-  client.set_allow_delete_base_branch(opts.allow_delete_base_branch);
+  bool allow_delete_base_branch =
+      opts.allow_delete_base_branch || cfg.allow_delete_base_branch();
+  client.set_allow_delete_base_branch(allow_delete_base_branch);
   agpm::GitHubGraphQLClient graphql_client(tokens, http_timeout * 1000,
                                            api_base);
 
@@ -132,7 +134,7 @@ int main(int argc, char **argv) {
   bool reject_dirty = opts.reject_dirty || cfg.reject_dirty();
   std::string purge_prefix =
       !opts.purge_prefix.empty() ? opts.purge_prefix : cfg.purge_prefix();
-  bool delete_stray = opts.delete_stray; // no config support yet
+  bool delete_stray = opts.delete_stray || cfg.delete_stray();
   bool auto_merge = opts.auto_merge || cfg.auto_merge();
   bool purge_only = opts.purge_only || cfg.purge_only();
   std::string sort_mode = !opts.sort.empty() ? opts.sort : cfg.sort_mode();

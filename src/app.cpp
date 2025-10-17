@@ -3,6 +3,8 @@
 #include "config.hpp"
 #include "log.hpp"
 #include <cstdlib>
+#include <cerrno>
+#include <cstring>
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -11,8 +13,14 @@
 #include <system_error>
 #include <spdlog/spdlog.h>
 
-#ifndef _WIN32
+#if defined(_WIN32)
+#include <shellapi.h>
+#include <windows.h>
+#else
+#include <spawn.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+extern char **environ;
 #endif
 
 namespace {
@@ -24,14 +32,37 @@ bool open_url_in_browser(const std::string &url) {
     }
   }
 #if defined(_WIN32)
-  std::string cmd = "start \"\" \"" + url + "\"";
-#elif defined(__APPLE__)
-  std::string cmd = "open \"" + url + "\"";
+  HINSTANCE res = ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr,
+                                SW_SHOWNORMAL);
+  auto code = reinterpret_cast<uintptr_t>(res);
+  if (code > 32) {
+    return true;
+  }
+  spdlog::debug("ShellExecuteA failed with code {}", code);
+  return false;
 #else
-  std::string cmd = "xdg-open \"" + url + "\"";
+#if defined(__APPLE__)
+  const char *program = "open";
+#else
+  const char *program = "xdg-open";
 #endif
-  int rc = std::system(cmd.c_str());
-  return rc == 0;
+  std::string program_arg(program);
+  std::string url_arg = url;
+  char *argv[] = {program_arg.data(), url_arg.data(), nullptr};
+  pid_t pid = -1;
+  int spawn_res =
+      posix_spawnp(&pid, program_arg.c_str(), nullptr, nullptr, argv, environ);
+  if (spawn_res != 0) {
+    spdlog::debug("posix_spawnp failed for {}: {}", program,
+                  std::strerror(spawn_res));
+    return false;
+  }
+  int status = 0;
+  if (waitpid(pid, &status, 0) != pid) {
+    return false;
+  }
+  return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+#endif
 }
 
 bool write_pat_to_file(const std::string &path_str, const std::string &pat) {
@@ -86,6 +117,55 @@ int App::run(int argc, char **argv) {
   }
   if (options_.hotkeys_explicit) {
     config_.set_hotkeys_enabled(options_.hotkeys_enabled);
+  }
+  options_.assume_yes = options_.assume_yes || config_.assume_yes();
+  options_.dry_run = options_.dry_run || config_.dry_run();
+  if (options_.log_limit == 200) {
+    options_.log_limit = config_.log_limit();
+  }
+  options_.reject_dirty = options_.reject_dirty || config_.reject_dirty();
+  options_.delete_stray = options_.delete_stray || config_.delete_stray();
+  options_.allow_delete_base_branch =
+      options_.allow_delete_base_branch || config_.allow_delete_base_branch();
+  options_.auto_merge = options_.auto_merge || config_.auto_merge();
+  if (options_.purge_prefix.empty()) {
+    options_.purge_prefix = config_.purge_prefix();
+  }
+  options_.purge_only = options_.purge_only || config_.purge_only();
+  options_.open_pat_window =
+      options_.open_pat_window || config_.open_pat_page();
+  if (options_.pat_save_path.empty()) {
+    options_.pat_save_path = config_.pat_save_path();
+  }
+  if (options_.pat_value.empty()) {
+    options_.pat_value = config_.pat_value();
+  }
+  if (options_.export_csv.empty()) {
+    options_.export_csv = config_.export_csv();
+  }
+  if (options_.export_json.empty()) {
+    options_.export_json = config_.export_json();
+  }
+  if (options_.single_open_prs_repo.empty()) {
+    options_.single_open_prs_repo = config_.single_open_prs_repo();
+  }
+  if (options_.single_branches_repo.empty()) {
+    options_.single_branches_repo = config_.single_branches_repo();
+  }
+  bool destructive =
+      (options_.reject_dirty || options_.delete_stray ||
+       options_.allow_delete_base_branch || options_.auto_merge ||
+       !options_.purge_prefix.empty() || options_.purge_only) &&
+      !options_.dry_run;
+  if (destructive && !options_.assume_yes) {
+    std::cout << "Destructive options enabled. Continue? [y/N]: ";
+    std::string resp;
+    std::getline(std::cin, resp);
+    if (!(resp == "y" || resp == "Y" || resp == "yes" || resp == "YES")) {
+      spdlog::error("Operation cancelled by user");
+      should_exit_ = true;
+      return 1;
+    }
   }
   std::string level_str = options_.verbose ? "debug" : "info";
   if (options_.log_level != "info") {

@@ -161,6 +161,9 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("log_file")) {
     set_log_file(j["log_file"].get<std::string>());
   }
+  if (j.contains("log_limit")) {
+    set_log_limit(j["log_limit"].get<int>());
+  }
   if (j.contains("include_repos")) {
     set_include_repos(j["include_repos"].get<std::vector<std::string>>());
   }
@@ -199,6 +202,18 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("history_db")) {
     set_history_db(j["history_db"].get<std::string>());
   }
+  if (j.contains("export_csv")) {
+    set_export_csv(j["export_csv"].get<std::string>());
+  }
+  if (j.contains("export_json")) {
+    set_export_json(j["export_json"].get<std::string>());
+  }
+  if (j.contains("assume_yes")) {
+    set_assume_yes(j["assume_yes"].get<bool>());
+  }
+  if (j.contains("dry_run")) {
+    set_dry_run(j["dry_run"].get<bool>());
+  }
   if (j.contains("only_poll_prs")) {
     set_only_poll_prs(j["only_poll_prs"].get<bool>());
   }
@@ -211,8 +226,15 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("reject_dirty")) {
     set_reject_dirty(j["reject_dirty"].get<bool>());
   }
+  if (j.contains("delete_stray")) {
+    set_delete_stray(j["delete_stray"].get<bool>());
+  }
   if (j.contains("auto_merge")) {
     set_auto_merge(j["auto_merge"].get<bool>());
+  }
+  if (j.contains("allow_delete_base_branch")) {
+    set_allow_delete_base_branch(
+        j["allow_delete_base_branch"].get<bool>());
   }
   // Merge rule settings
   if (j.contains("required_approvals")) {
@@ -274,6 +296,21 @@ void Config::load_json(const nlohmann::json &j) {
         }
       }
     }
+  }
+  if (j.contains("open_pat_page")) {
+    set_open_pat_page(j["open_pat_page"].get<bool>());
+  }
+  if (j.contains("pat_save_path")) {
+    set_pat_save_path(j["pat_save_path"].get<std::string>());
+  }
+  if (j.contains("pat_value")) {
+    set_pat_value(j["pat_value"].get<std::string>());
+  }
+  if (j.contains("single_open_prs_repo")) {
+    set_single_open_prs_repo(j["single_open_prs_repo"].get<std::string>());
+  }
+  if (j.contains("single_branches_repo")) {
+    set_single_branches_repo(j["single_branches_repo"].get<std::string>());
   }
 
   // Warn on repositories appearing in both include and exclude lists.

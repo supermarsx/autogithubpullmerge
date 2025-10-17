@@ -108,6 +108,12 @@ public:
   /// Set path for rotating log file.
   void set_log_file(const std::string &file) { log_file_ = file; }
 
+  /// Maximum number of in-memory log messages to keep.
+  int log_limit() const { return log_limit_; }
+
+  /// Set maximum number of in-memory log messages.
+  void set_log_limit(int limit) { log_limit_ = limit; }
+
   /// Repositories to include.
   const std::vector<std::string> &include_repos() const {
     return include_repos_;
@@ -204,6 +210,30 @@ public:
   /// Set history database path.
   void set_history_db(const std::string &path) { history_db_ = path; }
 
+  /// CSV export destination.
+  const std::string &export_csv() const { return export_csv_; }
+
+  /// Set CSV export destination.
+  void set_export_csv(const std::string &path) { export_csv_ = path; }
+
+  /// JSON export destination.
+  const std::string &export_json() const { return export_json_; }
+
+  /// Set JSON export destination.
+  void set_export_json(const std::string &path) { export_json_ = path; }
+
+  /// Automatically answer yes to destructive confirmations.
+  bool assume_yes() const { return assume_yes_; }
+
+  /// Set automatic confirmation behaviour.
+  void set_assume_yes(bool yes) { assume_yes_ = yes; }
+
+  /// Run in dry-run mode.
+  bool dry_run() const { return dry_run_; }
+
+  /// Set dry-run behaviour.
+  void set_dry_run(bool v) { dry_run_ = v; }
+
   /// Only poll pull requests.
   bool only_poll_prs() const { return only_poll_prs_; }
 
@@ -259,6 +289,18 @@ public:
   /// Set purge prefix for branch deletion.
   void set_purge_prefix(const std::string &p) { purge_prefix_ = p; }
 
+  /// Delete stray branches automatically.
+  bool delete_stray() const { return delete_stray_; }
+
+  /// Set delete stray flag.
+  void set_delete_stray(bool v) { delete_stray_ = v; }
+
+  /// Allow deleting base branches.
+  bool allow_delete_base_branch() const { return allow_delete_base_branch_; }
+
+  /// Set allow delete base branch flag.
+  void set_allow_delete_base_branch(bool v) { allow_delete_base_branch_ = v; }
+
   /// Limit of pull requests to fetch.
   int pr_limit() const { return pr_limit_; }
 
@@ -304,6 +346,44 @@ public:
     hotkey_bindings_[action] = key;
   }
 
+  /// Perform a single open-PR fetch for testing purposes.
+  const std::string &single_open_prs_repo() const {
+    return single_open_prs_repo_;
+  }
+
+  /// Set repository for single open-PR fetch.
+  void set_single_open_prs_repo(const std::string &repo) {
+    single_open_prs_repo_ = repo;
+  }
+
+  /// Perform a single branch list fetch for testing purposes.
+  const std::string &single_branches_repo() const {
+    return single_branches_repo_;
+  }
+
+  /// Set repository for single branch list fetch.
+  void set_single_branches_repo(const std::string &repo) {
+    single_branches_repo_ = repo;
+  }
+
+  /// Should the PAT creation page open automatically.
+  bool open_pat_page() const { return open_pat_page_; }
+
+  /// Set automatic PAT page launch flag.
+  void set_open_pat_page(bool v) { open_pat_page_ = v; }
+
+  /// Destination file to save a PAT.
+  const std::string &pat_save_path() const { return pat_save_path_; }
+
+  /// Set destination file for saving a PAT.
+  void set_pat_save_path(const std::string &path) { pat_save_path_ = path; }
+
+  /// PAT value provided in configuration.
+  const std::string &pat_value() const { return pat_value_; }
+
+  /// Set PAT value provided by configuration.
+  void set_pat_value(const std::string &value) { pat_value_ = value; }
+
   /// Load configuration from the file at `path`.
   static Config from_file(const std::string &path);
 
@@ -321,6 +401,7 @@ private:
   std::string log_level_ = "info";
   std::string log_pattern_;
   std::string log_file_;
+  int log_limit_ = 200;
   std::vector<std::string> include_repos_;
   std::vector<std::string> exclude_repos_;
   std::vector<std::string> protected_branches_;
@@ -333,6 +414,10 @@ private:
   std::string api_key_url_password_;
   std::string api_key_file_;
   std::string history_db_ = "history.db";
+  std::string export_csv_;
+  std::string export_json_;
+  bool assume_yes_ = false;
+  bool dry_run_ = false;
   bool only_poll_prs_ = false;
   bool only_poll_stray_ = false;
   bool purge_only_ = false;
@@ -357,6 +442,13 @@ private:
   long long max_upload_ = 0;
   std::string http_proxy_;
   std::string https_proxy_;
+  bool delete_stray_ = false;
+  bool allow_delete_base_branch_ = false;
+  bool open_pat_page_ = false;
+  std::string pat_save_path_;
+  std::string pat_value_;
+  std::string single_open_prs_repo_;
+  std::string single_branches_repo_;
 };
 
 } // namespace agpm

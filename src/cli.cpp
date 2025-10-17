@@ -8,7 +8,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <stdexcept>
@@ -462,19 +461,6 @@ CliOptions parse_cli(int argc, char **argv) {
     }
   }
   options.pr_since = parse_duration(pr_since_str);
-  bool destructive =
-      (options.reject_dirty || options.delete_stray ||
-       options.allow_delete_base_branch || options.auto_merge ||
-       !options.purge_prefix.empty() || options.purge_only) &&
-      !options.dry_run;
-  if (destructive && !options.assume_yes) {
-    std::cout << "Destructive options enabled. Continue? [y/N]: ";
-    std::string resp;
-    std::getline(std::cin, resp);
-    if (!(resp == "y" || resp == "Y" || resp == "yes" || resp == "YES")) {
-      throw std::runtime_error("Operation cancelled by user");
-    }
-  }
   return options;
 }
 
