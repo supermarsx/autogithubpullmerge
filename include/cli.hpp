@@ -1,6 +1,7 @@
 #ifndef AUTOGITHUBPULLMERGE_CLI_HPP
 #define AUTOGITHUBPULLMERGE_CLI_HPP
 
+#include "repo_discovery.hpp"
 #include <chrono>
 #include <exception>
 #include <string>
@@ -43,12 +44,16 @@ struct CliOptions {
   std::vector<std::string>
       protected_branch_excludes;         ///< Patterns that remove protection
   bool include_merged{false};            ///< Include merged pull requests
+  std::vector<std::string>
+      repo_discovery_roots; ///< Roots to scan for local repositories
+  RepoDiscoveryMode repo_discovery_mode{RepoDiscoveryMode::Disabled}; ///< Repo discovery behaviour
+  bool repo_discovery_explicit{false};   ///< True if CLI set repo discovery mode
   std::vector<std::string> api_keys;     ///< Personal access tokens
   bool api_key_from_stream = false;      ///< Read tokens from stdin
   std::string api_key_url;               ///< Remote URL with tokens
   std::string api_key_url_user;          ///< Basic auth user
   std::string api_key_url_password;      ///< Basic auth password
-  std::string api_key_file;              ///< File containing tokens
+  std::vector<std::string> api_key_files; ///< Files containing tokens
   bool open_pat_window{false};           ///< Launch PAT creation page then exit
   std::string pat_save_path;             ///< Destination file for saving PAT
   std::string pat_value;                 ///< PAT value supplied via CLI

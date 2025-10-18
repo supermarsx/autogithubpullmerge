@@ -28,6 +28,14 @@ int App::run(int argc, char **argv) {
   if (!options_.config_file.empty()) {
     config_ = Config::from_file(options_.config_file);
   }
+  if (!options_.repo_discovery_explicit) {
+    options_.repo_discovery_mode = config_.repo_discovery_mode();
+  } else {
+    config_.set_repo_discovery_mode(options_.repo_discovery_mode);
+  }
+  if (options_.repo_discovery_roots.empty()) {
+    options_.repo_discovery_roots = config_.repo_discovery_roots();
+  }
   if (options_.hotkeys_explicit) {
     config_.set_hotkeys_enabled(options_.hotkeys_enabled);
   }

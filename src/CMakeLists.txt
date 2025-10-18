@@ -27,6 +27,8 @@ add_library(
   poller.cpp
   github_poller.cpp
   notification.cpp
+  repo_discovery.cpp
+  token_loader.cpp
   util/duration.cpp)
 
 target_include_directories(

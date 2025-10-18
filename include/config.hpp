@@ -1,6 +1,7 @@
 #ifndef AUTOGITHUBPULLMERGE_CONFIG_HPP
 #define AUTOGITHUBPULLMERGE_CONFIG_HPP
 
+#include "repo_discovery.hpp"
 #include <chrono>
 #include <nlohmann/json_fwd.hpp>
 #include <string>
@@ -172,6 +173,31 @@ public:
   /// Set inclusion of merged pull requests.
   void set_include_merged(bool include) { include_merged_ = include; }
 
+  /// Repository discovery mode.
+  RepoDiscoveryMode repo_discovery_mode() const {
+    return repo_discovery_mode_;
+  }
+
+  /// Set repository discovery mode.
+  void set_repo_discovery_mode(RepoDiscoveryMode mode) {
+    repo_discovery_mode_ = mode;
+  }
+
+  /// Paths scanned for filesystem repository discovery.
+  const std::vector<std::string> &repo_discovery_roots() const {
+    return repo_discovery_roots_;
+  }
+
+  /// Set paths for filesystem repository discovery.
+  void set_repo_discovery_roots(const std::vector<std::string> &roots) {
+    repo_discovery_roots_ = roots;
+  }
+
+  /// Append a single filesystem discovery root.
+  void add_repo_discovery_root(const std::string &root) {
+    repo_discovery_roots_.push_back(root);
+  }
+
   /// Configured API keys.
   const std::vector<std::string> &api_keys() const { return api_keys_; }
 
@@ -210,11 +236,20 @@ public:
     api_key_url_password_ = pass;
   }
 
-  /// Path to file containing API keys.
-  const std::string &api_key_file() const { return api_key_file_; }
+  /// Paths to files containing API keys.
+  const std::vector<std::string> &api_key_files() const {
+    return api_key_files_;
+  }
 
-  /// Set path to file containing API keys.
-  void set_api_key_file(const std::string &path) { api_key_file_ = path; }
+  /// Set paths to files containing API keys.
+  void set_api_key_files(const std::vector<std::string> &paths) {
+    api_key_files_ = paths;
+  }
+
+  /// Append a single API key file path.
+  void add_api_key_file(const std::string &path) {
+    api_key_files_.push_back(path);
+  }
 
   /// Path to SQLite history database.
   const std::string &history_db() const { return history_db_; }
@@ -421,12 +456,14 @@ private:
   std::vector<std::string> protected_branches_;
   std::vector<std::string> protected_branch_excludes_;
   bool include_merged_ = false;
+  RepoDiscoveryMode repo_discovery_mode_ = RepoDiscoveryMode::Disabled;
+  std::vector<std::string> repo_discovery_roots_;
   std::vector<std::string> api_keys_;
   bool api_key_from_stream_ = false;
   std::string api_key_url_;
   std::string api_key_url_user_;
   std::string api_key_url_password_;
-  std::string api_key_file_;
+  std::vector<std::string> api_key_files_;
   std::string history_db_ = "history.db";
   std::string export_csv_;
   std::string export_json_;

@@ -136,6 +136,32 @@ TEST_CASE("test cli", "[cli]") {
   REQUIRE(opts_protect.protected_branch_excludes.size() == 1);
   REQUIRE(opts_protect.protected_branch_excludes[0] == "main-temp");
 
+  char repo_disc_flag[] = "--repo-discovery";
+  char repo_disc_mode[] = "all";
+  char *argv_repo_disc[] = {prog, repo_disc_flag, repo_disc_mode};
+  agpm::CliOptions opts_repo_disc = agpm::parse_cli(3, argv_repo_disc);
+  REQUIRE(opts_repo_disc.repo_discovery_explicit);
+  REQUIRE(opts_repo_disc.repo_discovery_mode == agpm::RepoDiscoveryMode::All);
+
+  char repo_disc_mode_fs[] = "filesystem";
+  char *argv_repo_fs[] = {prog, repo_disc_flag, repo_disc_mode_fs};
+  agpm::CliOptions opts_repo_fs = agpm::parse_cli(3, argv_repo_fs);
+  REQUIRE(opts_repo_fs.repo_discovery_mode == agpm::RepoDiscoveryMode::Filesystem);
+
+  char repo_disc_bad[] = "invalid";
+  char *argv_repo_bad[] = {prog, repo_disc_flag, repo_disc_bad};
+  REQUIRE_THROWS_AS(agpm::parse_cli(3, argv_repo_bad), agpm::CliParseExit);
+
+  char repo_root_flag[] = "--repo-discovery-root";
+  char repo_root_a[] = "rootA";
+  char repo_root_b[] = "rootB";
+  char *argv_repo_root[] = {prog, repo_root_flag, repo_root_a, repo_root_flag,
+                            repo_root_b};
+  agpm::CliOptions opts_repo_root = agpm::parse_cli(5, argv_repo_root);
+  REQUIRE(opts_repo_root.repo_discovery_roots.size() == 2);
+  REQUIRE(opts_repo_root.repo_discovery_roots[0] == "rootA");
+  REQUIRE(opts_repo_root.repo_discovery_roots[1] == "rootB");
+
   char api_flag[] = "--api-key";
   char key1[] = "abc";
   char key2[] = "def";
@@ -149,13 +175,19 @@ TEST_CASE("test cli", "[cli]") {
     std::ofstream f("tok.yaml");
     f << "tokens:\n  - a\n  - b\n";
     f.close();
+    std::ofstream ft("tok.toml");
+    ft << "tokens = [\"c\", \"d\"]\n";
+    ft.close();
     char file_flag[] = "--api-key-file";
     char token_path[] = "tok.yaml";
-    char *argv9[] = {prog, file_flag, token_path};
-    agpm::CliOptions opts9 = agpm::parse_cli(3, argv9);
-    REQUIRE(opts9.api_keys.size() == 2);
+    char token_path2[] = "tok.toml";
+    char *argv9[] = {prog, file_flag, token_path, file_flag, token_path2};
+    agpm::CliOptions opts9 = agpm::parse_cli(5, argv9);
+    REQUIRE(opts9.api_keys.size() == 4);
     REQUIRE(opts9.api_keys[0] == "a");
     REQUIRE(opts9.api_keys[1] == "b");
+    REQUIRE(opts9.api_keys[2] == "c");
+    REQUIRE(opts9.api_keys[3] == "d");
   }
 
   // Environment variable fallback

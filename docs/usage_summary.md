@@ -36,8 +36,16 @@ For example, `-C` maps to `--config` and `-1` toggles `--only-poll-prs`.
 
 ### Repository Filters
 
-- `--include`/`--exclude` - repeatable repository include/exclude filters.
+- `--include`/`--exclude` - repeatable repository include/exclude filters (format `OWNER/REPO`).
+- `--repo-discovery MODE` - `disabled` (default) uses explicit include lists; `all` discovers every repo accessible to the token; `filesystem` scans local git directories for GitHub remotes. Include/exclude always act as allow/deny lists.
+- `--repo-discovery-root DIR` - repeatable directories scanned when using `filesystem` discovery.
 - `--include-merged` - show merged pull requests when listing (off by default).
+
+When discovery is disabled you must specify at least one repository with
+`--include` or the equivalent configuration entry.
+In configuration files, use the `repo_discovery_mode` key with values
+`disabled`, `all`, or `filesystem`, and list directories under
+`repo_discovery_roots` (or the single `repo_discovery_root`).
 
 ### Authentication
 
@@ -45,7 +53,7 @@ For example, `-C` maps to `--config` and `-1` toggles `--only-poll-prs`.
 - `--api-key-from-stream` - read tokens from standard input.
 - `--api-key-url`/`--api-key-url-user`/`--api-key-url-password` - fetch tokens
   from a remote URL with optional basic authentication.
-- `--api-key-file` - load tokens from a local YAML or JSON file.
+- `--api-key-file` - repeatable; load tokens from local JSON/YAML/TOML files.
 - `--open-pat-page` - launch the GitHub PAT creation page in the default
   browser and exit immediately.
 - `--save-pat FILE` - save a personal access token to `FILE`, prompting if no

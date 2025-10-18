@@ -1,5 +1,6 @@
 #include "cli.hpp"
 #include "curl/curl.h"
+#include "token_loader.hpp"
 #include "util/duration.hpp"
 #include <CLI/CLI.hpp>
 #include <algorithm>
@@ -8,11 +9,9 @@
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
-#include <nlohmann/json.hpp>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
-#include <iterator>
-#include <yaml-cpp/yaml.h>
 
 namespace agpm {
 
@@ -38,62 +37,6 @@ static std::string format_curl_error(const char *verb, const std::string &url,
     oss << " - " << curl_easy_strerror(CURLE_COULDNT_CONNECT);
   }
   return oss.str();
-}
-
-static std::vector<std::string> load_tokens_from_file(const std::string &path) {
-  auto pos = path.find_last_of('.');
-  if (pos == std::string::npos) {
-    throw std::runtime_error("Unknown token file extension");
-  }
-  std::string ext = path.substr(pos + 1);
-  std::vector<std::string> tokens;
-  if (ext == "yaml" || ext == "yml") {
-    YAML::Node node = YAML::LoadFile(path);
-    if (node.IsSequence()) {
-      tokens.reserve(tokens.size() + node.size());
-      std::transform(node.begin(), node.end(), std::back_inserter(tokens),
-                     [](const YAML::Node &n) { return n.as<std::string>(); });
-    }
-    if (node["token"]) {
-      tokens.push_back(node["token"].as<std::string>());
-    }
-    if (node["tokens"]) {
-      const YAML::Node tokens_node = node["tokens"];
-      tokens.reserve(tokens.size() + tokens_node.size());
-      std::transform(tokens_node.begin(), tokens_node.end(),
-                     std::back_inserter(tokens),
-                     [](const YAML::Node &n) { return n.as<std::string>(); });
-    }
-  } else if (ext == "json") {
-    std::ifstream f(path);
-    if (!f) {
-      throw std::runtime_error("Failed to open token file");
-    }
-    nlohmann::json j;
-    f >> j;
-    if (j.is_array()) {
-      tokens.reserve(tokens.size() + j.size());
-      std::transform(j.begin(), j.end(), std::back_inserter(tokens),
-                     [](const nlohmann::json &item) {
-                       return item.get<std::string>();
-                     });
-    } else {
-      if (j.contains("token")) {
-        tokens.push_back(j["token"].get<std::string>());
-      }
-      if (j.contains("tokens")) {
-        const auto &array = j["tokens"];
-        tokens.reserve(tokens.size() + array.size());
-        std::transform(array.begin(), array.end(), std::back_inserter(tokens),
-                       [](const nlohmann::json &item) {
-                         return item.get<std::string>();
-                       });
-      }
-    }
-  } else {
-    throw std::runtime_error("Unsupported token file format");
-  }
-  return tokens;
 }
 
 static std::vector<std::string> load_tokens_from_url(const std::string &url,
@@ -271,6 +214,26 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("REPO")
       ->expected(-1)
       ->group("Repositories");
+  app
+      .add_option_function<std::string>(
+          "--repo-discovery",
+          [&options](const std::string &value) {
+            try {
+              options.repo_discovery_mode = repo_discovery_mode_from_string(value);
+              options.repo_discovery_explicit = true;
+            } catch (const std::invalid_argument &e) {
+              throw CLI::ValidationError(
+                  std::string("--repo-discovery: ") + e.what());
+            }
+          },
+          "Control repository discovery (disabled/all/filesystem)")
+      ->type_name("disabled|all|filesystem")
+      ->group("Repositories");
+  app.add_option("--repo-discovery-root", options.repo_discovery_roots,
+                 "Directory to scan for git repositories; repeatable")
+      ->type_name("DIR")
+      ->expected(-1)
+      ->group("Repositories");
   app.add_option("-X,--exclude", options.exclude_repos,
                  "Repository to exclude; repeatable")
       ->type_name("REPO")
@@ -311,9 +274,10 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Basic auth password")
       ->type_name("PASS")
       ->group("Authentication");
-  app.add_option("-f,--api-key-file", options.api_key_file,
-                 "Path to JSON/YAML file with API key(s)")
+  app.add_option("-f,--api-key-file", options.api_key_files,
+                 "Path to JSON/YAML/TOML file with API key(s); repeatable")
       ->type_name("FILE")
+      ->expected(-1)
       ->group("Authentication");
   app.add_flag("--open-pat-page",
                "Open the GitHub PAT creation page in a browser and exit")
@@ -468,10 +432,9 @@ CliOptions parse_cli(int argc, char **argv) {
     int exit_code = app.exit(e);
     throw CliParseExit(exit_code);
   }
-  if (!options.api_key_file.empty()) {
-    auto tokens = load_tokens_from_file(options.api_key_file);
-    options.api_keys.insert(options.api_keys.end(), tokens.begin(),
-                            tokens.end());
+  for (const auto &token_file : options.api_key_files) {
+    auto tokens = load_tokens_from_file(token_file);
+    options.api_keys.insert(options.api_keys.end(), tokens.begin(), tokens.end());
   }
   if (!options.api_key_url.empty()) {
     auto tokens =

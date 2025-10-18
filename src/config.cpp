@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include "log.hpp"
+#include "token_loader.hpp"
 #include "util/duration.hpp"
 #include <algorithm>
 #include <cctype>
@@ -187,6 +188,21 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("include_merged")) {
     set_include_merged(j["include_merged"].get<bool>());
   }
+  if (j.contains("repo_discovery_mode")) {
+    try {
+      set_repo_discovery_mode(
+          repo_discovery_mode_from_string(j["repo_discovery_mode"].get<std::string>()));
+    } catch (const std::exception &e) {
+      spdlog::error("Invalid repo_discovery_mode: {}", e.what());
+      throw;
+    }
+  }
+  if (j.contains("repo_discovery_roots")) {
+    set_repo_discovery_roots(j["repo_discovery_roots"].get<std::vector<std::string>>());
+  }
+  if (j.contains("repo_discovery_root")) {
+    add_repo_discovery_root(j["repo_discovery_root"].get<std::string>());
+  }
   if (j.contains("api_keys")) {
     set_api_keys(j["api_keys"].get<std::vector<std::string>>());
   }
@@ -202,11 +218,25 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("api_key_url_password")) {
     set_api_key_url_password(j["api_key_url_password"].get<std::string>());
   }
+  if (j.contains("api_key_files")) {
+    set_api_key_files(j["api_key_files"].get<std::vector<std::string>>());
+  }
   if (j.contains("api_key_file")) {
-    set_api_key_file(j["api_key_file"].get<std::string>());
+    add_api_key_file(j["api_key_file"].get<std::string>());
   }
   if (j.contains("history_db")) {
     set_history_db(j["history_db"].get<std::string>());
+  }
+  if (!api_key_files().empty()) {
+    for (const auto &file : api_key_files()) {
+      try {
+        auto file_tokens = load_tokens_from_file(file);
+        api_keys_.insert(api_keys_.end(), file_tokens.begin(), file_tokens.end());
+      } catch (const std::exception &e) {
+        spdlog::error("Failed to load token file {}: {}", file, e.what());
+        throw;
+      }
+    }
   }
   if (j.contains("export_csv")) {
     set_export_csv(j["export_csv"].get<std::string>());

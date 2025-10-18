@@ -3,9 +3,12 @@
 #include "github_client.hpp"
 #include "github_poller.hpp"
 #include "history.hpp"
+#include "repo_discovery.hpp"
 #include "tui.hpp"
 
+#include <algorithm>
 #include <iostream>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -35,6 +38,36 @@ int main(int argc, char **argv) {
       !opts.include_repos.empty() ? opts.include_repos : cfg.include_repos();
   std::vector<std::string> exclude =
       !opts.exclude_repos.empty() ? opts.exclude_repos : cfg.exclude_repos();
+  const std::vector<std::string> &discovery_roots =
+      !opts.repo_discovery_roots.empty() ? opts.repo_discovery_roots
+                                         : cfg.repo_discovery_roots();
+  auto parse_repo = [](const std::string &identifier,
+                       std::pair<std::string, std::string> &out) {
+    auto pos = identifier.find('/');
+    if (pos == std::string::npos || pos == 0 || pos + 1 >= identifier.size()) {
+      return false;
+    }
+    out.first = identifier.substr(0, pos);
+    out.second = identifier.substr(pos + 1);
+    return true;
+  };
+  auto repo_to_string = [](const std::pair<std::string, std::string> &repo) {
+    return repo.first + "/" + repo.second;
+  };
+  auto build_filter = [&](const std::vector<std::string> &list, const char *label,
+                          std::unordered_set<std::string> &out) -> bool {
+    out.clear();
+    out.reserve(list.size());
+    for (const auto &entry : list) {
+      std::pair<std::string, std::string> parsed;
+      if (!parse_repo(entry, parsed)) {
+        spdlog::error("Invalid repository identifier '{}' in {} list", entry, label);
+        return false;
+      }
+      out.insert(repo_to_string(parsed));
+    }
+    return true;
+  };
   std::vector<std::string> protected_branches =
       !opts.protected_branches.empty() ? opts.protected_branches
                                        : cfg.protected_branches();
@@ -42,8 +75,14 @@ int main(int argc, char **argv) {
       !opts.protected_branch_excludes.empty()
           ? opts.protected_branch_excludes
           : cfg.protected_branch_excludes();
-  std::unordered_set<std::string> include_set(include.begin(), include.end());
-  std::unordered_set<std::string> exclude_set(exclude.begin(), exclude.end());
+  std::unordered_set<std::string> include_set;
+  if (!build_filter(include, "include", include_set)) {
+    return 1;
+  }
+  std::unordered_set<std::string> exclude_set;
+  if (!build_filter(exclude, "exclude", exclude_set)) {
+    return 1;
+  }
 
   int max_rate = opts.max_request_rate != 60 ? opts.max_request_rate
                                              : cfg.max_request_rate();
@@ -147,14 +186,84 @@ int main(int argc, char **argv) {
     workers = 1;
 
   std::vector<std::pair<std::string, std::string>> repos;
-  for (const auto &r : include) {
-    auto pos = r.find('/');
-    if (pos != std::string::npos) {
-      repos.emplace_back(r.substr(0, pos), r.substr(pos + 1));
+  if (opts.repo_discovery_mode == agpm::RepoDiscoveryMode::Disabled) {
+    if (include.empty()) {
+      spdlog::error(
+          "Repository discovery disabled but no repositories specified via --include or config");
+      return 1;
     }
-  }
-  if (repos.empty()) {
+    repos.reserve(include.size());
+    for (const auto &r : include) {
+      std::pair<std::string, std::string> parsed;
+      if (!parse_repo(r, parsed)) {
+        spdlog::error("Invalid repository identifier '{}'; expected OWNER/REPO", r);
+        return 1;
+      }
+      if (!exclude_set.empty() &&
+          exclude_set.find(repo_to_string(parsed)) != exclude_set.end()) {
+        continue;
+      }
+      repos.push_back(std::move(parsed));
+    }
+    if (repos.empty()) {
+      spdlog::error(
+          "No repositories remain after applying include/exclude filters with discovery disabled");
+      return 1;
+    }
+  } else if (agpm::repo_discovery_uses_tokens(opts.repo_discovery_mode)) {
     repos = client.list_repositories();
+    if (!include_set.empty()) {
+      std::vector<std::pair<std::string, std::string>> filtered;
+      filtered.reserve(repos.size());
+      for (const auto &repo : repos) {
+        if (include_set.find(repo_to_string(repo)) != include_set.end()) {
+          filtered.push_back(repo);
+        }
+      }
+      repos.swap(filtered);
+    }
+    if (!exclude_set.empty() && !repos.empty()) {
+      repos.erase(std::remove_if(repos.begin(), repos.end(),
+                                 [&](const auto &repo) {
+                                   return exclude_set.find(repo_to_string(repo)) !=
+                                          exclude_set.end();
+                                 }),
+                  repos.end());
+    }
+    if (repos.empty()) {
+      spdlog::warn("Repository discovery returned no repositories after filters");
+    }
+  } else if (agpm::repo_discovery_uses_filesystem(opts.repo_discovery_mode)) {
+    if (discovery_roots.empty()) {
+      spdlog::error(
+          "Filesystem discovery requires at least one --repo-discovery-root or config entry");
+      return 1;
+    }
+    repos = agpm::discover_repositories_from_filesystem(discovery_roots);
+    if (!include_set.empty() && !repos.empty()) {
+      std::vector<std::pair<std::string, std::string>> filtered;
+      filtered.reserve(repos.size());
+      for (const auto &repo : repos) {
+        if (include_set.find(repo_to_string(repo)) != include_set.end()) {
+          filtered.push_back(repo);
+        }
+      }
+      repos.swap(filtered);
+    }
+    if (!exclude_set.empty() && !repos.empty()) {
+      repos.erase(std::remove_if(repos.begin(), repos.end(),
+                                 [&](const auto &repo) {
+                                   return exclude_set.find(repo_to_string(repo)) !=
+                                          exclude_set.end();
+                                 }),
+                  repos.end());
+    }
+    if (repos.empty()) {
+      spdlog::warn("Filesystem discovery located no repositories after filters");
+    }
+  } else {
+    spdlog::error("Unsupported repository discovery mode");
+    return 1;
   }
 
   std::string history_db =

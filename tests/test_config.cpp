@@ -18,6 +18,8 @@ TEST_CASE("test config") {
     f << "exclude_repos:\n  - repoC\n";
     f << "api_keys:\n  - a\n  - b\n";
     f << "include_merged: true\n";
+    f << "repo_discovery_mode: all\n";
+    f << "repo_discovery_roots:\n  - /tmp/repos\n";
     f << "history_db: hist.db\n";
     f << "export_csv: export.csv\n";
     f << "export_json: export.json\n";
@@ -68,6 +70,9 @@ TEST_CASE("test config") {
   REQUIRE(yaml_cfg.exclude_repos()[0] == "repoC");
   REQUIRE(yaml_cfg.api_keys().size() == 2);
   REQUIRE(yaml_cfg.include_merged());
+  REQUIRE(yaml_cfg.repo_discovery_mode() == agpm::RepoDiscoveryMode::All);
+  REQUIRE(yaml_cfg.repo_discovery_roots().size() == 1);
+  REQUIRE(yaml_cfg.repo_discovery_roots()[0] == "/tmp/repos");
   REQUIRE(yaml_cfg.history_db() == "hist.db");
   REQUIRE(yaml_cfg.export_csv() == "export.csv");
   REQUIRE(yaml_cfg.export_json() == "export.json");
@@ -113,6 +118,8 @@ TEST_CASE("test config") {
     f << "\"include_repos\":[\"x\"],";
     f << "\"exclude_repos\":[\"y\",\"z\"],";
     f << "\"api_keys\":[\"k1\"],";
+    f << "\"repo_discovery_mode\":\"disabled\",";
+    f << "\"repo_discovery_roots\":[\"./repos\"],";
     f << "\"history_db\":\"db.sqlite\",";
     f << "\"export_csv\":\"out.csv\",";
     f << "\"export_json\":\"out.json\",";
@@ -155,6 +162,9 @@ TEST_CASE("test config") {
   REQUIRE(json_cfg.exclude_repos().size() == 2);
   REQUIRE(json_cfg.exclude_repos()[1] == "z");
   REQUIRE(json_cfg.api_keys().size() == 1);
+  REQUIRE(json_cfg.repo_discovery_mode() == agpm::RepoDiscoveryMode::Disabled);
+  REQUIRE(json_cfg.repo_discovery_roots().size() == 1);
+  REQUIRE(json_cfg.repo_discovery_roots()[0] == "./repos");
   REQUIRE(json_cfg.history_db() == "db.sqlite");
   REQUIRE(json_cfg.export_csv() == "out.csv");
   REQUIRE(json_cfg.export_json() == "out.json");
@@ -239,4 +249,33 @@ TEST_CASE("test config") {
   REQUIRE(toml_cfg.http_timeout() == 45);
   REQUIRE(toml_cfg.http_retries() == 6);
   REQUIRE(toml_cfg.use_graphql());
+
+  // Token files referenced from config
+  {
+    std::ofstream y("tokens.yaml");
+    y << "- ytok1\n- ytok2\n";
+    y.close();
+    std::ofstream t("tokens.toml");
+    t << "token = \"ttok\"\n";
+    t.close();
+    std::ofstream cfg("cfg_tokens.json");
+    cfg << R"({"api_keys":["direct"],"api_key_files":["tokens.yaml","tokens.toml"]})";
+    cfg.close();
+    agpm::Config cfg_tokens = agpm::Config::from_file("cfg_tokens.json");
+    REQUIRE(cfg_tokens.api_keys().size() == 4);
+    REQUIRE(cfg_tokens.api_keys()[0] == "direct");
+    REQUIRE(cfg_tokens.api_keys()[1] == "ytok1");
+    REQUIRE(cfg_tokens.api_keys()[2] == "ytok2");
+    REQUIRE(cfg_tokens.api_keys()[3] == "ttok");
+  }
+
+  {
+    std::ofstream cfg("cfg_root.json");
+    cfg << R"({"repo_discovery_root":"/var/repos","repo_discovery_mode":"filesystem"})";
+    cfg.close();
+    agpm::Config cfg_root = agpm::Config::from_file("cfg_root.json");
+    REQUIRE(cfg_root.repo_discovery_mode() == agpm::RepoDiscoveryMode::Filesystem);
+    REQUIRE(cfg_root.repo_discovery_roots().size() == 1);
+    REQUIRE(cfg_root.repo_discovery_roots()[0] == "/var/repos");
+  }
 }
