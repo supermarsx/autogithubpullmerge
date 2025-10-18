@@ -114,6 +114,18 @@ public:
   /// Set maximum number of in-memory log messages.
   void set_log_limit(int limit) { log_limit_ = limit; }
 
+  /// Number of rotated log files to retain (0 disables rotation).
+  int log_rotate() const { return log_rotate_; }
+
+  /// Set number of rotated log files to retain.
+  void set_log_rotate(int count) { log_rotate_ = count < 0 ? 0 : count; }
+
+  /// Whether rotated log files are compressed.
+  bool log_compress() const { return log_compress_; }
+
+  /// Enable or disable compression of rotated log files.
+  void set_log_compress(bool enable) { log_compress_ = enable; }
+
   /// Repositories to include.
   const std::vector<std::string> &include_repos() const {
     return include_repos_;
@@ -402,6 +414,8 @@ private:
   std::string log_pattern_;
   std::string log_file_;
   int log_limit_ = 200;
+  int log_rotate_ = 3;
+  bool log_compress_ = false;
   std::vector<std::string> include_repos_;
   std::vector<std::string> exclude_repos_;
   std::vector<std::string> protected_branches_;

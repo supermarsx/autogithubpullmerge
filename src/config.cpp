@@ -164,6 +164,12 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("log_limit")) {
     set_log_limit(j["log_limit"].get<int>());
   }
+  if (j.contains("log_rotate")) {
+    set_log_rotate(j["log_rotate"].get<int>());
+  }
+  if (j.contains("log_compress")) {
+    set_log_compress(j["log_compress"].get<bool>());
+  }
   if (j.contains("include_repos")) {
     set_include_repos(j["include_repos"].get<std::vector<std::string>>());
   }

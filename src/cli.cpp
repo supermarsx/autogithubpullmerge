@@ -157,6 +157,43 @@ static std::string get_env_var(const char *name) {
 CliOptions parse_cli(int argc, char **argv) {
   CLI::App app{"autogithubpullmerge command line"};
   CliOptions options;
+  std::vector<std::string> raw_args;
+  raw_args.reserve(static_cast<std::size_t>(argc));
+  for (int i = 0; i < argc; ++i) {
+    raw_args.emplace_back(argv[i] != nullptr ? argv[i] : "");
+  }
+  std::vector<std::string> filtered_args;
+  filtered_args.reserve(raw_args.size());
+  if (!raw_args.empty()) {
+    filtered_args.push_back(raw_args[0]);
+  }
+  for (std::size_t idx = 1; idx < raw_args.size(); ++idx) {
+    const std::string &arg = raw_args[idx];
+    if (arg == "--log-compress") {
+      options.log_compress = true;
+      options.log_compress_explicit = true;
+      continue;
+    }
+    if (arg == "--no-log-compress") {
+      options.log_compress = false;
+      options.log_compress_explicit = true;
+      continue;
+    }
+    if (arg == "--open-pat-page") {
+      options.open_pat_window = true;
+      continue;
+    }
+    if (arg == "--demo-tui") {
+      options.demo_tui = true;
+      continue;
+    }
+    if (arg == "--enable-hotkeys" || arg == "-E") {
+      options.hotkeys_enabled = true;
+      options.hotkeys_explicit = true;
+      continue;
+    }
+    filtered_args.push_back(arg);
+  }
   std::string pr_since_str{"0"};
   app.add_flag("-v,--verbose", options.verbose, "Enable verbose output")
       ->group("General");
@@ -169,35 +206,38 @@ CliOptions parse_cli(int argc, char **argv) {
          "Set logging level (trace, debug, info, warn, error, critical, off)")
       ->type_name("LEVEL")
       ->default_val("info")
-      ->group("General");
+      ->group("Logging");
   app.add_option("-F,--log-file", options.log_file,
                  "Path to rotating log file")
       ->type_name("FILE")
-      ->group("General");
+      ->group("Logging");
   app.add_option("-L,--log-limit", options.log_limit,
                  "Maximum number of log messages to retain")
       ->type_name("N")
       ->default_val("200")
-      ->group("General");
+      ->group("Logging");
+  app
+      .add_option_function<int>(
+          "--log-rotate",
+          [&options](int value) {
+            if (value < 0) {
+              throw CLI::ValidationError("--log-rotate",
+                                         "rotation count must be non-negative");
+            }
+            options.log_rotate = value;
+            options.log_rotate_explicit = true;
+          },
+          "Number of rotated log files to retain (0 disables rotation)")
+      ->type_name("N")
+      ->group("Logging");
   app.add_flag("-y,--yes", options.assume_yes,
                "Assume yes to confirmation prompts")
       ->group("General");
   app.add_flag("-D,--dry-run", options.dry_run,
                "Perform a trial run with no changes")
       ->group("General");
-  app.add_flag_function("-E,--enable-hotkeys",
-                        [&options](std::int64_t) {
-                          options.hotkeys_enabled = true;
-                          options.hotkeys_explicit = true;
-                        },
-                        "Enable interactive hotkeys")
-      ->group("General");
-  app.add_flag_function("-Z,--disable-hotkeys",
-                        [&options](std::int64_t) {
-                          options.hotkeys_enabled = false;
-                          options.hotkeys_explicit = true;
-                        },
-                        "Disable interactive hotkeys")
+  app.add_flag("--demo-tui", options.demo_tui,
+               "Launch interactive demo TUI with mock data")
       ->group("General");
   app
       .add_option_function<std::string>(
@@ -275,7 +315,7 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Path to JSON/YAML file with API key(s)")
       ->type_name("FILE")
       ->group("Authentication");
-  app.add_flag("--open-pat-page", options.open_pat_window,
+  app.add_flag("--open-pat-page",
                "Open the GitHub PAT creation page in a browser and exit")
       ->group("Authentication");
   app.add_option("--save-pat", options.pat_save_path,
@@ -416,9 +456,14 @@ CliOptions parse_cli(int argc, char **argv) {
                "Only purge branches and skip PR polling")
       ->group("Branch Management");
   try {
-    std::vector<char *> args(argv, argv + argc);
+    std::vector<char *> args;
+    args.reserve(filtered_args.size() + 1);
+    for (auto &s : filtered_args) {
+      args.push_back(const_cast<char *>(s.c_str()));
+    }
     args.push_back(nullptr);
-    app.parse(argc, args.data());
+    int parse_argc = static_cast<int>(filtered_args.size());
+    app.parse(parse_argc, args.data());
   } catch (const CLI::ParseError &e) {
     int exit_code = app.exit(e);
     throw CliParseExit(exit_code);

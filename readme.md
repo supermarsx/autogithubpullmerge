@@ -257,12 +257,18 @@ for `--download-limit`.
 General
 - `-v, --verbose` Enable verbose output (implies debug level unless overridden).
 - `--config FILE` Path to configuration file (YAML, TOML, or JSON).
-- `--log-level LEVEL` Set logging level: `trace|debug|info|warn|error|critical|off` (default `info`).
-- `--log-file FILE` Path to rotating log file.
-- `--log-limit N` Max number of in-memory log messages (default `200`).
 - `-y, --yes` Assume yes to confirmation prompts.
 - `--dry-run` Perform a trial run with no changes.
 - `--hotkeys on|off` Explicitly enable or disable interactive hotkeys.
+- `--demo-tui` Launch an interactive mock TUI showcasing sample pull requests and
+  branches.
+
+Logging
+- `--log-level LEVEL` Set logging level: `trace|debug|info|warn|error|critical|off` (default `info`).
+- `--log-file FILE` Path to the on-disk rotating log.
+- `--log-limit N` Max number of in-memory log messages shown in the TUI (default `200`).
+- `--log-rotate N` Number of rotated log files to retain (default `3`, `0` disables rotation).
+- `--log-compress` / `--no-log-compress` Enable or disable gzip compression for rotated log files (disabled by default).
 
 Repositories
 - `--include REPO` Repository to include (repeatable). Format `OWNER/REPO`.

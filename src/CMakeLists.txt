@@ -3,6 +3,7 @@ find_package(yaml-cpp REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(CURL REQUIRED)
 find_package(SQLite3 REQUIRED)
+find_package(ZLIB REQUIRED)
 if(WIN32)
   find_package(unofficial-pdcurses CONFIG REQUIRED)
   set(CURSES_LIBRARIES unofficial::pdcurses::pdcurses)
@@ -15,8 +16,10 @@ add_library(
   autogithubpullmerge_lib
   app.cpp
   cli.cpp
+  pat.cpp
   config.cpp
   config_manager.cpp
+  demo_tui.cpp
   github_client.cpp
   history.cpp
   log.cpp
@@ -38,7 +41,9 @@ target_link_libraries(
          CURL::libcurl
          SQLite::SQLite3
          spdlog::spdlog
+         ZLIB::ZLIB
          ${CURSES_LIBRARIES})
+
 
 if(WIN32)
   target_compile_definitions(autogithubpullmerge_lib
@@ -53,4 +58,4 @@ add_executable(autogithubpullmerge main.cpp)
 # libcurl symbols when building on Windows.
 target_link_libraries(
   autogithubpullmerge PRIVATE autogithubpullmerge_lib yaml-cpp::yaml-cpp
-                              CURL::libcurl)
+                              CURL::libcurl ZLIB::ZLIB)

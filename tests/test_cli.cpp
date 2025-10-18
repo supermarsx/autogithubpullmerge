@@ -42,6 +42,31 @@ TEST_CASE("test cli", "[cli]") {
   agpm::CliOptions opts4c = agpm::parse_cli(3, argv4c);
   REQUIRE(opts4c.log_limit == 123);
 
+  char log_rotate_flag[] = "--log-rotate";
+  char log_rotate_val[] = "5";
+  char *argv_log_rotate[] = {prog, log_rotate_flag, log_rotate_val};
+  agpm::CliOptions opts_log_rotate = agpm::parse_cli(3, argv_log_rotate);
+  REQUIRE(opts_log_rotate.log_rotate == 5);
+  REQUIRE(opts_log_rotate.log_rotate_explicit);
+
+  char log_compress_flag[] = "--log-compress";
+  char *argv_log_compress[] = {prog, log_compress_flag};
+  agpm::CliOptions opts_log_compress = agpm::parse_cli(2, argv_log_compress);
+  REQUIRE(opts_log_compress.log_compress);
+  REQUIRE(opts_log_compress.log_compress_explicit);
+
+  char no_log_compress_flag[] = "--no-log-compress";
+  char *argv_no_log_compress[] = {prog, no_log_compress_flag};
+  agpm::CliOptions opts_no_log_compress =
+      agpm::parse_cli(2, argv_no_log_compress);
+  REQUIRE_FALSE(opts_no_log_compress.log_compress);
+  REQUIRE(opts_no_log_compress.log_compress_explicit);
+
+  char demo_flag[] = "--demo-tui";
+  char *argv_demo[] = {prog, demo_flag};
+  agpm::CliOptions opts_demo = agpm::parse_cli(2, argv_demo);
+  REQUIRE(opts_demo.demo_tui);
+
   char hotkeys_flag[] = "--hotkeys";
   char hotkeys_on[] = "on";
   char *argv_hot_on[] = {prog, hotkeys_flag, hotkeys_on};
@@ -438,6 +463,19 @@ TEST_CASE("test cli", "[cli]") {
                                save_pat_file};
       agpm::parse_cli(4, argv_conflict);
     } catch (const std::exception &) {
+      threw = true;
+    }
+    REQUIRE(threw);
+  }
+
+  {
+    bool threw = false;
+    try {
+      char rotate_flag[] = "--log-rotate";
+      char rotate_neg[] = "-1";
+      char *argv_rotate[] = {prog, rotate_flag, rotate_neg};
+      agpm::parse_cli(3, argv_rotate);
+    } catch (const agpm::CliParseExit &) {
       threw = true;
     }
     REQUIRE(threw);

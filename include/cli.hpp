@@ -30,6 +30,10 @@ struct CliOptions {
   std::string log_level = "info"; ///< Logging verbosity level
   std::string log_file;           ///< Optional path to rotating log file
   int log_limit{200};             ///< Maximum number of log messages to retain
+  int log_rotate{3};              ///< Number of rotated log files to keep (0 disables)
+  bool log_compress{false};       ///< Compress rotated log files
+  bool log_rotate_explicit{false};   ///< True if CLI set log rotation count
+  bool log_compress_explicit{false}; ///< True if CLI toggled log compression
   bool assume_yes{false};         ///< Skip confirmation prompts
   bool dry_run{false};            ///< Simulate operations without changes
   std::vector<std::string> include_repos; ///< Repositories to include
@@ -81,6 +85,8 @@ struct CliOptions {
   bool use_graphql{false}; ///< Use GraphQL API for pull requests
   bool hotkeys_enabled{true};       ///< Whether interactive hotkeys are enabled
   bool hotkeys_explicit{false};     ///< True if CLI explicitly toggled hotkeys
+
+  bool demo_tui{false};             ///< Launch mock TUI demo mode
 
   // Testing utilities
   std::string single_open_prs_repo; ///< OWNER/REPO for single open-PR poll

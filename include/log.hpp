@@ -1,6 +1,7 @@
 #ifndef AUTOGITHUBPULLMERGE_LOG_HPP
 #define AUTOGITHUBPULLMERGE_LOG_HPP
 
+#include <cstddef>
 #include <spdlog/spdlog.h>
 #include <string>
 
@@ -14,7 +15,10 @@ namespace agpm {
  * @param file    Optional log file path for rotating sink.
  */
 void init_logger(spdlog::level::level_enum level,
-                 const std::string &pattern = "", const std::string &file = "");
+                 const std::string &pattern = "",
+                 const std::string &file = "",
+                 std::size_t rotate_files = 3,
+                 bool compress_rotations = false);
 
 /** Ensure a default logger exists before logging. */
 void ensure_default_logger();

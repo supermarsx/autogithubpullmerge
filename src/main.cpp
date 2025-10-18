@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "demo_tui.hpp"
 #include "github_client.hpp"
 #include "github_poller.hpp"
 #include "history.hpp"
@@ -19,6 +20,9 @@ int main(int argc, char **argv) {
 
   const auto &opts = app.options();
   const auto &cfg = app.config();
+  if (opts.demo_tui) {
+    return agpm::run_demo_tui();
+  }
 
   std::vector<std::string> tokens;
   if (!opts.api_keys.empty()) {

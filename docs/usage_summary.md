@@ -19,10 +19,20 @@ For example, `-C` maps to `--config` and `-1` toggles `--only-poll-prs`.
 
 - `-v, --verbose` - enable verbose output.
 - `--config` - path to a YAML, TOML, or JSON configuration file.
-- `--log-level` - set verbosity (`trace`, `debug`, `info`, `warn`, `error`,
-  `critical`, `off`).
 - `--history-db` - path to the SQLite history database.
 - `--yes` - assume "yes" to confirmation prompts.
+- `--demo-tui` - launch an interactive demo TUI with mock pull requests and
+  branches.
+
+### Logging
+
+- `--log-level` - set verbosity (`trace`, `debug`, `info`, `warn`, `error`,
+  `critical`, `off`).
+- `--log-file` - write logs to a rotating file in addition to the console.
+- `--log-limit` - throttle in-memory log history (default `200`).
+- `--log-rotate N` - retain `N` rotated log files (default `3`, `0` disables rotation).
+- `--log-compress` / `--no-log-compress` - toggle gzip compression for rotated
+  log files (disabled by default).
 
 ### Repository Filters
 

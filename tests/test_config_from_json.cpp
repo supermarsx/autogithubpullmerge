@@ -10,6 +10,8 @@ TEST_CASE("test config from json") {
   j["max_request_rate"] = 42;
   j["log_level"] = "debug";
   j["log_limit"] = 210;
+  j["log_rotate"] = 6;
+  j["log_compress"] = true;
   j["include_repos"] = {"a", "b"};
   j["pr_since"] = "5m";
   j["http_timeout"] = 40;
@@ -46,6 +48,8 @@ TEST_CASE("test config from json") {
   REQUIRE(cfg.max_request_rate() == 42);
   REQUIRE(cfg.log_level() == "debug");
   REQUIRE(cfg.log_limit() == 210);
+  REQUIRE(cfg.log_rotate() == 6);
+  REQUIRE(cfg.log_compress());
   REQUIRE(cfg.include_repos().size() == 2);
   REQUIRE(cfg.pr_since() == std::chrono::minutes(5));
   REQUIRE(cfg.http_timeout() == 40);

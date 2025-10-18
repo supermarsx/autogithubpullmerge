@@ -260,6 +260,8 @@ TEST_CASE("config overrides populate cli options", "[cli]") {
     cfg << "dry_run: true\n";
     cfg << "assume_yes: true\n";
     cfg << "log_limit: 321\n";
+    cfg << "log_rotate: 4\n";
+    cfg << "log_compress: true\n";
     cfg << "export_csv: config-export.csv\n";
     cfg << "export_json: config-export.json\n";
     cfg << "delete_stray: true\n";
@@ -279,6 +281,8 @@ TEST_CASE("config overrides populate cli options", "[cli]") {
   REQUIRE(app.options().dry_run);
   REQUIRE(app.options().assume_yes);
   REQUIRE(app.options().log_limit == 321);
+  REQUIRE(app.options().log_rotate == 4);
+  REQUIRE(app.options().log_compress);
   REQUIRE(app.options().export_csv == "config-export.csv");
   REQUIRE(app.options().export_json == "config-export.json");
   REQUIRE(app.options().delete_stray);

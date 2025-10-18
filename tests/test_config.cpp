@@ -12,6 +12,8 @@ TEST_CASE("test config") {
     f << "max_request_rate: 10\n";
     f << "log_level: debug\n";
     f << "log_limit: 150\n";
+    f << "log_rotate: 5\n";
+    f << "log_compress: true\n";
     f << "include_repos:\n  - repoA\n  - repoB\n";
     f << "exclude_repos:\n  - repoC\n";
     f << "api_keys:\n  - a\n  - b\n";
@@ -58,6 +60,8 @@ TEST_CASE("test config") {
   REQUIRE(yaml_cfg.max_request_rate() == 10);
   REQUIRE(yaml_cfg.log_level() == "debug");
   REQUIRE(yaml_cfg.log_limit() == 150);
+  REQUIRE(yaml_cfg.log_rotate() == 5);
+  REQUIRE(yaml_cfg.log_compress());
   REQUIRE(yaml_cfg.include_repos().size() == 2);
   REQUIRE(yaml_cfg.include_repos()[0] == "repoA");
   REQUIRE(yaml_cfg.exclude_repos().size() == 1);
@@ -104,6 +108,8 @@ TEST_CASE("test config") {
     f << "\"max_request_rate\":5,";
     f << "\"log_level\":\"warn\",";
     f << "\"log_limit\":175,";
+    f << "\"log_rotate\":2,";
+    f << "\"log_compress\":true,";
     f << "\"include_repos\":[\"x\"],";
     f << "\"exclude_repos\":[\"y\",\"z\"],";
     f << "\"api_keys\":[\"k1\"],";
@@ -142,6 +148,8 @@ TEST_CASE("test config") {
   REQUIRE(json_cfg.max_request_rate() == 5);
   REQUIRE(json_cfg.log_level() == "warn");
   REQUIRE(json_cfg.log_limit() == 175);
+  REQUIRE(json_cfg.log_rotate() == 2);
+  REQUIRE(json_cfg.log_compress());
   REQUIRE(json_cfg.include_repos().size() == 1);
   REQUIRE(json_cfg.include_repos()[0] == "x");
   REQUIRE(json_cfg.exclude_repos().size() == 2);
@@ -182,6 +190,9 @@ TEST_CASE("test config") {
     f << "poll_interval = 8\n";
     f << "max_request_rate = 12\n";
     f << "log_level = \"info\"\n";
+    f << "log_limit = 220\n";
+    f << "log_rotate = 4\n";
+    f << "log_compress = true\n";
     f << "include_repos = [\"repoTomlA\", \"repoTomlB\"]\n";
     f << "exclude_repos = [\"repoTomlC\"]\n";
     f << "api_keys = [\"tok1\", \"tok2\"]\n";
@@ -206,6 +217,9 @@ TEST_CASE("test config") {
   REQUIRE(toml_cfg.poll_interval() == 8);
   REQUIRE(toml_cfg.max_request_rate() == 12);
   REQUIRE(toml_cfg.log_level() == "info");
+  REQUIRE(toml_cfg.log_limit() == 220);
+  REQUIRE(toml_cfg.log_rotate() == 4);
+  REQUIRE(toml_cfg.log_compress());
   REQUIRE(toml_cfg.include_repos().size() == 2);
   REQUIRE(toml_cfg.include_repos()[1] == "repoTomlB");
   REQUIRE(toml_cfg.exclude_repos().size() == 1);
