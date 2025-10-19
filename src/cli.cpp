@@ -7,11 +7,17 @@
 #include <cctype>
 #include <chrono>
 #include <cstdlib>
+#include <exception>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iterator>
 #include <sstream>
 #include <stdexcept>
+#include <system_error>
+#include <unordered_set>
+
+#include <spdlog/spdlog.h>
 
 namespace agpm {
 
@@ -126,6 +132,189 @@ static std::string get_env_var(const char *name) {
   const char *env = std::getenv(name);
   return env ? std::string(env) : std::string();
 #endif
+}
+
+/**
+ * Attempt to canonicalize a filesystem path while tolerating missing segments.
+ *
+ * @param input Path provided by the user or discovered during scanning.
+ * @return Canonical path when available, otherwise a lexically-normalized path.
+ */
+static std::filesystem::path canonicalize_path(const std::filesystem::path &input) {
+  if (input.empty()) {
+    return {};
+  }
+  std::error_code ec;
+  auto canonical = std::filesystem::weakly_canonical(input, ec);
+  if (!ec) {
+    return canonical;
+  }
+  ec.clear();
+  canonical = std::filesystem::absolute(input, ec);
+  if (!ec) {
+    return canonical.lexically_normal();
+  }
+  return input.lexically_normal();
+}
+
+/**
+ * Discover token files stored in common directories on the host system.
+ *
+ * @param exe_path Path to the running executable (argv[0]).
+ * @param repo_roots Directories supplied via repository discovery options.
+ * @param existing_files Canonical paths already provided explicitly by the user.
+ * @return Collection of unique token file paths.
+ */
+static std::vector<std::filesystem::path> discover_token_files(
+    const std::filesystem::path &exe_path,
+    const std::vector<std::string> &repo_roots,
+    const std::unordered_set<std::string> &existing_files) {
+  std::vector<std::filesystem::path> search_dirs;
+  search_dirs.reserve(16);
+  std::unordered_set<std::string> seen_dirs;
+  auto add_dir = [&](const std::filesystem::path &dir) {
+    if (dir.empty()) {
+      return;
+    }
+    auto canonical_dir = canonicalize_path(dir);
+    if (canonical_dir.empty()) {
+      return;
+    }
+    std::error_code ec;
+    if (!std::filesystem::exists(canonical_dir, ec) ||
+        !std::filesystem::is_directory(canonical_dir, ec)) {
+      return;
+    }
+    auto key = canonical_dir.generic_string();
+    if (key.empty()) {
+      return;
+    }
+    if (seen_dirs.insert(key).second) {
+      search_dirs.push_back(canonical_dir);
+    }
+  };
+
+  if (!exe_path.empty()) {
+    auto exe_full = canonicalize_path(exe_path);
+    std::filesystem::path exe_dir = exe_full.has_parent_path()
+                                        ? exe_full.parent_path()
+                                        : exe_full;
+    add_dir(exe_dir);
+  }
+
+  add_dir(std::filesystem::current_path());
+
+  for (const auto &root : repo_roots) {
+    add_dir(root);
+  }
+
+  auto home_env = get_env_var("HOME");
+#ifdef _WIN32
+  if (home_env.empty()) {
+    home_env = get_env_var("USERPROFILE");
+  }
+  if (home_env.empty()) {
+    auto drive = get_env_var("HOMEDRIVE");
+    auto path = get_env_var("HOMEPATH");
+    if (!drive.empty() && !path.empty()) {
+      home_env = drive + path;
+    }
+  }
+#else
+  if (home_env.empty()) {
+    home_env = get_env_var("USERPROFILE");
+  }
+#endif
+
+  if (!home_env.empty()) {
+    std::filesystem::path home(home_env);
+    add_dir(home);
+    add_dir(home / ".config");
+    add_dir(home / ".config" / "autogithubpullmerge");
+    add_dir(home / ".agpm");
+    add_dir(home / ".autogithubpullmerge");
+    add_dir(home / "Documents");
+    add_dir(home / "documents");
+    add_dir(home / "Desktop");
+    add_dir(home / "Downloads");
+  }
+
+  auto xdg_config = get_env_var("XDG_CONFIG_HOME");
+  if (!xdg_config.empty()) {
+    std::filesystem::path xdg(xdg_config);
+    add_dir(xdg);
+    add_dir(xdg / "autogithubpullmerge");
+  }
+
+  auto appdata = get_env_var("APPDATA");
+  if (!appdata.empty()) {
+    std::filesystem::path roaming(appdata);
+    add_dir(roaming);
+    add_dir(roaming / "autogithubpullmerge");
+  }
+
+  auto local_appdata = get_env_var("LOCALAPPDATA");
+  if (!local_appdata.empty()) {
+    std::filesystem::path local(local_appdata);
+    add_dir(local);
+    add_dir(local / "autogithubpullmerge");
+  }
+
+  std::vector<std::filesystem::path> discovered;
+  std::unordered_set<std::string> seen_files(existing_files.begin(),
+                                             existing_files.end());
+
+  for (const auto &dir : search_dirs) {
+    std::error_code ec;
+    std::filesystem::directory_iterator it(dir, ec);
+    if (ec) {
+      continue;
+    }
+    for (; it != std::filesystem::directory_iterator(); it.increment(ec)) {
+      if (ec) {
+        ec.clear();
+        break;
+      }
+      const auto &entry = *it;
+      if (!entry.is_regular_file(ec)) {
+        if (ec) {
+          ec.clear();
+        }
+        continue;
+      }
+      auto ext = entry.path().extension().string();
+      std::string ext_lower;
+      ext_lower.reserve(ext.size());
+      std::transform(ext.begin(), ext.end(), std::back_inserter(ext_lower),
+                     [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+      if (ext_lower != ".json" && ext_lower != ".yaml" && ext_lower != ".yml" &&
+          ext_lower != ".toml") {
+        continue;
+      }
+      auto filename = entry.path().filename().string();
+      std::string filename_lower;
+      filename_lower.reserve(filename.size());
+      std::transform(filename.begin(), filename.end(),
+                     std::back_inserter(filename_lower), [](unsigned char c) {
+                       return static_cast<char>(std::tolower(c));
+                     });
+      if (filename_lower.find("token") == std::string::npos) {
+        continue;
+      }
+      auto canonical_file = canonicalize_path(entry.path());
+      auto key = canonical_file.generic_string();
+      if (key.empty() || !seen_files.insert(key).second) {
+        continue;
+      }
+      discovered.push_back(canonical_file);
+    }
+  }
+
+  std::sort(discovered.begin(), discovered.end(),
+            [](const std::filesystem::path &a, const std::filesystem::path &b) {
+              return a.generic_string() < b.generic_string();
+            });
+  return discovered;
 }
 
 /**
@@ -321,6 +510,9 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("FILE")
       ->expected(-1)
       ->group("Authentication");
+  app.add_flag("--auto-detect-token-files", options.auto_detect_token_files,
+               "Search common directories for token files automatically")
+      ->group("Authentication");
   app.add_flag("--open-pat-page",
                "Open the GitHub PAT creation page in a browser and exit")
       ->group("Authentication");
@@ -474,9 +666,44 @@ CliOptions parse_cli(int argc, char **argv) {
     int exit_code = app.exit(e);
     throw CliParseExit(exit_code);
   }
+  std::unordered_set<std::string> canonical_token_files;
+  canonical_token_files.reserve(options.api_key_files.size());
   for (const auto &token_file : options.api_key_files) {
+    auto canonical = canonicalize_path(token_file);
+    auto canonical_str = canonical.generic_string();
+    if (!canonical_str.empty()) {
+      canonical_token_files.insert(canonical_str);
+    }
     auto tokens = load_tokens_from_file(token_file);
     options.api_keys.insert(options.api_keys.end(), tokens.begin(), tokens.end());
+  }
+  if (options.auto_detect_token_files) {
+    std::filesystem::path exe_arg;
+    if (!filtered_args.empty()) {
+      exe_arg = filtered_args.front();
+    }
+    auto discovered = discover_token_files(exe_arg, options.repo_discovery_roots,
+                                           canonical_token_files);
+    for (const auto &path : discovered) {
+      auto canonical = canonicalize_path(path);
+      auto canonical_str = canonical.generic_string();
+      if (!canonical_str.empty()) {
+        canonical_token_files.insert(canonical_str);
+      }
+      auto path_string = canonical.string();
+      if (path_string.empty()) {
+        path_string = path.string();
+      }
+      options.auto_detected_api_key_files.push_back(path_string);
+      try {
+        auto tokens = load_tokens_from_file(path_string);
+        options.api_keys.insert(options.api_keys.end(), tokens.begin(),
+                                tokens.end());
+      } catch (const std::exception &e) {
+        spdlog::warn("Failed to load auto-detected token file {}: {}", path_string,
+                     e.what());
+      }
+    }
   }
   if (!options.api_key_url.empty()) {
     auto tokens =

@@ -29,7 +29,9 @@ A cross‑platform tool that both automates safe pull request merging and manage
 - Dependencies verified to build with C++23 via vcpkg
 - CLI options for GitHub API keys (`--api-key`, `--api-key-from-stream`,
   `--api-key-url`, `--api-key-url-user`, `--api-key-url-password`,
-  repeatable `--api-key-file` for JSON/YAML/TOML token files)
+  repeatable `--api-key-file` for JSON/YAML/TOML token files, and
+  `--auto-detect-token-files` to locate tokens near the executable,
+  repository roots, or common user directories)
 - Repository discovery modes: manual OWNER/REPO lists by default, token-wide
   discovery via `--repo-discovery all`, or filesystem scanning with
   `--repo-discovery filesystem` and repeatable `--repo-discovery-root`
@@ -321,6 +323,9 @@ Authentication
 - `--api-key-url-password PASS` Basic auth password for `--api-key-url`.
 - `--api-key-file FILE` Repeatable; load tokens from JSON/YAML/TOML files with
   `token`/`tokens` entries.
+- `--auto-detect-token-files` Search the executable directory, configured
+  repository roots, and common user folders (Documents, configuration
+  directories) for token files.
 - `--open-pat-page` Open the GitHub PAT creation page in your browser and exit.
 - `--save-pat FILE` Save a PAT to `FILE`, prompting if no value is provided.
 - `--pat-value TOKEN` Supply the PAT inline when using `--save-pat`.

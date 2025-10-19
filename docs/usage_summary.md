@@ -54,6 +54,9 @@ In configuration files, use the `repo_discovery_mode` key with values
 - `--api-key-url`/`--api-key-url-user`/`--api-key-url-password` - fetch tokens
   from a remote URL with optional basic authentication.
 - `--api-key-file` - repeatable; load tokens from local JSON/YAML/TOML files.
+- `--auto-detect-token-files` - search the executable directory, configured
+  repository roots, and common user directories (home, Documents, config
+  folders) for token files.
 - `--open-pat-page` - launch the GitHub PAT creation page in the default
   browser and exit immediately.
 - `--save-pat FILE` - save a personal access token to `FILE`, prompting if no

@@ -78,6 +78,9 @@ struct CliOptions {
   std::string api_key_url_user;          ///< Basic auth user
   std::string api_key_url_password;      ///< Basic auth password
   std::vector<std::string> api_key_files; ///< Files containing tokens
+  bool auto_detect_token_files{false};   ///< Search for token files automatically
+  std::vector<std::string>
+      auto_detected_api_key_files; ///< Token files found automatically
   bool open_pat_window{false};           ///< Launch PAT creation page then exit
   std::string pat_save_path;             ///< Destination file for saving PAT
   std::string pat_value;                 ///< PAT value supplied via CLI

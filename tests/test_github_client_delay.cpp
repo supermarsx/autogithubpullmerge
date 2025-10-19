@@ -1,10 +1,54 @@
 #include "github_client.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
+#include <cstdlib>
 #include <curl/curl.h>
+#include <optional>
 #include <string>
 
 using namespace agpm;
+
+namespace {
+
+class ScopedUnsetEnv {
+public:
+  explicit ScopedUnsetEnv(const char *name) : name_(name) {
+    const char *existing = std::getenv(name);
+    if (existing) {
+      value_ = existing;
+    }
+#ifdef _WIN32
+    _putenv_s(name, "");
+#else
+    unsetenv(name);
+#endif
+  }
+
+  ScopedUnsetEnv(const ScopedUnsetEnv &) = delete;
+  ScopedUnsetEnv &operator=(const ScopedUnsetEnv &) = delete;
+
+  ~ScopedUnsetEnv() {
+#ifdef _WIN32
+    if (value_) {
+      _putenv_s(name_.c_str(), value_->c_str());
+    } else {
+      _putenv_s(name_.c_str(), "");
+    }
+#else
+    if (value_) {
+      setenv(name_.c_str(), value_->c_str(), 1);
+    } else {
+      unsetenv(name_.c_str());
+    }
+#endif
+  }
+
+private:
+  std::string name_;
+  std::optional<std::string> value_;
+};
+
+} // namespace
 
 class DelayHttpClient : public HttpClient {
 public:
@@ -54,6 +98,10 @@ TEST_CASE("test github client delay") {
   REQUIRE(diff >= 50);
 
   try {
+    ScopedUnsetEnv unset_http("http_proxy");
+    ScopedUnsetEnv unset_http_upper("HTTP_PROXY");
+    ScopedUnsetEnv unset_https("https_proxy");
+    ScopedUnsetEnv unset_https_upper("HTTPS_PROXY");
     CurlHttpClient real;
     real.get("http://192.0.2.1/", {});
     FAIL("Expected exception");
