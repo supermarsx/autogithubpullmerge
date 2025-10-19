@@ -42,6 +42,10 @@ namespace agpm {
 
 /**
  * Initialize the pull request history database connection.
+ *
+ * @param db_path Path to the SQLite database file to open or create.
+ * @throws std::runtime_error When the database cannot be opened or the schema
+ *         initialization fails.
  */
 PullRequestHistory::PullRequestHistory(const std::string &db_path) {
   spdlog::debug("History: opening DB {}", db_path);
@@ -73,6 +77,11 @@ PullRequestHistory::~PullRequestHistory() {
 
 /**
  * Record a pull request entry.
+ *
+ * @param number Numeric pull request identifier.
+ * @param title Pull request title string.
+ * @param merged Whether the pull request has been merged.
+ * @throws std::runtime_error When the insert statement fails.
  */
 void PullRequestHistory::insert(int number, const std::string &title,
                                 bool merged) {
@@ -94,6 +103,9 @@ void PullRequestHistory::insert(int number, const std::string &title,
 
 /**
  * Mark a pull request as merged.
+ *
+ * @param number Numeric pull request identifier to update.
+ * @throws std::runtime_error When the update statement fails.
  */
 void PullRequestHistory::update_merged(int number) {
   sqlite3_stmt *stmt = nullptr;
@@ -111,6 +123,9 @@ void PullRequestHistory::update_merged(int number) {
 
 /**
  * Export history entries to a CSV file.
+ *
+ * @param path Destination file path for the CSV export.
+ * @throws std::runtime_error On database query errors or I/O failures.
  */
 void PullRequestHistory::export_csv(const std::string &path) {
   spdlog::debug("History: export_csv -> {}", path);
@@ -159,6 +174,9 @@ void PullRequestHistory::export_csv(const std::string &path) {
 
 /**
  * Export history entries to a JSON file.
+ *
+ * @param path Destination file path for the JSON export.
+ * @throws std::runtime_error On database query errors or I/O failures.
  */
 void PullRequestHistory::export_json(const std::string &path) {
   spdlog::debug("History: export_json -> {}", path);

@@ -718,9 +718,7 @@ bool GitHubClient::repo_allowed(const std::string &owner,
   return true;
 }
 
-/**
- * Retrieve repositories accessible to the authenticated tokens.
- */
+/// @copydoc GitHubClient::list_repositories
 std::vector<std::pair<std::string, std::string>>
 GitHubClient::list_repositories() {
   std::vector<std::pair<std::string, std::string>> repos;
@@ -788,9 +786,7 @@ GitHubClient::list_repositories() {
   return repos;
 }
 
-/**
- * Retrieve pull requests for a repository, honouring filters and pagination.
- */
+/// @copydoc GitHubClient::list_pull_requests
 std::vector<PullRequest>
 GitHubClient::list_pull_requests(const std::string &owner,
                                  const std::string &repo, bool include_merged,
@@ -912,9 +908,7 @@ GitHubClient::list_pull_requests(const std::string &owner,
   return prs;
 }
 
-/**
- * Fetch a single page of open pull requests for quick diagnostics.
- */
+/// @copydoc GitHubClient::list_open_pull_requests_single
 std::vector<PullRequest>
 GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
                                              int per_page) {
@@ -966,9 +960,7 @@ GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
   return prs;
 }
 
-/**
- * Attempt to merge a pull request, respecting repository filters.
- */
+/// @copydoc GitHubClient::merge_pull_request
 bool GitHubClient::merge_pull_request(const std::string &owner,
                                       const std::string &repo, int pr_number) {
   if (!repo_allowed(owner, repo)) {
@@ -1033,9 +1025,7 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   }
 }
 
-/**
- * Enumerate non-default branches for the specified repository.
- */
+/// @copydoc GitHubClient::list_branches
 std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
                                                      const std::string &repo) {
   std::vector<std::string> branches;
@@ -1120,9 +1110,7 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
   return branches;
 }
 
-/**
- * Fetch a single page of branch names for diagnostics.
- */
+/// @copydoc GitHubClient::list_branches_single
 std::vector<std::string>
 GitHubClient::list_branches_single(const std::string &owner_repo,
                                    int per_page) {
@@ -1166,9 +1154,7 @@ GitHubClient::list_branches_single(const std::string &owner_repo,
   return branches;
 }
 
-/**
- * Remove merged branches with the specified prefix while honoring protections.
- */
+/// @copydoc GitHubClient::cleanup_branches
 void GitHubClient::cleanup_branches(
     const std::string &owner, const std::string &repo,
     const std::string &prefix,
@@ -1281,9 +1267,7 @@ void GitHubClient::cleanup_branches(
   }
 }
 
-/**
- * Detect branches that have drifted from the default branch and prune them.
- */
+/// @copydoc GitHubClient::close_dirty_branches
 void GitHubClient::close_dirty_branches(
     const std::string &owner, const std::string &repo,
     const std::vector<std::string> &protected_branches,
@@ -1486,11 +1470,13 @@ void GitHubClient::enforce_delay() {
   last_request_ = std::chrono::steady_clock::now();
 }
 
+/// @copydoc GitHubGraphQLClient::GitHubGraphQLClient
 GitHubGraphQLClient::GitHubGraphQLClient(std::vector<std::string> tokens,
                                          int timeout_ms, std::string api_base)
     : tokens_(std::move(tokens)), timeout_ms_(timeout_ms),
       api_base_(std::move(api_base)) {}
 
+/// @copydoc GitHubGraphQLClient::list_pull_requests
 std::vector<PullRequest>
 GitHubGraphQLClient::list_pull_requests(const std::string &owner,
                                         const std::string &repo,

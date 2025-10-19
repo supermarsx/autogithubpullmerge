@@ -20,6 +20,9 @@ namespace {
 
 /**
  * Produce a lowercase copy of the input string.
+ *
+ * @param value String to normalize.
+ * @return Lowercase version of the input string.
  */
 std::string normalize(std::string value) {
   std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
@@ -30,6 +33,9 @@ std::string normalize(std::string value) {
 
 /**
  * Trim whitespace from both ends of a string.
+ *
+ * @param s Input string possibly containing leading/trailing whitespace.
+ * @return View of the string without surrounding whitespace.
  */
 std::string trim(const std::string &s) {
   auto first = std::find_if_not(s.begin(), s.end(),
@@ -44,6 +50,9 @@ std::string trim(const std::string &s) {
 
 /**
  * Extract an owner/repo pair from a GitHub URL.
+ *
+ * @param url_in Git remote URL to parse.
+ * @return Owner/repository pair when recognized, otherwise `std::nullopt`.
  */
 std::optional<std::pair<std::string, std::string>>
 parse_github_repo_from_url(const std::string &url_in) {
@@ -96,6 +105,10 @@ parse_github_repo_from_url(const std::string &url_in) {
 
 /**
  * Parse the remote origin from a git config file.
+ *
+ * @param config_path Path to a git `config` file.
+ * @return Owner/repository pair extracted from the `origin` remote or
+ *         `std::nullopt` when missing.
  */
 std::optional<std::pair<std::string, std::string>>
 parse_origin_from_config(const std::filesystem::path &config_path) {
@@ -138,6 +151,11 @@ parse_origin_from_config(const std::filesystem::path &config_path) {
 
 /**
  * Add a repository to the results if it has not been seen before.
+ *
+ * @param config_path Path to the repository's git config file.
+ * @param root Root directory representing the repository.
+ * @param seen Set of repositories already discovered.
+ * @param out Aggregated list of discovered repositories.
  */
 void try_add_repo(const std::filesystem::path &config_path,
                   const std::filesystem::path &root,
@@ -157,6 +175,10 @@ void try_add_repo(const std::filesystem::path &config_path,
 
 /**
  * Examine a filesystem path to determine if it is a GitHub repository.
+ *
+ * @param candidate Filesystem path that may represent a repository.
+ * @param seen Set of repositories already discovered.
+ * @param out Aggregated list of discovered repositories.
  */
 void inspect_candidate(const std::filesystem::path &candidate,
                        std::unordered_set<std::string> &seen,
@@ -209,6 +231,9 @@ void inspect_candidate(const std::filesystem::path &candidate,
 
 /**
  * Convert a repository discovery mode to its string representation.
+ *
+ * @param mode Discovery mode to describe.
+ * @return Lowercase textual representation of the mode.
  */
 std::string to_string(RepoDiscoveryMode mode) {
   switch (mode) {
@@ -224,6 +249,10 @@ std::string to_string(RepoDiscoveryMode mode) {
 
 /**
  * Parse a repository discovery mode from a string.
+ *
+ * @param value Textual representation provided by the user.
+ * @return Corresponding discovery mode enumeration value.
+ * @throws std::invalid_argument When the mode cannot be recognized.
  */
 RepoDiscoveryMode repo_discovery_mode_from_string(const std::string &value) {
   static const std::unordered_map<std::string, RepoDiscoveryMode> lookup = {
@@ -250,6 +279,9 @@ RepoDiscoveryMode repo_discovery_mode_from_string(const std::string &value) {
 
 /**
  * Determine whether discovery is enabled for the given mode.
+ *
+ * @param mode Discovery mode to evaluate.
+ * @return `true` when discovery should enumerate repositories automatically.
  */
 bool repo_discovery_enabled(RepoDiscoveryMode mode) {
   return mode != RepoDiscoveryMode::Disabled;
@@ -257,6 +289,9 @@ bool repo_discovery_enabled(RepoDiscoveryMode mode) {
 
 /**
  * Check if token-based discovery is required for the mode.
+ *
+ * @param mode Discovery mode to evaluate.
+ * @return `true` when token-based repository listing is required.
  */
 bool repo_discovery_uses_tokens(RepoDiscoveryMode mode) {
   return mode == RepoDiscoveryMode::All;
@@ -264,6 +299,9 @@ bool repo_discovery_uses_tokens(RepoDiscoveryMode mode) {
 
 /**
  * Check if filesystem scanning is required for the mode.
+ *
+ * @param mode Discovery mode to evaluate.
+ * @return `true` when local filesystem scanning is required.
  */
 bool repo_discovery_uses_filesystem(RepoDiscoveryMode mode) {
   return mode == RepoDiscoveryMode::Filesystem;
@@ -271,6 +309,9 @@ bool repo_discovery_uses_filesystem(RepoDiscoveryMode mode) {
 
 /**
  * Discover repositories by scanning filesystem roots for git metadata.
+ *
+ * @param roots List of filesystem roots to inspect for git repositories.
+ * @return Distinct set of discovered owner/repository pairs.
  */
 std::vector<std::pair<std::string, std::string>>
 discover_repositories_from_filesystem(const std::vector<std::string> &roots) {

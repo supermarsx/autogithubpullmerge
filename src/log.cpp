@@ -19,6 +19,10 @@ namespace fs = std::filesystem;
 
 /**
  * Compute the filesystem path for a rotated log file.
+ *
+ * @param base Base log file path.
+ * @param index Rotation index to compute.
+ * @return Filesystem path pointing to the rotated file.
  */
 fs::path calc_rotated_path(const std::string &base, std::size_t index) {
   fs::path base_path(base);
@@ -40,6 +44,9 @@ fs::path calc_rotated_path(const std::string &base, std::size_t index) {
 
 /**
  * Rotate compressed log files up to the configured maximum.
+ *
+ * @param base Base log file path.
+ * @param max_files Maximum number of compressed files to retain.
  */
 void rotate_compressed_logs(const std::string &base, std::size_t max_files) {
   if (max_files == 0) {
@@ -63,6 +70,9 @@ void rotate_compressed_logs(const std::string &base, std::size_t max_files) {
 
 /**
  * Compress a rotated log file into gzip format.
+ *
+ * @param path Filesystem path to the log file to compress.
+ * @return `true` if compression succeeded, otherwise `false`.
  */
 bool compress_rotated_file(const std::string &path) {
   std::ifstream input(path, std::ios::binary);
@@ -109,6 +119,12 @@ namespace agpm {
 
 /**
  * Initialize the global spdlog logger with optional file rotation.
+ *
+ * @param level Logging verbosity level for the default logger.
+ * @param pattern Log message pattern; empty string retains the default.
+ * @param file Optional log file path used to enable rotation.
+ * @param rotate_files Maximum number of rotated files to keep.
+ * @param compress_rotations Whether rotated files should be gzip compressed.
  */
 void init_logger(spdlog::level::level_enum level, const std::string &pattern,
                  const std::string &file, std::size_t rotate_files,
@@ -150,6 +166,8 @@ void init_logger(spdlog::level::level_enum level, const std::string &pattern,
 
 /**
  * Ensure that the default logger exists before logging.
+ *
+ * Creates a new logger when previous initialization was skipped or lost.
  */
 void ensure_default_logger() {
   auto logger = spdlog::default_logger();

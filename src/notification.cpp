@@ -8,6 +8,9 @@ namespace {
 
 /**
  * Quote a string for safe use in POSIX shells.
+ *
+ * @param s String to escape.
+ * @return Safely quoted representation suitable for `sh`/`bash`.
  */
 [[maybe_unused]] std::string shell_escape(const std::string &s) {
   std::string out;
@@ -26,6 +29,9 @@ namespace {
 
 /**
  * Escape characters for use inside AppleScript quoted strings.
+ *
+ * @param s Raw string to escape.
+ * @return Escaped string that can be embedded in AppleScript quotes.
  */
 [[maybe_unused]] std::string escape_apple_script(const std::string &s) {
   std::string out;
@@ -41,6 +47,9 @@ namespace {
 
 /**
  * Escape characters for use inside PowerShell single-quoted strings.
+ *
+ * @param s Raw string to escape.
+ * @return Escaped string safe for PowerShell single-quoted literals.
  */
 [[maybe_unused]] std::string escape_powershell(const std::string &s) {
   std::string out;
@@ -59,12 +68,16 @@ namespace {
 
 /**
  * Construct a notifier using the provided command runner.
+ *
+ * @param runner Callback responsible for executing notification commands.
  */
 NotifySendNotifier::NotifySendNotifier(CommandRunner runner)
     : run_(std::move(runner)) {}
 
 /**
  * Dispatch a desktop notification using platform-specific utilities.
+ *
+ * @param message Textual message to present to the user.
  */
 void NotifySendNotifier::notify(const std::string &message) {
 #ifdef _WIN32

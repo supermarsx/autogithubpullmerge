@@ -132,6 +132,8 @@ nlohmann::json toml_to_json(const toml::node &node) {
  * Populate configuration settings from a JSON object.
  *
  * @param j JSON document holding configuration keys.
+ * @throws nlohmann::json::exception When required values cannot be converted
+ *         to the expected types.
  */
 void Config::load_json(const nlohmann::json &j) {
   if (j.contains("verbose")) {
@@ -403,6 +405,7 @@ void Config::load_json(const nlohmann::json &j) {
  *
  * @param j JSON document with configuration values.
  * @return Populated configuration instance.
+ * @throws nlohmann::json::exception When value conversions fail.
  */
 Config Config::from_json(const nlohmann::json &j) {
   Config cfg;
@@ -418,6 +421,8 @@ Config Config::from_json(const nlohmann::json &j) {
  *
  * @param path Filesystem location of the configuration file.
  * @return Fully populated configuration object.
+ * @throws std::runtime_error When the file cannot be opened, parsed, or when
+ *         the extension is unsupported.
  */
 Config Config::from_file(const std::string &path) {
   ensure_default_logger();

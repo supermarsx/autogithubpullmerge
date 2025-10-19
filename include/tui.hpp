@@ -29,16 +29,17 @@ using WINDOW = _win_st;
 namespace agpm {
 
 /**
- * Minimal curses-based text user interface.
+ * Minimal curses-based text user interface for interacting with repositories.
  */
 class Tui {
 public:
   /**
    * Construct a TUI bound to a GitHub client and poller.
    *
-   * @param client    GitHub API client used for interactive actions
-   * @param poller    Poller providing periodic updates
-   * @param log_limit Maximum number of log messages to keep in memory
+   * @param client GitHub API client used for interactive actions triggered by
+   *        the user.
+   * @param poller Poller providing periodic updates to display.
+   * @param log_limit Maximum number of log messages to keep in memory.
    */
   Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit = 200);
   ~Tui();
@@ -55,7 +56,7 @@ public:
   /**
    * Update the displayed pull requests.
    *
-   * @param prs Latest list of pull requests to render
+   * @param prs Latest list of pull requests to render.
    */
   void update_prs(const std::vector<PullRequest> &prs);
 
@@ -65,7 +66,7 @@ public:
   /**
    * Handle a single key press.
    *
-   * @param ch Character code received from curses
+   * @param ch Character code received from curses.
    */
   void handle_key(int ch);
 
@@ -75,7 +76,7 @@ public:
   /**
    * Check whether the TUI has been successfully initialized.
    *
-   * @return true if curses has been initialized and windows created
+   * @return `true` if curses has been initialized and windows created.
    */
   bool initialized() const { return initialized_; }
 
@@ -91,7 +92,8 @@ public:
   /**
    * Override the command used to open URLs. Intended for tests.
    *
-   * @param cmd Function returning the exit code after opening the URL
+   * @param cmd Function returning the exit code after opening the URL. The
+   *        callable receives the URL string and should return zero on success.
    */
   void set_open_cmd(std::function<int(const std::string &)> cmd) {
     open_cmd_ = std::move(cmd);
@@ -104,6 +106,8 @@ public:
    * Override the configured hotkey bindings.
    *
    * @param bindings Mapping from action name to binding specification string.
+   *        Each string may contain comma-separated key descriptors such as
+   *        `ctrl+c`.
    */
   void configure_hotkeys(
       const std::unordered_map<std::string, std::string> &bindings);

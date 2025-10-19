@@ -13,6 +13,11 @@ namespace agpm {
 
 /**
  * Load personal access tokens from a supported configuration file.
+ *
+ * @param path Filesystem path to the token file.
+ * @return Ordered list of tokens discovered in the file.
+ * @throws std::runtime_error When the file cannot be parsed or the extension
+ *         is unknown.
  */
 std::vector<std::string> load_tokens_from_file(const std::string &path) {
   auto pos = path.find_last_of('.');

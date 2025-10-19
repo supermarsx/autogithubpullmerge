@@ -15,28 +15,36 @@
 
 namespace agpm {
 
-/** Polls GitHub repositories periodically using a token bucket. */
+/**
+ * Polls GitHub repositories periodically using a token bucket rate limiter.
+ */
 class GitHubPoller {
 public:
   /**
    * Construct a poller.
    *
-   * @param client GitHub API client
-   * @param repos List of {owner, repo} pairs to poll
-   * @param interval_ms Poll interval in milliseconds
-   * @param max_rate Maximum requests per minute
-   * @param only_poll_prs When true, skip branch polling
-   * @param only_poll_stray When true, only poll branches for stray detection
-   * @param reject_dirty Automatically close or delete dirty branches
-   * @param purge_prefix Delete merged branches starting with this prefix
-   * @param auto_merge Automatically merge qualifying pull requests
-   * @param purge_only Only purge branches without polling PRs
-   * @param sort_mode Sort mode for pull request listing
-   * @param history Optional PR history database for export
+   * @param client GitHub API client used to perform REST operations.
+   * @param repos List of `{owner, repo}` pairs to poll on each iteration.
+   * @param interval_ms Base poll interval in milliseconds.
+   * @param max_rate Maximum REST requests per minute permitted by the token
+   *        bucket.
+   * @param workers Number of worker threads used to fetch repositories in
+   *        parallel.
+   * @param only_poll_prs When true, skip branch polling entirely.
+   * @param only_poll_stray When true, only poll branches for stray detection.
+   * @param reject_dirty Automatically close or delete dirty branches.
+   * @param purge_prefix Delete merged branches starting with this prefix.
+   * @param auto_merge Automatically merge qualifying pull requests.
+   * @param purge_only Only purge branches without polling PRs.
+   * @param sort_mode Sort mode for pull request listing.
+   * @param history Optional PR history database for export.
    * @param protected_branches Glob patterns for branches that must not be
-   *        removed
-   * @param protected_branch_excludes Patterns that override protections
-   * @param delete_stray Delete stray branches without requiring a prefix
+   *        removed.
+   * @param protected_branch_excludes Patterns that override protections.
+   * @param dry_run When true, destructive actions are logged but not executed.
+   * @param graphql_client Optional GraphQL client used for pull request
+   *        listing.
+   * @param delete_stray Delete stray branches without requiring a prefix.
    */
   GitHubPoller(GitHubClient &client,
                std::vector<std::pair<std::string, std::string>> repos,
@@ -63,7 +71,8 @@ public:
   /**
    * Set a callback invoked with the current pull requests after each poll.
    *
-   * @param cb Function receiving the latest pull request list
+   * @param cb Function receiving the latest pull request list by const
+   *        reference.
    */
   void
   set_pr_callback(std::function<void(const std::vector<PullRequest> &)> cb);
@@ -71,21 +80,21 @@ public:
   /**
    * Set a callback invoked for log messages produced during polling.
    *
-   * @param cb Function receiving log messages
+    * @param cb Function receiving log messages.
    */
   void set_log_callback(std::function<void(const std::string &)> cb);
 
   /**
    * Set a callback invoked after each poll to export stored history.
    *
-   * @param cb Function to run after each poll cycle
+   * @param cb Function to run after each poll cycle.
    */
   void set_export_callback(std::function<void()> cb);
 
   /**
    * Set a notifier invoked when merges or branch purges occur.
    *
-   * @param notifier Notification handler
+   * @param notifier Notification handler responsible for user-facing alerts.
    */
   void set_notifier(NotifierPtr notifier);
 

@@ -7,6 +7,9 @@ namespace agpm {
 
 /**
  * Construct a worker pool with optional rate limiting.
+ *
+ * @param workers Number of worker threads requested.
+ * @param max_rate Maximum allowed requests per minute (0 = unlimited).
  */
 Poller::Poller(int workers, int max_rate)
     : workers_(std::max(1, workers)), max_rate_(max_rate) {
@@ -62,6 +65,10 @@ void Poller::stop() {
 
 /**
  * Submit a job to the worker queue.
+ *
+ * @param job Callable to execute either immediately (when the pool is stopped)
+ *        or via a worker thread.
+ * @return Future that is fulfilled when the job completes.
  */
 std::future<void> Poller::submit(std::function<void()> job) {
   if (!running_) {
@@ -82,6 +89,8 @@ std::future<void> Poller::submit(std::function<void()> job) {
 
 /**
  * Enforce the configured rate limit before executing a job.
+ *
+ * @return `true` if execution may proceed, `false` when the pool is stopping.
  */
 bool Poller::acquire_token() {
   if (max_rate_ <= 0)

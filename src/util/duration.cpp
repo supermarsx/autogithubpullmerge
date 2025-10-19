@@ -7,6 +7,10 @@ namespace agpm {
 
 /**
  * Parse a human-readable duration string (e.g., "5m", "2h").
+ *
+ * @param str Duration string comprised of number/unit pairs.
+ * @return Parsed duration in seconds.
+ * @throws std::runtime_error When the format or unit is invalid.
  */
 std::chrono::seconds parse_duration(const std::string &str) {
   if (str.empty()) {

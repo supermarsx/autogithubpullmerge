@@ -10,12 +10,13 @@
 namespace agpm {
 
 /**
- * Compare two strings using natural order where digit sequences are
- * interpreted as numbers.
+ * Compare two strings using a case-insensitive natural ordering where digit
+ * sequences are interpreted as numbers.
  *
- * @param a First string
- * @param b Second string
- * @return True if `a` should appear before `b`
+ * @param a First string to compare.
+ * @param b Second string to compare.
+ * @return `true` if @p a should appear before @p b according to natural
+ *         sorting rules, otherwise `false`.
  */
 inline bool alphanum_less(const std::string &a, const std::string &b) {
   size_t i = 0, j = 0;
@@ -51,9 +52,11 @@ inline bool alphanum_less(const std::string &a, const std::string &b) {
 /**
  * Sort a list of pull requests by title using the provided mode.
  *
- * @param prs Pull requests to sort in-place
- * @param mode Sorting mode: "alpha", "reverse", "alphanum",
- *             or "reverse-alphanum"
+ * @param prs Pull requests to sort in-place.
+ * @param mode Sorting mode: "alpha" for ascending lexicographical order,
+ *             "reverse" for descending lexicographical order, "alphanum"
+ *             for case-insensitive natural ordering, or "reverse-alphanum"
+ *             for the reverse natural order.
  */
 inline void sort_pull_requests(std::vector<PullRequest> &prs,
                                const std::string &mode) {

@@ -17,7 +17,11 @@ namespace agpm {
 class Notifier {
 public:
   virtual ~Notifier() = default;
-  /// Send a notification message to the user.
+  /**
+   * Send a notification message to the user.
+   *
+   * @param message Textual message that should be surfaced to the user.
+   */
   virtual void notify(const std::string &message) = 0;
 };
 
@@ -34,11 +38,22 @@ class NotifySendNotifier : public Notifier {
 public:
   using CommandRunner = std::function<int(const std::string &)>;
 
+  /**
+   * Construct a notifier that executes platform-specific commands.
+   *
+   * @param runner Callback responsible for executing shell commands. The
+   *        default implementation delegates to `std::system`.
+   */
   explicit NotifySendNotifier(CommandRunner runner =
                                   [](const std::string &cmd) {
                                     return std::system(cmd.c_str());
                                   });
 
+  /**
+   * Dispatch a notification to the underlying platform-specific tool.
+   *
+   * @param message Textual message to deliver to the user.
+   */
   void notify(const std::string &message) override;
 
 private:

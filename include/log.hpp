@@ -8,11 +8,17 @@
 namespace agpm {
 
 /**
- * Initialize global logger with console and optional rotating file sink.
+ * Initialize the global logger with console and optional rotating file sinks.
  *
- * @param level   Logging verbosity level.
- * @param pattern Log message pattern. Empty string keeps spdlog default.
- * @param file    Optional log file path for rotating sink.
+ * @param level Logging verbosity level to use for all loggers.
+ * @param pattern Log message pattern. Provide an empty string to keep the
+ *        underlying spdlog default.
+ * @param file Optional log file path for enabling a rotating sink. When empty
+ *        no file output is configured.
+ * @param rotate_files Maximum number of rotated files to retain when
+ *        @p file is provided.
+ * @param compress_rotations Whether rotated log files should be gzip
+ *        compressed automatically.
  */
 void init_logger(spdlog::level::level_enum level,
                  const std::string &pattern = "",
@@ -20,7 +26,13 @@ void init_logger(spdlog::level::level_enum level,
                  std::size_t rotate_files = 3,
                  bool compress_rotations = false);
 
-/** Ensure a default logger exists before logging. */
+/**
+ * Ensure a default logger exists before logging.
+ *
+ * Calling spdlog logging macros requires a default logger. This helper creates
+ * one on demand when the logging subsystem has not been explicitly
+ * initialized.
+ */
 void ensure_default_logger();
 
 } // namespace agpm

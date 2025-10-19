@@ -12,6 +12,25 @@ namespace agpm {
 
 /**
  * Construct a poller coordinating periodic GitHub synchronization tasks.
+ *
+ * @param client GitHub client used for REST interactions.
+ * @param repos Repositories to process on each poll cycle.
+ * @param interval_ms Poll interval in milliseconds.
+ * @param max_rate Maximum requests per minute permitted.
+ * @param workers Number of worker threads to use for concurrent operations.
+ * @param only_poll_prs Skip branch polling when true.
+ * @param only_poll_stray Restrict branch polling to stray detection.
+ * @param reject_dirty Close or delete dirty branches automatically.
+ * @param purge_prefix Branch prefix qualifying for automated deletion.
+ * @param auto_merge Automatically merge qualifying pull requests when true.
+ * @param purge_only Skip PR polling and only purge branches.
+ * @param sort_mode Sort mode used for rendering pull requests.
+ * @param history Optional history database for exports.
+ * @param protected_branches Branch patterns protected from deletion.
+ * @param protected_branch_excludes Patterns overriding protected branches.
+ * @param dry_run When true, perform logging without mutating repositories.
+ * @param graphql_client Optional GraphQL client for PR listing.
+ * @param delete_stray Delete stray branches automatically when true.
  */
 GitHubPoller::GitHubPoller(
     GitHubClient &client,
@@ -80,6 +99,8 @@ void GitHubPoller::poll_now() { poll(); }
 
 /**
  * Register a callback invoked with the latest pull request snapshot.
+ *
+ * @param cb Callback receiving the aggregated pull request list.
  */
 void GitHubPoller::set_pr_callback(
     std::function<void(const std::vector<PullRequest> &)> cb) {
@@ -88,6 +109,8 @@ void GitHubPoller::set_pr_callback(
 
 /**
  * Register a callback for textual log messages produced by the poller.
+ *
+ * @param cb Callback receiving log message strings.
  */
 void GitHubPoller::set_log_callback(
     std::function<void(const std::string &)> cb) {
@@ -96,6 +119,8 @@ void GitHubPoller::set_log_callback(
 
 /**
  * Register a callback that performs export tasks after each poll.
+ *
+ * @param cb Callback invoked after each polling cycle completes.
  */
 void GitHubPoller::set_export_callback(std::function<void()> cb) {
   export_cb_ = std::move(cb);
@@ -103,6 +128,8 @@ void GitHubPoller::set_export_callback(std::function<void()> cb) {
 
 /**
  * Attach a notifier used to broadcast poller events.
+ *
+ * @param notifier Shared pointer to a notifier implementation.
  */
 void GitHubPoller::set_notifier(NotifierPtr notifier) {
   notifier_ = std::move(notifier);
@@ -110,6 +137,8 @@ void GitHubPoller::set_notifier(NotifierPtr notifier) {
 
 /**
  * Perform a full polling cycle across all configured repositories.
+ *
+ * @return void
  */
 void GitHubPoller::poll() {
   if (max_rate_ > 0 && max_rate_ <= 1) {

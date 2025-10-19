@@ -15,7 +15,11 @@
 #include <vector>
 
 /**
- * Program entry point orchestrating configuration and UI startup.
+ * Program entry point orchestrating configuration loading and UI startup.
+ *
+ * @param argc Number of CLI arguments received from the OS.
+ * @param argv Null-terminated array containing the raw CLI arguments.
+ * @return Process exit code forwarded from the application logic.
  */
 int main(int argc, char **argv) {
   agpm::App app;

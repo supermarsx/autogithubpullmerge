@@ -22,8 +22,8 @@ public:
   /**
    * Construct a thread pool.
    *
-   * @param workers Number of worker threads
-   * @param max_rate Maximum allowed requests per minute (0 = unlimited)
+   * @param workers Number of worker threads used to execute polling jobs.
+   * @param max_rate Maximum allowed requests per minute (0 = unlimited).
    */
   Poller(int workers, int max_rate);
 
@@ -36,7 +36,12 @@ public:
   /// Stop the worker threads.
   void stop();
 
-  /// Submit a task for execution.
+  /**
+   * Submit a task for execution.
+   *
+   * @param job Callable to execute on one of the worker threads.
+   * @return Future that becomes ready once the task completes.
+   */
   std::future<void> submit(std::function<void()> job);
 
 private:

@@ -32,6 +32,9 @@ namespace agpm {
 
 /**
  * Check whether an environment flag is enabled.
+ *
+ * @param name Environment variable name to inspect.
+ * @return `true` when the variable exists and is not "0".
  */
 static bool env_flag_enabled(const char *name) {
   if (const char *v = std::getenv(name)) {
@@ -43,6 +46,9 @@ static bool env_flag_enabled(const char *name) {
 #if defined(__APPLE__)
 /**
  * Try opening a URL via LaunchServices without invoking a shell.
+ *
+ * @param url Target URL to launch.
+ * @return `true` on success, otherwise `false`.
  */
 static bool ls_open_url(const std::string &url) {
   CFStringRef cfstr = CFStringCreateWithCString(kCFAllocatorDefault, url.c_str(), kCFStringEncodingUTF8);
@@ -67,6 +73,9 @@ static bool ls_open_url(const std::string &url) {
 
 /**
  * Spawn a detached process using posix_spawn.
+ *
+ * @param argv Command arguments beginning with the executable name.
+ * @return `true` when the process was spawned successfully.
  */
 static bool spawn_detached(const std::vector<std::string> &argv) {
   std::vector<char*> cargv;
@@ -85,6 +94,9 @@ static bool spawn_detached(const std::vector<std::string> &argv) {
 
 /**
  * Attempt to open the URL using the BROWSER environment variable.
+ *
+ * @param url Target URL to launch.
+ * @return `true` if a browser command was executed.
  */
 static bool try_open_with_browser_env(const std::string &url) {
   if (const char *br = std::getenv("BROWSER")) {
@@ -99,6 +111,9 @@ static bool try_open_with_browser_env(const std::string &url) {
 
 /**
  * Try a series of macOS commands to open the URL directly.
+ *
+ * @param url Target URL to launch.
+ * @return `true` if any command successfully starts a browser.
  */
 static bool try_open_cmds(const std::string &url) {
   // Prefer absolute path first to avoid PATH surprises.
@@ -111,6 +126,8 @@ static bool try_open_cmds(const std::string &url) {
 
 /**
  * Launch the GitHub personal access token creation page in a browser.
+ *
+ * @return `true` when the browser was launched or the action was skipped.
  */
 bool open_pat_creation_page() {
   const std::string url = "https://github.com/settings/tokens/new";
@@ -150,6 +167,10 @@ bool open_pat_creation_page() {
 
 /**
  * Persist a personal access token to disk with restrictive permissions.
+ *
+ * @param path_str Destination path for the token file.
+ * @param pat Token contents to write.
+ * @return `true` on success, otherwise `false`.
  */
 bool save_pat_to_file(const std::string &path_str, const std::string &pat) {
   namespace fs = std::filesystem;

@@ -14,7 +14,9 @@
 
 namespace agpm {
 
-/** Simple HTTP response container. */
+/**
+ * Simple HTTP response container capturing body, headers, and status code.
+ */
 struct HttpResponse {
   std::string body;                 ///< Response body
   std::vector<std::string> headers; ///< Response headers
@@ -28,9 +30,11 @@ public:
   /**
    * Perform a HTTP GET request.
    *
-   * @param url Request URL
-   * @param headers Additional request headers
-   * @return Response body
+   * @param url Absolute request URL.
+   * @param headers Additional request headers expressed as `Header: value`
+   *        strings.
+   * @return Response body content as a UTF-8 string.
+   * @throws std::runtime_error On transport or protocol failures.
    */
   virtual std::string get(const std::string &url,
                           const std::vector<std::string> &headers) = 0;
@@ -38,9 +42,11 @@ public:
   /**
    * Perform a HTTP GET request returning both body and response headers.
    *
-   * @param url Request URL
-   * @param headers Additional request headers
-   * @return Response body, headers and status code
+   * @param url Absolute request URL.
+   * @param headers Additional request headers expressed as `Header: value`
+   *        strings.
+   * @return Aggregated response body, headers, and HTTP status code.
+   * @throws std::runtime_error On transport or protocol failures.
    */
   virtual HttpResponse
   get_with_headers(const std::string &url,
@@ -51,10 +57,12 @@ public:
   /**
    * Perform a HTTP PUT request.
    *
-   * @param url Request URL
-   * @param data Request body
-   * @param headers Additional request headers
-   * @return Response body
+   * @param url Absolute request URL.
+   * @param data Request body payload encoded as UTF-8.
+   * @param headers Additional request headers expressed as `Header: value`
+   *        strings.
+   * @return Response body content as a UTF-8 string.
+   * @throws std::runtime_error On transport or protocol failures.
    */
   virtual std::string put(const std::string &url, const std::string &data,
                           const std::vector<std::string> &headers) = 0;
@@ -62,18 +70,18 @@ public:
   /**
    * Perform a HTTP DELETE request.
    *
-   * @param url Request URL
-   * @param headers Additional request headers
-   * @return Response body
+   * @param url Absolute request URL.
+   * @param headers Additional request headers expressed as `Header: value`
+   *        strings.
+   * @return Response body content as a UTF-8 string.
+   * @throws std::runtime_error On transport or protocol failures.
    */
   virtual std::string del(const std::string &url,
                           const std::vector<std::string> &headers) = 0;
 };
 
 /**
- * RAII wrapper for a CURL easy handle.
- *
- * Ensures global CURL initialization occurs once.
+ * RAII wrapper for a CURL easy handle ensuring global CURL initialization.
  */
 class CurlHandle {
 public:
@@ -81,6 +89,11 @@ public:
   ~CurlHandle();
   CurlHandle(const CurlHandle &) = delete;
   CurlHandle &operator=(const CurlHandle &) = delete;
+  /**
+   * Access the underlying CURL easy handle.
+   *
+   * @return Borrowed pointer to the CURL easy handle managed by the wrapper.
+   */
   CURL *get() const { return handle_; }
 
 private:
@@ -98,14 +111,18 @@ public:
   /**
    * Construct a CURL based HTTP client.
    *
-   * @param timeout_ms Request timeout in milliseconds
+   * @param timeout_ms Request timeout in milliseconds for individual
+   *        operations.
    * @param download_limit Maximum download rate in bytes per second (0 =
-   * unlimited)
-   * @param upload_limit Maximum upload rate in bytes per second (0 = unlimited)
-   * @param max_download Maximum cumulative download in bytes (0 = unlimited)
-   * @param max_upload Maximum cumulative upload in bytes (0 = unlimited)
-   * @param http_proxy Proxy URL for HTTP requests
-   * @param https_proxy Proxy URL for HTTPS requests
+   *        unlimited).
+   * @param upload_limit Maximum upload rate in bytes per second (0 =
+   *        unlimited).
+   * @param max_download Maximum cumulative download in bytes before refusing
+   *        further requests (0 = unlimited).
+   * @param max_upload Maximum cumulative upload in bytes before refusing
+   *        further requests (0 = unlimited).
+   * @param http_proxy Proxy URL for HTTP requests.
+   * @param https_proxy Proxy URL for HTTPS requests.
    */
   explicit CurlHttpClient(long timeout_ms = 30000,
                           curl_off_t download_limit = 0,
@@ -179,19 +196,33 @@ struct PullRequest {
   std::string repo{};  ///< Repository name
 };
 
-/** Simple GitHub API client. */
+/**
+ * Simple GitHub REST API client that encapsulates authentication, retries, and
+ * repository filtering.
+ */
 class GitHubClient {
 public:
   /**
    * Construct a GitHub API client.
    *
-   * @param token Personal access token
-   * @param http Optional HTTP client implementation
-   * @param include_repos Repositories to include
-   * @param exclude_repos Repositories to exclude
-   * @param delay_ms Minimum delay between requests in milliseconds
-   * @param timeout_ms HTTP request timeout in milliseconds
-   * @param max_retries Number of retry attempts for transient failures
+   * @param tokens Personal access tokens used for authenticated requests. The
+   *        client automatically rotates through them to distribute rate limits.
+   * @param http Optional HTTP client implementation. A default CURL-backed
+   *        implementation is constructed when `nullptr` is supplied.
+   * @param include_repos Repository identifiers (`owner/repo`) that are
+   *        explicitly allowed. An empty set permits all repositories.
+   * @param exclude_repos Repository identifiers that should be skipped even if
+   *        otherwise permitted.
+   * @param delay_ms Minimum delay between requests in milliseconds to respect
+   *        rate limits.
+   * @param timeout_ms HTTP request timeout in milliseconds for internally
+   *        created HTTP clients.
+   * @param max_retries Number of retry attempts for transient failures.
+   * @param api_base Base URL for the GitHub API endpoints.
+   * @param dry_run When true, destructive operations such as merges or branch
+   *        deletions are simulated instead of performed.
+   * @param cache_file Optional filesystem path used to persist ETag-based cache
+   *        entries between runs.
    */
   explicit GitHubClient(std::vector<std::string> tokens,
                         std::unique_ptr<HttpClient> http = nullptr,
@@ -224,19 +255,20 @@ public:
   /**
    * List repositories accessible to the authenticated user.
    *
-   * @return List of repository owner/name pairs
+   * @return List of repository `owner`/`name` pairs visible to the provided
+   *         credentials after filtering against include/exclude rules.
    */
   std::vector<std::pair<std::string, std::string>> list_repositories();
 
   /**
    * List pull requests for a repository.
    *
-   * @param owner Repository owner
-   * @param repo Repository name
-   * @param include_merged Include merged pull requests when true
-   * @param per_page Number of pull requests to fetch per page
-   * @param since Only include pull requests updated since this time
-   * @return List of pull request summaries
+   * @param owner Repository owner.
+   * @param repo Repository name.
+   * @param include_merged Include merged pull requests when true.
+   * @param per_page Number of pull requests to fetch per page (max 100).
+   * @param since Only include pull requests updated on or after this timestamp.
+   * @return List of pull request summaries retrieved from the REST API.
    */
   std::vector<PullRequest>
   list_pull_requests(const std::string &owner, const std::string &repo,
@@ -248,9 +280,9 @@ public:
    * repository. Intended for tests that must avoid pagination and extra
    * requests.
    *
-   * @param owner_repo Repository in "owner/repo" format
-   * @param per_page Maximum number of PRs to request (default 100)
-   * @return List of open pull requests from a single page
+   * @param owner_repo Repository in "owner/repo" format.
+   * @param per_page Maximum number of PRs to request (default 100).
+   * @return List of open pull requests from a single page.
    */
   std::vector<PullRequest>
   list_open_pull_requests_single(const std::string &owner_repo,
@@ -259,10 +291,11 @@ public:
   /**
    * Merge a pull request.
    *
-   * @param owner Repository owner
-   * @param repo Repository name
-   * @param pr_number Pull request number
-   * @return True if merge was successful
+   * @param owner Repository owner.
+   * @param repo Repository name.
+   * @param pr_number Pull request number.
+   * @return `true` if the merge request was accepted by the API, otherwise
+   *         `false`.
    */
   bool merge_pull_request(const std::string &owner, const std::string &repo,
                           int pr_number);
@@ -270,9 +303,9 @@ public:
   /**
    * List branch names for a repository excluding the default branch.
    *
-   * @param owner Repository owner
-   * @param repo Repository name
-   * @return All non-default branch names
+   * @param owner Repository owner.
+   * @param repo Repository name.
+   * @return All non-default branch names that survive include/exclude filters.
    */
   std::vector<std::string> list_branches(const std::string &owner,
                                          const std::string &repo);
@@ -281,9 +314,9 @@ public:
    * Perform a single HTTP request to list branches for a repository. Intended
    * for tests that must avoid pagination and extra metadata calls.
    *
-   * @param owner_repo Repository in "owner/repo" format
-   * @param per_page Maximum number of branches to request (default 100)
-   * @return List of branch names from a single page
+   * @param owner_repo Repository in "owner/repo" format.
+   * @param per_page Maximum number of branches to request (default 100).
+   * @return List of branch names from a single page.
    */
   std::vector<std::string> list_branches_single(const std::string &owner_repo,
                                                 int per_page = 100);
@@ -292,12 +325,12 @@ public:
    * Delete branches whose associated pull request was closed or merged and
    * whose name begins with the given prefix.
    *
-   * @param owner Repository owner
-   * @param repo Repository name
-   * @param prefix Branch name prefix to match for deletion
+   * @param owner Repository owner.
+   * @param repo Repository name.
+   * @param prefix Branch name prefix to match for deletion.
    * @param protected_branches Glob patterns for branches that must not be
-   *        deleted
-   * @param protected_branch_excludes Patterns that override protections
+   *        deleted.
+   * @param protected_branch_excludes Patterns that override protections.
    */
   void cleanup_branches(
       const std::string &owner, const std::string &repo,
@@ -309,11 +342,11 @@ public:
    * Close or delete branches that have diverged from the repository's default
    * branch.
    *
-   * @param owner Repository owner
-   * @param repo Repository name
+   * @param owner Repository owner.
+   * @param repo Repository name.
    * @param protected_branches Glob patterns for branches that must not be
-   *        removed
-   * @param protected_branch_excludes Patterns that override protections
+   *        removed.
+   * @param protected_branch_excludes Patterns that override protections.
    */
   void close_dirty_branches(
       const std::string &owner, const std::string &repo,
@@ -354,12 +387,16 @@ private:
   void save_cache();
 };
 
-/**
- * Minimal GitHub GraphQL API client used for querying pull requests.
- */
+/** Minimal GitHub GraphQL API client used for querying pull requests. */
 class GitHubGraphQLClient {
 public:
-  /// Construct a client using the provided tokens.
+  /**
+   * Construct a client using the provided tokens.
+   *
+   * @param tokens Personal access tokens used for authenticated requests.
+   * @param timeout_ms Request timeout in milliseconds for GraphQL operations.
+   * @param api_base Base URL for the GitHub API endpoints.
+   */
   explicit GitHubGraphQLClient(std::vector<std::string> tokens,
                                int timeout_ms = 30000,
                                std::string api_base = "https://api.github.com");
@@ -367,11 +404,11 @@ public:
   /**
    * List pull requests for a repository using GraphQL.
    *
-   * @param owner Repository owner
-   * @param repo Repository name
-   * @param include_merged Include merged pull requests when true
-   * @param per_page Number of pull requests to fetch
-   * @return List of pull request summaries
+   * @param owner Repository owner.
+   * @param repo Repository name.
+   * @param include_merged Include merged pull requests when true.
+   * @param per_page Number of pull requests to fetch (max 100).
+   * @return List of pull request summaries retrieved from the GraphQL API.
    */
   std::vector<PullRequest> list_pull_requests(const std::string &owner,
                                               const std::string &repo,

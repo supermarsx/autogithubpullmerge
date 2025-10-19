@@ -29,6 +29,9 @@ struct ParsedBinding {
 
 /**
  * Return a trimmed copy of the input string.
+ *
+ * @param s String potentially containing leading or trailing whitespace.
+ * @return New string without surrounding whitespace.
  */
 std::string trim_copy(const std::string &s) {
   auto begin = std::find_if_not(s.begin(), s.end(), [](unsigned char ch) {
@@ -45,6 +48,9 @@ std::string trim_copy(const std::string &s) {
 
 /**
  * Produce a lowercase copy of the string.
+ *
+ * @param s Input string to normalize.
+ * @return Lowercase variant of the input string.
  */
 std::string to_lower_copy(const std::string &s) {
   std::string result;
@@ -58,6 +64,9 @@ std::string to_lower_copy(const std::string &s) {
 
 /**
  * Split a binding list specification into individual tokens.
+ *
+ * @param spec Comma- or pipe-separated list of bindings.
+ * @return Vector of trimmed binding strings.
  */
 std::vector<std::string> split_binding_list(const std::string &spec) {
   std::vector<std::string> parts;
@@ -82,6 +91,9 @@ std::vector<std::string> split_binding_list(const std::string &spec) {
 
 /**
  * Parse a textual binding specification into key codes and labels.
+ *
+ * @param spec Binding description string such as `"ctrl+c"`.
+ * @return Parsed key codes paired with human-friendly labels.
  */
 std::vector<ParsedBinding> parse_binding_spec(const std::string &spec) {
   std::vector<ParsedBinding> result;
@@ -146,6 +158,8 @@ std::vector<ParsedBinding> parse_binding_spec(const std::string &spec) {
 
 /**
  * Retrieve human-readable descriptions for hotkey actions.
+ *
+ * @return Reference to a static mapping from action identifiers to labels.
  */
 const std::unordered_map<std::string, std::string> &action_descriptions() {
   static const std::unordered_map<std::string, std::string> descriptions{
@@ -161,6 +175,8 @@ const std::unordered_map<std::string, std::string> &action_descriptions() {
 
 /**
  * Retrieve the set of valid action identifiers.
+ *
+ * @return Reference to the static set of canonical action names.
  */
 const std::unordered_set<std::string> &valid_actions() {
   static const std::unordered_set<std::string> actions{
@@ -171,6 +187,9 @@ const std::unordered_set<std::string> &valid_actions() {
 
 /**
  * Normalize action names to canonical identifiers.
+ *
+ * @param action Input action string provided by configuration.
+ * @return Canonical action identifier recognized by the TUI.
  */
 std::string canonicalize_action(const std::string &action) {
   std::string lower = to_lower_copy(action);
@@ -196,6 +215,10 @@ namespace agpm {
 
 /**
  * Construct the text UI and configure default hotkeys.
+ *
+ * @param client GitHub client used for interactive operations.
+ * @param poller Poller providing live data updates.
+ * @param log_limit Maximum number of log entries to retain.
  */
 Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit)
     : client_(client), poller_(poller), log_limit_(log_limit) {
@@ -258,6 +281,8 @@ void Tui::initialize_default_hotkeys() {
 
 /**
  * Remove all bindings currently assigned to an action.
+ *
+ * @param action Canonical action identifier whose bindings should be cleared.
  */
 void Tui::clear_action_bindings(const std::string &action) {
   auto it = action_bindings_.find(action);
@@ -276,6 +301,9 @@ void Tui::clear_action_bindings(const std::string &action) {
 
 /**
  * Replace the bindings associated with an action.
+ *
+ * @param action Canonical action identifier receiving new bindings.
+ * @param bindings Hotkey bindings to assign to the action.
  */
 void Tui::set_bindings_for_action(
     const std::string &action, const std::vector<HotkeyBinding> &bindings) {
@@ -300,6 +328,8 @@ void Tui::set_bindings_for_action(
 
 /**
  * Apply user-provided hotkey configuration overrides.
+ *
+ * @param bindings Mapping from action identifiers to configuration strings.
  */
 void Tui::configure_hotkeys(
     const std::unordered_map<std::string, std::string> &bindings) {
@@ -364,6 +394,8 @@ Tui::~Tui() {
 
 /**
  * Initialize the curses environment and install callbacks.
+ *
+ * @throws std::runtime_error When the curses subsystem cannot be initialized.
  */
 void Tui::init() {
   // Ensure all standard streams are attached to a real terminal. macOS
@@ -401,6 +433,8 @@ void Tui::init() {
 
 /**
  * Update the set of pull requests displayed by the UI.
+ *
+ * @param prs Latest pull request list to render.
  */
 void Tui::update_prs(const std::vector<PullRequest> &prs) {
   prs_ = prs;
@@ -411,6 +445,8 @@ void Tui::update_prs(const std::vector<PullRequest> &prs) {
 
 /**
  * Append a message to the in-memory log buffer.
+ *
+ * @param msg Log message to store.
  */
 void Tui::log(const std::string &msg) {
   logs_.push_back(msg);
@@ -544,6 +580,8 @@ void Tui::draw() {
 
 /**
  * Process a single key press event.
+ *
+ * @param ch Character code received from `getch()`.
  */
 void Tui::handle_key(int ch) {
   if (!initialized_)

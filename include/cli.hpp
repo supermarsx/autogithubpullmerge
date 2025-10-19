@@ -9,13 +9,32 @@
 
 namespace agpm {
 
-/** Signals that CLI parsing requested an immediate exit (help, errors, etc.). */
+/**
+ * Signals that CLI parsing requested an immediate exit (help, errors, etc.).
+ * Used to bubble exit codes from parsing back to the main entry point without
+ * treating them as fatal errors.
+ */
 class CliParseExit : public std::exception {
 public:
+  /**
+   * Construct an exit signal with the desired exit code.
+   *
+   * @param exit_code Process exit code that should be returned to the caller.
+   */
   explicit CliParseExit(int exit_code) noexcept : exit_code_(exit_code) {}
 
+  /**
+   * Retrieve the exit code that triggered the exception.
+   *
+   * @return Numeric process exit code.
+   */
   int exit_code() const noexcept { return exit_code_; }
 
+  /**
+   * Provide an explanatory message for logging or debugging.
+   *
+   * @return Null-terminated string describing the exit condition.
+   */
   const char *what() const noexcept override {
     return "CLI parsing requested exit";
   }
@@ -24,7 +43,12 @@ private:
   int exit_code_;
 };
 
-/** Parsed command line options. */
+/**
+ * Parsed command line options supplied via the CLI.
+ *
+ * The structure mirrors the supported CLI flags and stores post-processed
+ * values so downstream components can operate without re-parsing.
+ */
 struct CliOptions {
   bool verbose = false;           ///< Enables verbose output
   std::string config_file;        ///< Optional path to configuration file
@@ -99,13 +123,15 @@ struct CliOptions {
 };
 
 /**
- * Parse command line arguments.
+ * Parse command line arguments and return the normalized options structure.
  *
- * @param argc Number of arguments
- * @param argv Argument values
- * @return Parsed options structure
- * @throws std::runtime_error on parse errors or when destructive
- *         operations are cancelled by the user
+ * @param argc Number of elements supplied in @p argv.
+ * @param argv Null-terminated array of raw CLI argument strings.
+ * @return Populated options structure describing the requested behaviour.
+ * @throws CliParseExit When parsing encounters non-error conditions such as
+ *         `--help` that require the application to exit early.
+ * @throws std::runtime_error On parse errors or when destructive operations
+ *         are cancelled by the user.
  */
 CliOptions parse_cli(int argc, char **argv);
 
