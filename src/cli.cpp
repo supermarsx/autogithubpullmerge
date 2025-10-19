@@ -15,6 +15,15 @@
 
 namespace agpm {
 
+/**
+ * libcurl write callback that appends the received data to a string buffer.
+ *
+ * @param contents Pointer to the incoming data chunk.
+ * @param size Size of each data element in bytes.
+ * @param nmemb Number of elements provided.
+ * @param userp Pointer to the destination std::string.
+ * @return Number of bytes processed, signalling success to libcurl.
+ */
 static size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
   size_t total = size * nmemb;
   std::string *s = static_cast<std::string *>(userp);
@@ -22,6 +31,15 @@ static size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
   return total;
 }
 
+/**
+ * Build a descriptive error message for a CURL operation.
+ *
+ * @param verb HTTP verb attempted (e.g., "GET").
+ * @param url Target URL of the request.
+ * @param code CURL error code returned by the operation.
+ * @param errbuf Optional error buffer filled by CURL with more detail.
+ * @return Human-readable description summarizing the failure.
+ */
 static std::string format_curl_error(const char *verb, const std::string &url,
                                      CURLcode code, const char *errbuf) {
   std::ostringstream oss;
@@ -39,6 +57,14 @@ static std::string format_curl_error(const char *verb, const std::string &url,
   return oss.str();
 }
 
+/**
+ * Retrieve newline-delimited personal access tokens from an HTTP endpoint.
+ *
+ * @param url Remote location containing tokens, one per line.
+ * @param user Optional basic authentication user name.
+ * @param pass Optional basic authentication password.
+ * @return Collection of tokens extracted from the remote resource.
+ */
 static std::vector<std::string> load_tokens_from_url(const std::string &url,
                                                      const std::string &user,
                                                      const std::string &pass) {
@@ -80,7 +106,12 @@ static std::vector<std::string> load_tokens_from_url(const std::string &url,
   return tokens;
 }
 
-// Fetches an environment variable in a cross-platform, secure manner.
+/**
+ * Fetch an environment variable in a cross-platform, secure manner.
+ *
+ * @param name Null-terminated environment variable name.
+ * @return Variable contents or an empty string if unavailable.
+ */
 static std::string get_env_var(const char *name) {
 #ifdef _WIN32
   char *buf = nullptr;
@@ -97,6 +128,17 @@ static std::string get_env_var(const char *name) {
 #endif
 }
 
+/**
+ * Parse command line arguments into the internal option structure.
+ *
+ * In addition to CLI11 parsing, this function preprocesses arguments to handle
+ * toggle-style flags and fetches tokens from files, URLs, stdin, or
+ * environment variables as requested.
+ *
+ * @param argc Argument count provided to @c main().
+ * @param argv Argument vector provided to @c main().
+ * @return Fully populated CLI options.
+ */
 CliOptions parse_cli(int argc, char **argv) {
   CLI::App app{"autogithubpullmerge command line"};
   CliOptions options;

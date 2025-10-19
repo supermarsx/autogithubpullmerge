@@ -18,7 +18,12 @@ namespace agpm {
 
 namespace {
 
-/// Convert a shell-style glob pattern to a std::regex for comparison.
+/**
+ * Convert a shell-style glob pattern to a regular expression.
+ *
+ * @param glob Glob expression containing '*' and '?' wildcards.
+ * @return std::regex equivalent capturing the same matching semantics.
+ */
 std::regex glob_to_regex(const std::string &glob) {
   std::string rx = "^";
   for (char c : glob) {
@@ -52,6 +57,12 @@ std::regex glob_to_regex(const std::string &glob) {
   return std::regex(rx);
 }
 
+/**
+ * Convert a mixed wildcard pattern to a regex string.
+ *
+ * @param value Pattern potentially containing '*' or '?' characters.
+ * @return String representation of the regex body.
+ */
 std::string mixed_to_regex(const std::string &value) {
   std::string out;
   out.reserve(value.size() * 2);
@@ -71,6 +82,12 @@ std::string mixed_to_regex(const std::string &value) {
   return out;
 }
 
+/**
+ * Produce a lowercase copy of the given string using ASCII rules.
+ *
+ * @param value Input text.
+ * @return Lowercase copy of the input.
+ */
 std::string to_lower_copy(const std::string &value) {
   std::string out = value;
   std::transform(out.begin(), out.end(), out.begin(),
@@ -78,6 +95,15 @@ std::string to_lower_copy(const std::string &value) {
   return out;
 }
 
+/**
+ * Create a human readable error message for a CURL request.
+ *
+ * @param verb HTTP verb attempted.
+ * @param url Request URL.
+ * @param code CURL error code.
+ * @param errbuf Optional buffer with extended error text.
+ * @return Combined error description.
+ */
 std::string format_curl_error(const char *verb, const std::string &url,
                               CURLcode code, const char *errbuf) {
   std::ostringstream oss;
@@ -95,7 +121,16 @@ std::string format_curl_error(const char *verb, const std::string &url,
   return oss.str();
 }
 
-/// Return true if `name` matches any glob or regex in `patterns`.
+/**
+ * Check if a name matches any pattern in a collection.
+ *
+ * Patterns support prefixes such as "glob:" or "regex:" in addition to raw
+ * glob and regex entries.
+ *
+ * @param name Candidate string to evaluate.
+ * @param patterns List of pattern expressions.
+ * @return True when a pattern matches the provided name.
+ */
 bool matches_pattern(const std::string &name,
                      const std::vector<std::string> &patterns) {
   return std::any_of(patterns.begin(), patterns.end(),
@@ -159,13 +194,26 @@ bool matches_pattern(const std::string &name,
                      });
 }
 
+/**
+ * Determine whether a branch name refers to a default base branch.
+ *
+ * @param name Branch name to inspect.
+ * @return True when the name is "main" or "master" (case insensitive).
+ */
 bool is_base_branch_name(const std::string &name) {
   const std::string lower = to_lower_copy(name);
   return lower == "main" || lower == "master";
 }
 
-// Determine whether a branch name should be considered protected based on
-// include and exclude pattern lists. Excludes take precedence.
+/**
+ * Determine whether a branch should be treated as protected.
+ *
+ * @param name Branch name to evaluate.
+ * @param protected_patterns Inclusion patterns that mark branches as
+ *        protected.
+ * @param exclude_patterns Patterns that explicitly lift protection.
+ * @return True if the branch is protected after considering excludes.
+ */
 bool is_protected_branch(const std::string &name,
                          const std::vector<std::string> &protected_patterns,
                          const std::vector<std::string> &exclude_patterns) {
@@ -181,6 +229,9 @@ bool is_protected_branch(const std::string &name,
 
 } // namespace
 
+/**
+ * RAII wrapper managing a CURL linked list of headers.
+ */
 struct CurlSlist {
   curl_slist *list{nullptr};
   CurlSlist() = default;
@@ -193,6 +244,9 @@ struct CurlSlist {
   CurlSlist &operator=(const CurlSlist &) = delete;
 };
 
+/**
+ * Initialize the CURL handle, ensuring global setup occurs once.
+ */
 CurlHandle::CurlHandle() {
   static std::once_flag flag;
   std::call_once(flag, []() { curl_global_init(CURL_GLOBAL_DEFAULT); });
@@ -202,6 +256,9 @@ CurlHandle::CurlHandle() {
   }
 }
 
+/**
+ * Clean up the CURL easy handle.
+ */
 CurlHandle::~CurlHandle() { curl_easy_cleanup(handle_); }
 
 CurlHttpClient::CurlHttpClient(long timeout_ms, curl_off_t download_limit,
@@ -213,6 +270,9 @@ CurlHttpClient::CurlHttpClient(long timeout_ms, curl_off_t download_limit,
       max_upload_(max_upload), http_proxy_(std::move(http_proxy)),
       https_proxy_(std::move(https_proxy)) {}
 
+/**
+ * libcurl write callback capturing response bodies into a string.
+ */
 static size_t write_callback(void *contents, size_t size, size_t nmemb,
                              void *userp) {
   size_t total = size * nmemb;
@@ -221,6 +281,9 @@ static size_t write_callback(void *contents, size_t size, size_t nmemb,
   return total;
 }
 
+/**
+ * libcurl header callback collecting response headers.
+ */
 static size_t header_callback(char *buffer, size_t size, size_t nitems,
                               void *userdata) {
   size_t total = size * nitems;
@@ -232,6 +295,12 @@ static size_t header_callback(char *buffer, size_t size, size_t nitems,
   return total;
 }
 
+/**
+ * Configure proxy settings on the CURL handle based on the request URL.
+ *
+ * @param curl CURL handle being prepared.
+ * @param url Request target URL.
+ */
 void CurlHttpClient::apply_proxy(CURL *curl, const std::string &url) {
   const std::string *proxy = nullptr;
   if (url.rfind("https://", 0) == 0) {
@@ -256,6 +325,9 @@ void CurlHttpClient::apply_proxy(CURL *curl, const std::string &url) {
   }
 }
 
+/**
+ * Perform a GET request capturing both body and headers.
+ */
 HttpResponse
 CurlHttpClient::get_with_headers(const std::string &url,
                                  const std::vector<std::string> &headers) {
@@ -320,11 +392,17 @@ CurlHttpClient::get_with_headers(const std::string &url,
   return {response, resp_headers, http_code};
 }
 
+/**
+ * Issue a GET request returning only the response body.
+ */
 std::string CurlHttpClient::get(const std::string &url,
                                 const std::vector<std::string> &headers) {
   return get_with_headers(url, headers).body;
 }
 
+/**
+ * Issue a PUT request with the provided payload.
+ */
 std::string CurlHttpClient::put(const std::string &url, const std::string &data,
                                 const std::vector<std::string> &headers) {
   CURL *curl = curl_.get();
@@ -383,6 +461,9 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   return response;
 }
 
+/**
+ * Issue a DELETE request.
+ */
 std::string CurlHttpClient::del(const std::string &url,
                                 const std::vector<std::string> &headers) {
   CURL *curl = curl_.get();
@@ -441,38 +522,52 @@ std::string CurlHttpClient::del(const std::string &url,
 }
 
 namespace {
-// HTTP client wrapper that retries requests with exponential backoff on
-// transient failures. Uses the wrapped `HttpClient` to perform actual
-// requests.
+/**
+ * HTTP client wrapper that retries requests with exponential backoff.
+ */
 class RetryHttpClient : public agpm::HttpClient {
 public:
+  /**
+   * Construct a retrying HTTP client.
+   *
+   * @param inner Underlying client performing real requests.
+   * @param max_retries Maximum retries for transient failures.
+   * @param backoff_ms Base delay in milliseconds for exponential backoff.
+   */
   RetryHttpClient(std::unique_ptr<agpm::HttpClient> inner, int max_retries,
                   int backoff_ms)
       : inner_(std::move(inner)), max_retries_(max_retries),
         backoff_ms_(backoff_ms) {}
 
+  /// @copydoc HttpClient::get()
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override {
     return request([&] { return inner_->get(url, headers); });
   }
 
+  /// @copydoc HttpClient::get_with_headers()
   HttpResponse
   get_with_headers(const std::string &url,
                    const std::vector<std::string> &headers) override {
     return request([&] { return inner_->get_with_headers(url, headers); });
   }
 
+  /// @copydoc HttpClient::put()
   std::string put(const std::string &url, const std::string &data,
                   const std::vector<std::string> &headers) override {
     return request([&] { return inner_->put(url, data, headers); });
   }
 
+  /// @copydoc HttpClient::del()
   std::string del(const std::string &url,
                   const std::vector<std::string> &headers) override {
     return request([&] { return inner_->del(url, headers); });
   }
 
 private:
+  /**
+   * Execute a request with retry handling.
+   */
   template <typename F> auto request(F f) -> decltype(f()) {
     int attempt = 0;
     while (true) {
@@ -489,6 +584,9 @@ private:
     }
   }
 
+  /**
+   * Determine whether an exception likely represents a transient failure.
+   */
   bool is_transient(const std::exception &e) const {
     std::string msg = e.what();
     auto pos = msg.find("HTTP code ");
@@ -505,6 +603,9 @@ private:
 };
 } // namespace
 
+/**
+ * Create a GitHub REST API client with optional caching and filtering.
+ */
 GitHubClient::GitHubClient(std::vector<std::string> tokens,
                            std::unique_ptr<HttpClient> http,
                            std::unordered_set<std::string> include_repos,
@@ -525,8 +626,14 @@ GitHubClient::GitHubClient(std::vector<std::string> tokens,
   load_cache();
 }
 
+/**
+ * Persist any cached responses when the client is destroyed.
+ */
 GitHubClient::~GitHubClient() { save_cache(); }
 
+/**
+ * Perform a GET request leveraging an on-disk cache keyed by URL.
+ */
 HttpResponse
 GitHubClient::get_with_cache(const std::string &url,
                              const std::vector<std::string> &headers) {
@@ -553,6 +660,9 @@ GitHubClient::get_with_cache(const std::string &url,
   return res;
 }
 
+/**
+ * Load cached HTTP responses from disk.
+ */
 void GitHubClient::load_cache() {
   if (cache_file_.empty())
     return;
@@ -573,6 +683,9 @@ void GitHubClient::load_cache() {
   }
 }
 
+/**
+ * Serialize cached HTTP responses to disk.
+ */
 void GitHubClient::save_cache() {
   if (cache_file_.empty())
     return;
@@ -585,8 +698,14 @@ void GitHubClient::save_cache() {
     out << j.dump();
 }
 
+/**
+ * Update the minimum delay enforced between HTTP requests.
+ */
 void GitHubClient::set_delay_ms(int delay_ms) { delay_ms_ = delay_ms; }
 
+/**
+ * Determine if a repository passes include/exclude filters.
+ */
 bool GitHubClient::repo_allowed(const std::string &owner,
                                 const std::string &repo) const {
   std::string full = owner + "/" + repo;
@@ -599,6 +718,9 @@ bool GitHubClient::repo_allowed(const std::string &owner,
   return true;
 }
 
+/**
+ * Retrieve repositories accessible to the authenticated tokens.
+ */
 std::vector<std::pair<std::string, std::string>>
 GitHubClient::list_repositories() {
   std::vector<std::pair<std::string, std::string>> repos;
@@ -666,6 +788,9 @@ GitHubClient::list_repositories() {
   return repos;
 }
 
+/**
+ * Retrieve pull requests for a repository, honouring filters and pagination.
+ */
 std::vector<PullRequest>
 GitHubClient::list_pull_requests(const std::string &owner,
                                  const std::string &repo, bool include_merged,
@@ -787,6 +912,9 @@ GitHubClient::list_pull_requests(const std::string &owner,
   return prs;
 }
 
+/**
+ * Fetch a single page of open pull requests for quick diagnostics.
+ */
 std::vector<PullRequest>
 GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
                                              int per_page) {
@@ -838,6 +966,9 @@ GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
   return prs;
 }
 
+/**
+ * Attempt to merge a pull request, respecting repository filters.
+ */
 bool GitHubClient::merge_pull_request(const std::string &owner,
                                       const std::string &repo, int pr_number) {
   if (!repo_allowed(owner, repo)) {
@@ -902,6 +1033,9 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   }
 }
 
+/**
+ * Enumerate non-default branches for the specified repository.
+ */
 std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
                                                      const std::string &repo) {
   std::vector<std::string> branches;
@@ -986,6 +1120,9 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
   return branches;
 }
 
+/**
+ * Fetch a single page of branch names for diagnostics.
+ */
 std::vector<std::string>
 GitHubClient::list_branches_single(const std::string &owner_repo,
                                    int per_page) {
@@ -1029,9 +1166,9 @@ GitHubClient::list_branches_single(const std::string &owner_repo,
   return branches;
 }
 
-// Remove merged branches with the specified prefix. The implementation pages
-// through closed pull requests and deletes the associated head branch when the
-// name matches `prefix` and is not protected by user-specified patterns.
+/**
+ * Remove merged branches with the specified prefix while honoring protections.
+ */
 void GitHubClient::cleanup_branches(
     const std::string &owner, const std::string &repo,
     const std::string &prefix,
@@ -1144,9 +1281,9 @@ void GitHubClient::cleanup_branches(
   }
 }
 
-// Detect branches that have drifted from the default branch and remove or
-// close them if they are not protected. This prevents accumulation of stale
-// development branches.
+/**
+ * Detect branches that have drifted from the default branch and prune them.
+ */
 void GitHubClient::close_dirty_branches(
     const std::string &owner, const std::string &repo,
     const std::vector<std::string> &protected_branches,
@@ -1288,6 +1425,9 @@ void GitHubClient::close_dirty_branches(
   }
 }
 
+/**
+ * Inspect response headers for rate limit signals and pause if necessary.
+ */
 bool GitHubClient::handle_rate_limit(const HttpResponse &resp) {
   long remaining = -1;
   long reset = 0;
@@ -1330,6 +1470,9 @@ bool GitHubClient::handle_rate_limit(const HttpResponse &resp) {
   return false;
 }
 
+/**
+ * Ensure the minimum delay between successive HTTP requests is respected.
+ */
 void GitHubClient::enforce_delay() {
   if (delay_ms_ <= 0)
     return;

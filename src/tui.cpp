@@ -27,6 +27,9 @@ struct ParsedBinding {
   std::string label;
 };
 
+/**
+ * Return a trimmed copy of the input string.
+ */
 std::string trim_copy(const std::string &s) {
   auto begin = std::find_if_not(s.begin(), s.end(), [](unsigned char ch) {
     return static_cast<bool>(std::isspace(ch));
@@ -40,6 +43,9 @@ std::string trim_copy(const std::string &s) {
   return std::string(begin, end);
 }
 
+/**
+ * Produce a lowercase copy of the string.
+ */
 std::string to_lower_copy(const std::string &s) {
   std::string result;
   result.reserve(s.size());
@@ -50,6 +56,9 @@ std::string to_lower_copy(const std::string &s) {
   return result;
 }
 
+/**
+ * Split a binding list specification into individual tokens.
+ */
 std::vector<std::string> split_binding_list(const std::string &spec) {
   std::vector<std::string> parts;
   std::string current;
@@ -71,6 +80,9 @@ std::vector<std::string> split_binding_list(const std::string &spec) {
   return parts;
 }
 
+/**
+ * Parse a textual binding specification into key codes and labels.
+ */
 std::vector<ParsedBinding> parse_binding_spec(const std::string &spec) {
   std::vector<ParsedBinding> result;
   if (spec.empty()) {
@@ -132,6 +144,9 @@ std::vector<ParsedBinding> parse_binding_spec(const std::string &spec) {
   return result;
 }
 
+/**
+ * Retrieve human-readable descriptions for hotkey actions.
+ */
 const std::unordered_map<std::string, std::string> &action_descriptions() {
   static const std::unordered_map<std::string, std::string> descriptions{
       {"refresh", "Refresh"},
@@ -144,6 +159,9 @@ const std::unordered_map<std::string, std::string> &action_descriptions() {
   return descriptions;
 }
 
+/**
+ * Retrieve the set of valid action identifiers.
+ */
 const std::unordered_set<std::string> &valid_actions() {
   static const std::unordered_set<std::string> actions{
       "refresh",      "merge",        "open",        "details",
@@ -151,6 +169,9 @@ const std::unordered_set<std::string> &valid_actions() {
   return actions;
 }
 
+/**
+ * Normalize action names to canonical identifiers.
+ */
 std::string canonicalize_action(const std::string &action) {
   std::string lower = to_lower_copy(action);
   if (lower == "open_pr" || lower == "open-pr" || lower == "openpr") {
@@ -173,6 +194,9 @@ std::string canonicalize_action(const std::string &action) {
 
 namespace agpm {
 
+/**
+ * Construct the text UI and configure default hotkeys.
+ */
 Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit)
     : client_(client), poller_(poller), log_limit_(log_limit) {
   ensure_default_logger();
@@ -189,6 +213,9 @@ Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit)
   };
 }
 
+/**
+ * Populate the default set of hotkey bindings.
+ */
 void Tui::initialize_default_hotkeys() {
   hotkey_help_order_ = {"refresh",      "merge",        "open",
                         "details",      "quit",         "navigate_up",
@@ -229,6 +256,9 @@ void Tui::initialize_default_hotkeys() {
 #endif
 }
 
+/**
+ * Remove all bindings currently assigned to an action.
+ */
 void Tui::clear_action_bindings(const std::string &action) {
   auto it = action_bindings_.find(action);
   if (it == action_bindings_.end()) {
@@ -244,6 +274,9 @@ void Tui::clear_action_bindings(const std::string &action) {
   it->second.clear();
 }
 
+/**
+ * Replace the bindings associated with an action.
+ */
 void Tui::set_bindings_for_action(
     const std::string &action, const std::vector<HotkeyBinding> &bindings) {
   clear_action_bindings(action);
@@ -265,6 +298,9 @@ void Tui::set_bindings_for_action(
   }
 }
 
+/**
+ * Apply user-provided hotkey configuration overrides.
+ */
 void Tui::configure_hotkeys(
     const std::unordered_map<std::string, std::string> &bindings) {
   for (const auto &entry : bindings) {
@@ -314,6 +350,9 @@ void Tui::configure_hotkeys(
   }
 }
 
+/**
+ * Destructor ensures curses resources are released.
+ */
 Tui::~Tui() {
   // Ensure curses resources are released if init() succeeded
   try {
@@ -323,6 +362,9 @@ Tui::~Tui() {
   }
 }
 
+/**
+ * Initialize the curses environment and install callbacks.
+ */
 void Tui::init() {
   // Ensure all standard streams are attached to a real terminal. macOS
   // builds in CI environments may have one or more redirected which can
@@ -357,6 +399,9 @@ void Tui::init() {
   initialized_ = true;
 }
 
+/**
+ * Update the set of pull requests displayed by the UI.
+ */
 void Tui::update_prs(const std::vector<PullRequest> &prs) {
   prs_ = prs;
   if (selected_ >= static_cast<int>(prs_.size())) {
@@ -364,6 +409,9 @@ void Tui::update_prs(const std::vector<PullRequest> &prs) {
   }
 }
 
+/**
+ * Append a message to the in-memory log buffer.
+ */
 void Tui::log(const std::string &msg) {
   logs_.push_back(msg);
   if (logs_.size() > log_limit_) {
@@ -371,6 +419,9 @@ void Tui::log(const std::string &msg) {
   }
 }
 
+/**
+ * Redraw the entire user interface based on current state.
+ */
 void Tui::draw() {
   if (!initialized_)
     return;
@@ -491,6 +542,9 @@ void Tui::draw() {
   }
 }
 
+/**
+ * Process a single key press event.
+ */
 void Tui::handle_key(int ch) {
   if (!initialized_)
     return;
@@ -552,6 +606,9 @@ void Tui::handle_key(int ch) {
   }
 }
 
+/**
+ * Enter the main UI loop, processing input until exit.
+ */
 void Tui::run() {
   if (!initialized_)
     return;
@@ -563,6 +620,9 @@ void Tui::run() {
   }
 }
 
+/**
+ * Restore terminal state after the UI terminates.
+ */
 void Tui::cleanup() {
   if (!initialized_)
     return;

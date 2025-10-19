@@ -5,6 +5,9 @@
 
 namespace agpm {
 
+/**
+ * Construct a worker pool with optional rate limiting.
+ */
 Poller::Poller(int workers, int max_rate)
     : workers_(std::max(1, workers)), max_rate_(max_rate) {
   if (max_rate_ > 0) {
@@ -20,8 +23,14 @@ Poller::Poller(int workers, int max_rate)
   next_allowed_ = std::chrono::steady_clock::now();
 }
 
+/**
+ * Stop the worker pool on destruction.
+ */
 Poller::~Poller() { stop(); }
 
+/**
+ * Start worker threads if not already running.
+ */
 void Poller::start() {
   if (running_)
     return;
@@ -33,6 +42,9 @@ void Poller::start() {
   }
 }
 
+/**
+ * Stop worker threads and clear pending jobs.
+ */
 void Poller::stop() {
   if (!running_)
     return;
@@ -48,6 +60,9 @@ void Poller::stop() {
   threads_.clear();
 }
 
+/**
+ * Submit a job to the worker queue.
+ */
 std::future<void> Poller::submit(std::function<void()> job) {
   if (!running_) {
     std::packaged_task<void()> pt(std::move(job));
@@ -65,6 +80,9 @@ std::future<void> Poller::submit(std::function<void()> job) {
   return fut;
 }
 
+/**
+ * Enforce the configured rate limit before executing a job.
+ */
 bool Poller::acquire_token() {
   if (max_rate_ <= 0)
     return running_;
@@ -86,6 +104,9 @@ bool Poller::acquire_token() {
   return false;
 }
 
+/**
+ * Worker thread loop processing queued jobs.
+ */
 void Poller::worker() {
   while (true) {
     std::function<void()> job;

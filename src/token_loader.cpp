@@ -11,6 +11,9 @@
 
 namespace agpm {
 
+/**
+ * Load personal access tokens from a supported configuration file.
+ */
 std::vector<std::string> load_tokens_from_file(const std::string &path) {
   auto pos = path.find_last_of('.');
   if (pos == std::string::npos) {

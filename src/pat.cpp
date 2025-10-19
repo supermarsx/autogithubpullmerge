@@ -30,6 +30,9 @@ extern char **environ;
 
 namespace agpm {
 
+/**
+ * Check whether an environment flag is enabled.
+ */
 static bool env_flag_enabled(const char *name) {
   if (const char *v = std::getenv(name)) {
     return (*v != '\0' && *v != '0');
@@ -38,7 +41,9 @@ static bool env_flag_enabled(const char *name) {
 }
 
 #if defined(__APPLE__)
-// 1) First try LaunchServices (no shell, no zsh involved at all)
+/**
+ * Try opening a URL via LaunchServices without invoking a shell.
+ */
 static bool ls_open_url(const std::string &url) {
   CFStringRef cfstr = CFStringCreateWithCString(kCFAllocatorDefault, url.c_str(), kCFStringEncodingUTF8);
   if (!cfstr) {
@@ -60,7 +65,9 @@ static bool ls_open_url(const std::string &url) {
   return true;
 }
 
-// 2) If that fails, spawn /usr/bin/open directly (still no shell)
+/**
+ * Spawn a detached process using posix_spawn.
+ */
 static bool spawn_detached(const std::vector<std::string> &argv) {
   std::vector<char*> cargv;
   cargv.reserve(argv.size() + 1);
@@ -76,6 +83,9 @@ static bool spawn_detached(const std::vector<std::string> &argv) {
   return true; // don't wait; let launchd/OS handle it
 }
 
+/**
+ * Attempt to open the URL using the BROWSER environment variable.
+ */
 static bool try_open_with_browser_env(const std::string &url) {
   if (const char *br = std::getenv("BROWSER")) {
     std::string browser = br;
@@ -87,6 +97,9 @@ static bool try_open_with_browser_env(const std::string &url) {
   return false;
 }
 
+/**
+ * Try a series of macOS commands to open the URL directly.
+ */
 static bool try_open_cmds(const std::string &url) {
   // Prefer absolute path first to avoid PATH surprises.
   if (spawn_detached({"/usr/bin/open", url})) return true;
@@ -96,6 +109,9 @@ static bool try_open_cmds(const std::string &url) {
 }
 #endif
 
+/**
+ * Launch the GitHub personal access token creation page in a browser.
+ */
 bool open_pat_creation_page() {
   const std::string url = "https://github.com/settings/tokens/new";
 
@@ -132,6 +148,9 @@ bool open_pat_creation_page() {
 }
 
 
+/**
+ * Persist a personal access token to disk with restrictive permissions.
+ */
 bool save_pat_to_file(const std::string &path_str, const std::string &pat) {
   namespace fs = std::filesystem;
   fs::path path(path_str);

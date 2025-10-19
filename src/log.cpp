@@ -17,6 +17,9 @@ std::weak_ptr<spdlog::logger> g_logger;
 
 namespace fs = std::filesystem;
 
+/**
+ * Compute the filesystem path for a rotated log file.
+ */
 fs::path calc_rotated_path(const std::string &base, std::size_t index) {
   fs::path base_path(base);
   fs::path parent = base_path.parent_path();
@@ -35,6 +38,9 @@ fs::path calc_rotated_path(const std::string &base, std::size_t index) {
   return parent.empty() ? fs::path(rotated) : parent / rotated;
 }
 
+/**
+ * Rotate compressed log files up to the configured maximum.
+ */
 void rotate_compressed_logs(const std::string &base, std::size_t max_files) {
   if (max_files == 0) {
     return;
@@ -55,6 +61,9 @@ void rotate_compressed_logs(const std::string &base, std::size_t max_files) {
   }
 }
 
+/**
+ * Compress a rotated log file into gzip format.
+ */
 bool compress_rotated_file(const std::string &path) {
   std::ifstream input(path, std::ios::binary);
   if (!input) {
@@ -98,6 +107,9 @@ bool compress_rotated_file(const std::string &path) {
 
 namespace agpm {
 
+/**
+ * Initialize the global spdlog logger with optional file rotation.
+ */
 void init_logger(spdlog::level::level_enum level, const std::string &pattern,
                  const std::string &file, std::size_t rotate_files,
                  bool compress_rotations) {
@@ -136,6 +148,9 @@ void init_logger(spdlog::level::level_enum level, const std::string &pattern,
   }
 }
 
+/**
+ * Ensure that the default logger exists before logging.
+ */
 void ensure_default_logger() {
   auto logger = spdlog::default_logger();
   auto locked = g_logger.lock();

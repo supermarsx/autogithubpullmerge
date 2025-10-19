@@ -20,6 +20,15 @@ namespace agpm {
 
 namespace {
 
+/**
+ * Convert a YAML node into a structurally equivalent JSON object.
+ *
+ * The conversion preserves scalar types where possible and recursively maps
+ * sequences and maps to JSON arrays and objects respectively.
+ *
+ * @param node YAML node to transform.
+ * @return JSON value mirroring the YAML content.
+ */
 nlohmann::json yaml_to_json(const YAML::Node &node) {
   using nlohmann::json;
   switch (node.Type()) {
@@ -67,6 +76,12 @@ nlohmann::json yaml_to_json(const YAML::Node &node) {
   }
 }
 
+/**
+ * Translate a TOML node to a JSON representation.
+ *
+ * @param node TOML node read from a parsed document.
+ * @return JSON value containing the equivalent data.
+ */
 nlohmann::json toml_to_json(const toml::node &node) {
   using nlohmann::json;
   if (const auto *table = node.as_table()) {
@@ -113,6 +128,11 @@ nlohmann::json toml_to_json(const toml::node &node) {
 
 } // namespace
 
+/**
+ * Populate configuration settings from a JSON object.
+ *
+ * @param j JSON document holding configuration keys.
+ */
 void Config::load_json(const nlohmann::json &j) {
   if (j.contains("verbose")) {
     set_verbose(j["verbose"].get<bool>());
@@ -378,12 +398,27 @@ void Config::load_json(const nlohmann::json &j) {
   }
 }
 
+/**
+ * Construct a configuration object from a JSON representation.
+ *
+ * @param j JSON document with configuration values.
+ * @return Populated configuration instance.
+ */
 Config Config::from_json(const nlohmann::json &j) {
   Config cfg;
   cfg.load_json(j);
   return cfg;
 }
 
+/**
+ * Load configuration from a file on disk.
+ *
+ * The file type is inferred from the extension and may be YAML, JSON, or
+ * TOML. Errors during parsing are logged and rethrown.
+ *
+ * @param path Filesystem location of the configuration file.
+ * @return Fully populated configuration object.
+ */
 Config Config::from_file(const std::string &path) {
   ensure_default_logger();
   spdlog::debug("Loading config from {}", path);

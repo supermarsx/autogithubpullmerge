@@ -44,11 +44,23 @@ struct DemoBranch {
   std::string note;
 };
 
+/**
+ * Render the header banner for the demo UI.
+ *
+ * @param width Current terminal width in characters.
+ */
 void draw_header(int width) {
   mvhline(0, 0, ' ', width);
   mvprintw(0, 2, "autogithubpullmerge :: Demo Mode");
 }
 
+/**
+ * Draw the footer showing controls and current focus information.
+ *
+ * @param height Terminal height in rows.
+ * @param width Terminal width in columns.
+ * @param focus_prs True when the PR list has focus.
+ */
 void draw_footer(int height, int width, bool focus_prs) {
   mvhline(height - 2, 0, ' ', width);
   mvprintw(height - 2, 2,
@@ -57,6 +69,16 @@ void draw_footer(int height, int width, bool focus_prs) {
   mvprintw(height - 1, 2, "Focused: %s", focus_prs ? "Pull Requests" : "Branches");
 }
 
+/**
+ * Display the mock pull request list.
+ *
+ * @param prs Collection of demo pull requests.
+ * @param selected Index of the currently selected entry.
+ * @param start_row Top row where the list should begin.
+ * @param rows Number of rows available for the list content.
+ * @param width Current terminal width in columns.
+ * @param focused Indicates whether the list currently has keyboard focus.
+ */
 void draw_pull_requests(const std::vector<DemoPullRequest> &prs, int selected,
                         int start_row, int rows, int width, bool focused) {
   mvhline(start_row, 0, ' ', width);
@@ -85,6 +107,16 @@ void draw_pull_requests(const std::vector<DemoPullRequest> &prs, int selected,
   }
 }
 
+/**
+ * Display the mock branch list.
+ *
+ * @param branches Collection of demo branches.
+ * @param selected Index of the currently selected entry.
+ * @param start_row Top row where the list should begin.
+ * @param rows Number of rows available for rendering.
+ * @param width Terminal width in columns.
+ * @param focused Indicates whether the branch pane has focus.
+ */
 void draw_branches(const std::vector<DemoBranch> &branches, int selected,
                    int start_row, int rows, int width, bool focused) {
   mvhline(start_row, 0, ' ', width);
@@ -114,6 +146,11 @@ void draw_branches(const std::vector<DemoBranch> &branches, int selected,
 
 } // namespace
 
+/**
+ * Launch the interactive curses-based demo user interface.
+ *
+ * @return Zero on successful execution, non-zero on failure.
+ */
 int run_demo_tui() {
   if (!isatty(fileno(stdout)) || !isatty(fileno(stdin)) || !isatty(fileno(stderr))) {
     spdlog::error("Demo TUI requires an interactive terminal");

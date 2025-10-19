@@ -14,6 +14,9 @@
 #include <utility>
 #include <vector>
 
+/**
+ * Program entry point orchestrating configuration and UI startup.
+ */
 int main(int argc, char **argv) {
   agpm::App app;
   int ret = app.run(argc, argv);

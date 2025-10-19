@@ -6,6 +6,9 @@ namespace agpm {
 
 namespace {
 
+/**
+ * Quote a string for safe use in POSIX shells.
+ */
 [[maybe_unused]] std::string shell_escape(const std::string &s) {
   std::string out;
   out.reserve(s.size() + 2);
@@ -21,6 +24,9 @@ namespace {
   return out;
 }
 
+/**
+ * Escape characters for use inside AppleScript quoted strings.
+ */
 [[maybe_unused]] std::string escape_apple_script(const std::string &s) {
   std::string out;
   out.reserve(s.size());
@@ -33,6 +39,9 @@ namespace {
   return out;
 }
 
+/**
+ * Escape characters for use inside PowerShell single-quoted strings.
+ */
 [[maybe_unused]] std::string escape_powershell(const std::string &s) {
   std::string out;
   out.reserve(s.size());
@@ -48,9 +57,15 @@ namespace {
 
 } // namespace
 
+/**
+ * Construct a notifier using the provided command runner.
+ */
 NotifySendNotifier::NotifySendNotifier(CommandRunner runner)
     : run_(std::move(runner)) {}
 
+/**
+ * Dispatch a desktop notification using platform-specific utilities.
+ */
 void NotifySendNotifier::notify(const std::string &message) {
 #ifdef _WIN32
   std::string cmd =

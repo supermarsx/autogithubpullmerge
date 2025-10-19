@@ -5,6 +5,9 @@
 
 namespace agpm {
 
+/**
+ * Parse a human-readable duration string (e.g., "5m", "2h").
+ */
 std::chrono::seconds parse_duration(const std::string &str) {
   if (str.empty()) {
     return std::chrono::seconds{0};

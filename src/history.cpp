@@ -40,6 +40,9 @@ struct sqlite3;
 
 namespace agpm {
 
+/**
+ * Initialize the pull request history database connection.
+ */
 PullRequestHistory::PullRequestHistory(const std::string &db_path) {
   spdlog::debug("History: opening DB {}", db_path);
   if (sqlite3_open(db_path.c_str(), &db_) != SQLITE_OK) {
@@ -57,6 +60,9 @@ PullRequestHistory::PullRequestHistory(const std::string &db_path) {
   spdlog::debug("History: DB initialized");
 }
 
+/**
+ * Close the database connection on destruction.
+ */
 PullRequestHistory::~PullRequestHistory() {
   spdlog::debug("History: closing DB");
   if (db_) {
@@ -65,6 +71,9 @@ PullRequestHistory::~PullRequestHistory() {
   }
 }
 
+/**
+ * Record a pull request entry.
+ */
 void PullRequestHistory::insert(int number, const std::string &title,
                                 bool merged) {
   sqlite3_stmt *stmt = nullptr;
@@ -83,6 +92,9 @@ void PullRequestHistory::insert(int number, const std::string &title,
   sqlite3_finalize(stmt);
 }
 
+/**
+ * Mark a pull request as merged.
+ */
 void PullRequestHistory::update_merged(int number) {
   sqlite3_stmt *stmt = nullptr;
   const char *sql = "UPDATE pull_requests SET merged=1 WHERE number=?";
@@ -97,6 +109,9 @@ void PullRequestHistory::update_merged(int number) {
   sqlite3_finalize(stmt);
 }
 
+/**
+ * Export history entries to a CSV file.
+ */
 void PullRequestHistory::export_csv(const std::string &path) {
   spdlog::debug("History: export_csv -> {}", path);
   std::ofstream out(path);
@@ -142,6 +157,9 @@ void PullRequestHistory::export_csv(const std::string &path) {
   spdlog::debug("History: export_csv done");
 }
 
+/**
+ * Export history entries to a JSON file.
+ */
 void PullRequestHistory::export_json(const std::string &path) {
   spdlog::debug("History: export_json -> {}", path);
   nlohmann::json j = nlohmann::json::array();

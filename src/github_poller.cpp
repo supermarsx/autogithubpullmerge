@@ -10,6 +10,9 @@
 
 namespace agpm {
 
+/**
+ * Construct a poller coordinating periodic GitHub synchronization tasks.
+ */
 GitHubPoller::GitHubPoller(
     GitHubClient &client,
     std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
@@ -43,6 +46,9 @@ GitHubPoller::GitHubPoller(
   }
 }
 
+/**
+ * Launch the poller thread and begin scheduling work.
+ */
 void GitHubPoller::start() {
   spdlog::info("Starting GitHub poller");
   poller_.start();
@@ -55,6 +61,9 @@ void GitHubPoller::start() {
   });
 }
 
+/**
+ * Stop the poller thread and wait for outstanding work to finish.
+ */
 void GitHubPoller::stop() {
   spdlog::info("Stopping GitHub poller");
   running_ = false;
@@ -64,26 +73,44 @@ void GitHubPoller::stop() {
   poller_.stop();
 }
 
+/**
+ * Trigger an immediate poll on the calling thread.
+ */
 void GitHubPoller::poll_now() { poll(); }
 
+/**
+ * Register a callback invoked with the latest pull request snapshot.
+ */
 void GitHubPoller::set_pr_callback(
     std::function<void(const std::vector<PullRequest> &)> cb) {
   pr_cb_ = std::move(cb);
 }
 
+/**
+ * Register a callback for textual log messages produced by the poller.
+ */
 void GitHubPoller::set_log_callback(
     std::function<void(const std::string &)> cb) {
   log_cb_ = std::move(cb);
 }
 
+/**
+ * Register a callback that performs export tasks after each poll.
+ */
 void GitHubPoller::set_export_callback(std::function<void()> cb) {
   export_cb_ = std::move(cb);
 }
 
+/**
+ * Attach a notifier used to broadcast poller events.
+ */
 void GitHubPoller::set_notifier(NotifierPtr notifier) {
   notifier_ = std::move(notifier);
 }
 
+/**
+ * Perform a full polling cycle across all configured repositories.
+ */
 void GitHubPoller::poll() {
   if (max_rate_ > 0 && max_rate_ <= 1) {
     auto now = std::chrono::steady_clock::now();

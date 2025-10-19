@@ -11,6 +11,18 @@
 
 namespace agpm {
 
+/**
+ * Execute the main application flow.
+ *
+ * This routine orchestrates CLI parsing, configuration loading, logger
+ * initialization, and optional destructive confirmation prompts. It also
+ * handles personal access token interactions.
+ *
+ * @param argc Argument count passed from @c main().
+ * @param argv Argument vector passed from @c main().
+ * @return Zero on success, non-zero if execution should terminate with an
+ *         error code.
+ */
 int App::run(int argc, char **argv) {
   should_exit_ = false;
   try {

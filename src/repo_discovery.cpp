@@ -18,6 +18,9 @@ namespace agpm {
 
 namespace {
 
+/**
+ * Produce a lowercase copy of the input string.
+ */
 std::string normalize(std::string value) {
   std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
     return static_cast<char>(std::tolower(c));
@@ -25,6 +28,9 @@ std::string normalize(std::string value) {
   return value;
 }
 
+/**
+ * Trim whitespace from both ends of a string.
+ */
 std::string trim(const std::string &s) {
   auto first = std::find_if_not(s.begin(), s.end(),
                                 [](unsigned char c) { return std::isspace(c); });
@@ -36,6 +42,9 @@ std::string trim(const std::string &s) {
   return last <= first ? std::string{} : std::string(first, last);
 }
 
+/**
+ * Extract an owner/repo pair from a GitHub URL.
+ */
 std::optional<std::pair<std::string, std::string>>
 parse_github_repo_from_url(const std::string &url_in) {
   std::string url = trim(url_in);
@@ -85,6 +94,9 @@ parse_github_repo_from_url(const std::string &url_in) {
   return std::make_pair(owner, repo);
 }
 
+/**
+ * Parse the remote origin from a git config file.
+ */
 std::optional<std::pair<std::string, std::string>>
 parse_origin_from_config(const std::filesystem::path &config_path) {
   std::ifstream config(config_path);
@@ -124,6 +136,9 @@ parse_origin_from_config(const std::filesystem::path &config_path) {
   return std::nullopt;
 }
 
+/**
+ * Add a repository to the results if it has not been seen before.
+ */
 void try_add_repo(const std::filesystem::path &config_path,
                   const std::filesystem::path &root,
                   std::unordered_set<std::string> &seen,
@@ -140,6 +155,9 @@ void try_add_repo(const std::filesystem::path &config_path,
   }
 }
 
+/**
+ * Examine a filesystem path to determine if it is a GitHub repository.
+ */
 void inspect_candidate(const std::filesystem::path &candidate,
                        std::unordered_set<std::string> &seen,
                        std::vector<std::pair<std::string, std::string>> &out) {
@@ -189,6 +207,9 @@ void inspect_candidate(const std::filesystem::path &candidate,
 
 } // namespace
 
+/**
+ * Convert a repository discovery mode to its string representation.
+ */
 std::string to_string(RepoDiscoveryMode mode) {
   switch (mode) {
   case RepoDiscoveryMode::Disabled:
@@ -201,6 +222,9 @@ std::string to_string(RepoDiscoveryMode mode) {
   return "disabled";
 }
 
+/**
+ * Parse a repository discovery mode from a string.
+ */
 RepoDiscoveryMode repo_discovery_mode_from_string(const std::string &value) {
   static const std::unordered_map<std::string, RepoDiscoveryMode> lookup = {
       {"disabled", RepoDiscoveryMode::Disabled},
@@ -224,18 +248,30 @@ RepoDiscoveryMode repo_discovery_mode_from_string(const std::string &value) {
   return it->second;
 }
 
+/**
+ * Determine whether discovery is enabled for the given mode.
+ */
 bool repo_discovery_enabled(RepoDiscoveryMode mode) {
   return mode != RepoDiscoveryMode::Disabled;
 }
 
+/**
+ * Check if token-based discovery is required for the mode.
+ */
 bool repo_discovery_uses_tokens(RepoDiscoveryMode mode) {
   return mode == RepoDiscoveryMode::All;
 }
 
+/**
+ * Check if filesystem scanning is required for the mode.
+ */
 bool repo_discovery_uses_filesystem(RepoDiscoveryMode mode) {
   return mode == RepoDiscoveryMode::Filesystem;
 }
 
+/**
+ * Discover repositories by scanning filesystem roots for git metadata.
+ */
 std::vector<std::pair<std::string, std::string>>
 discover_repositories_from_filesystem(const std::vector<std::string> &roots) {
   std::vector<std::pair<std::string, std::string>> repos;
