@@ -55,12 +55,15 @@ TEST_CASE("test cli", "[cli]") {
   REQUIRE(opts_log_compress.log_compress);
   REQUIRE(opts_log_compress.log_compress_explicit);
 
-  char no_log_compress_flag[] = "--no-log-compress";
-  char *argv_no_log_compress[] = {prog, no_log_compress_flag};
-  agpm::CliOptions opts_no_log_compress =
-      agpm::parse_cli(2, argv_no_log_compress);
-  REQUIRE_FALSE(opts_no_log_compress.log_compress);
-  REQUIRE(opts_no_log_compress.log_compress_explicit);
+  char log_category_flag[] = "--log-category";
+  char category_name[] = "history=trace";
+  char category_name2[] = "http";
+  char *argv_log_category[] = {prog, log_category_flag, category_name,
+                               log_category_flag, category_name2};
+  agpm::CliOptions opts_log_category = agpm::parse_cli(5, argv_log_category);
+  REQUIRE(opts_log_category.log_categories_explicit);
+  REQUIRE(opts_log_category.log_categories.at("history") == "trace");
+  REQUIRE(opts_log_category.log_categories.at("http") == "debug");
 
   char demo_flag[] = "--demo-tui";
   char *argv_demo[] = {prog, demo_flag};
@@ -146,7 +149,8 @@ TEST_CASE("test cli", "[cli]") {
   char repo_disc_mode_fs[] = "filesystem";
   char *argv_repo_fs[] = {prog, repo_disc_flag, repo_disc_mode_fs};
   agpm::CliOptions opts_repo_fs = agpm::parse_cli(3, argv_repo_fs);
-  REQUIRE(opts_repo_fs.repo_discovery_mode == agpm::RepoDiscoveryMode::Filesystem);
+  REQUIRE(opts_repo_fs.repo_discovery_mode ==
+          agpm::RepoDiscoveryMode::Filesystem);
 
   char repo_disc_bad[] = "invalid";
   char *argv_repo_bad[] = {prog, repo_disc_flag, repo_disc_bad};

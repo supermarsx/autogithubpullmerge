@@ -2,6 +2,10 @@ verbose: true
 poll_interval: 10
 max_request_rate: 20
 log_level: debug
+log_compress: true
+log_categories:
+  logging: trace
+  history: debug
 http_timeout: 60
 http_retries: 7
 download_limit: 11

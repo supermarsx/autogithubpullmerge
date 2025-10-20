@@ -57,7 +57,11 @@ The `--log-level` option controls verbosity. Valid levels include
 `--log-file` writes messages to a rotating log file in addition to stdout.
 Passing `--verbose` sets the logger to the `debug` level unless `--log-level`
 specifies another level. Configuration files may also define `log_level`,
-`log_pattern` and `log_file` values.
+`log_pattern`, `log_file`, `log_compress`, and `log_categories` values. Each
+entry in `log_categories` maps a category (for example `logging`, `history`, or
+`http`) to a log level. The CLI equivalent is the repeatable
+`--log-category NAME[=LEVEL]` flag, which defaults the level to `debug` when
+omitted.
 
 ## Notifications
 
@@ -273,7 +277,8 @@ Logging
 - `--log-file FILE` Path to the on-disk rotating log.
 - `--log-limit N` Max number of in-memory log messages shown in the TUI (default `200`).
 - `--log-rotate N` Number of rotated log files to retain (default `3`, `0` disables rotation).
-- `--log-compress` / `--no-log-compress` Enable or disable gzip compression for rotated log files (disabled by default).
+- `--log-compress` Enable gzip compression for rotated log files (disabled by default).
+- `--log-category NAME[=LEVEL]` Enable a specific logging category and optionally set its level (defaults to `debug`). Repeat to enable multiple categories.
 
 Repositories
 - `--include REPO` Repository to include (repeatable). Format `OWNER/REPO`.

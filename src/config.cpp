@@ -193,6 +193,50 @@ void Config::load_json(const nlohmann::json &j) {
   if (j.contains("log_compress")) {
     set_log_compress(j["log_compress"].get<bool>());
   }
+  if (j.contains("log_categories")) {
+    std::unordered_map<std::string, std::string> categories;
+    const auto &value = j["log_categories"];
+    auto assign_category = [&categories](std::string name, std::string level) {
+      if (name.empty()) {
+        return;
+      }
+      if (level.empty()) {
+        level = "debug";
+      }
+      categories[std::move(name)] = std::move(level);
+    };
+    if (value.is_object()) {
+      for (const auto &[key, v] : value.items()) {
+        if (v.is_string()) {
+          assign_category(key, v.get<std::string>());
+        } else if (v.is_null()) {
+          assign_category(key, "debug");
+        } else {
+          spdlog::warn("Unsupported value for log category '{}'; expected "
+                       "string or null",
+                       key);
+        }
+      }
+    } else if (value.is_array()) {
+      for (const auto &item : value) {
+        if (!item.is_string()) {
+          continue;
+        }
+        std::string raw = item.get<std::string>();
+        auto pos = raw.find('=');
+        assign_category(pos == std::string::npos ? raw : raw.substr(0, pos),
+                        pos == std::string::npos ? std::string{"debug"}
+                                                 : raw.substr(pos + 1));
+      }
+    } else if (value.is_string()) {
+      std::string raw = value.get<std::string>();
+      auto pos = raw.find('=');
+      assign_category(pos == std::string::npos ? raw : raw.substr(0, pos),
+                      pos == std::string::npos ? std::string{"debug"}
+                                               : raw.substr(pos + 1));
+    }
+    set_log_categories(std::move(categories));
+  }
   if (j.contains("include_repos")) {
     set_include_repos(j["include_repos"].get<std::vector<std::string>>());
   }
@@ -212,15 +256,16 @@ void Config::load_json(const nlohmann::json &j) {
   }
   if (j.contains("repo_discovery_mode")) {
     try {
-      set_repo_discovery_mode(
-          repo_discovery_mode_from_string(j["repo_discovery_mode"].get<std::string>()));
+      set_repo_discovery_mode(repo_discovery_mode_from_string(
+          j["repo_discovery_mode"].get<std::string>()));
     } catch (const std::exception &e) {
       spdlog::error("Invalid repo_discovery_mode: {}", e.what());
       throw;
     }
   }
   if (j.contains("repo_discovery_roots")) {
-    set_repo_discovery_roots(j["repo_discovery_roots"].get<std::vector<std::string>>());
+    set_repo_discovery_roots(
+        j["repo_discovery_roots"].get<std::vector<std::string>>());
   }
   if (j.contains("repo_discovery_root")) {
     add_repo_discovery_root(j["repo_discovery_root"].get<std::string>());
@@ -253,7 +298,8 @@ void Config::load_json(const nlohmann::json &j) {
     for (const auto &file : api_key_files()) {
       try {
         auto file_tokens = load_tokens_from_file(file);
-        api_keys_.insert(api_keys_.end(), file_tokens.begin(), file_tokens.end());
+        api_keys_.insert(api_keys_.end(), file_tokens.begin(),
+                         file_tokens.end());
       } catch (const std::exception &e) {
         spdlog::error("Failed to load token file {}: {}", file, e.what());
         throw;
@@ -291,8 +337,7 @@ void Config::load_json(const nlohmann::json &j) {
     set_auto_merge(j["auto_merge"].get<bool>());
   }
   if (j.contains("allow_delete_base_branch")) {
-    set_allow_delete_base_branch(
-        j["allow_delete_base_branch"].get<bool>());
+    set_allow_delete_base_branch(j["allow_delete_base_branch"].get<bool>());
   }
   // Merge rule settings
   if (j.contains("required_approvals")) {
@@ -434,8 +479,9 @@ Config Config::from_file(const std::string &path) {
   }
   std::string ext = path.substr(pos + 1);
   std::string ext_lower = ext;
-  std::transform(ext_lower.begin(), ext_lower.end(), ext_lower.begin(),
-                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  std::transform(
+      ext_lower.begin(), ext_lower.end(), ext_lower.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   spdlog::debug("Detected config file type: {}", ext_lower);
   nlohmann::json j;
   try {

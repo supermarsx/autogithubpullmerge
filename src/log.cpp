@@ -2,8 +2,10 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <system_error>
+#include <unordered_map>
 #include <vector>
 #include <zlib.h>
 
@@ -14,6 +16,7 @@
 
 namespace {
 std::weak_ptr<spdlog::logger> g_logger;
+std::mutex g_logger_mutex;
 
 namespace fs = std::filesystem;
 
@@ -52,6 +55,8 @@ void rotate_compressed_logs(const std::string &base, std::size_t max_files) {
   if (max_files == 0) {
     return;
   }
+  auto log = agpm::category_logger("logging");
+  log->debug("Rotating compressed logs for '{}' (max {})", base, max_files);
   std::error_code ec;
   fs::path drop = calc_rotated_path(base, max_files);
   fs::remove(drop.string() + ".gz", ec);
@@ -75,6 +80,8 @@ void rotate_compressed_logs(const std::string &base, std::size_t max_files) {
  * @return `true` if compression succeeded, otherwise `false`.
  */
 bool compress_rotated_file(const std::string &path) {
+  auto log = agpm::category_logger("logging");
+  log->debug("Compressing rotated log '{}'", path);
   std::ifstream input(path, std::ios::binary);
   if (!input) {
     spdlog::warn("Failed to open log file {} for compression", path);
@@ -95,7 +102,8 @@ bool compress_rotated_file(const std::string &path) {
       if (written == 0 || written != read) {
         int err = 0;
         const char *msg = gzerror(gz, &err);
-        spdlog::warn("Failed to compress log {}: {}", path, msg ? msg : "unknown");
+        spdlog::warn("Failed to compress log {}: {}", path,
+                     msg ? msg : "unknown");
         gzclose(gz);
         std::error_code ec;
         fs::remove(fs::path(compressed_path_str), ec);
@@ -111,9 +119,10 @@ bool compress_rotated_file(const std::string &path) {
     spdlog::warn("Failed to remove original log {} after compression: {}", path,
                  ec.message());
   }
+  log->info("Compressed rotated log '{}'", compressed_path_str);
   return true;
 }
-}
+} // namespace
 
 namespace agpm {
 
@@ -129,6 +138,7 @@ namespace agpm {
 void init_logger(spdlog::level::level_enum level, const std::string &pattern,
                  const std::string &file, std::size_t rotate_files,
                  bool compress_rotations) {
+  std::unique_lock<std::mutex> lock(g_logger_mutex);
   auto logger = spdlog::get("agpm");
   if (!logger) {
     std::vector<spdlog::sink_ptr> sinks;
@@ -137,7 +147,8 @@ void init_logger(spdlog::level::level_enum level, const std::string &pattern,
       if (rotate_files > 0) {
         spdlog::file_event_handlers handlers;
         if (compress_rotations) {
-          handlers.before_open = [rotate_files](const spdlog::filename_t &filename) {
+          handlers.before_open = [rotate_files](
+                                     const spdlog::filename_t &filename) {
             const auto base = spdlog::details::os::filename_to_str(filename);
             rotate_compressed_logs(base, rotate_files);
             fs::path newest = calc_rotated_path(base, 1);
@@ -158,10 +169,15 @@ void init_logger(spdlog::level::level_enum level, const std::string &pattern,
     spdlog::set_default_logger(logger);
     g_logger = logger;
   }
+  lock.unlock();
   logger->set_level(level);
   if (!pattern.empty()) {
     spdlog::set_pattern(pattern);
   }
+  logger->info(
+      "Logger initialised (level={}, file='{}', rotate={}, compress={})",
+      spdlog::level::to_string_view(level), file, rotate_files,
+      compress_rotations ? "true" : "false");
 }
 
 /**
@@ -174,7 +190,52 @@ void ensure_default_logger() {
   auto locked = g_logger.lock();
   if (!logger || !locked || logger.get() != locked.get()) {
     init_logger(spdlog::level::info);
+    category_logger("logging")->warn(
+        "Default logger missing; reinitialised with info level");
   }
+}
+
+std::shared_ptr<spdlog::logger> category_logger(const std::string &category) {
+  std::unique_lock<std::mutex> lock(g_logger_mutex);
+  auto logger = spdlog::get("agpm." + category);
+  if (logger) {
+    return logger;
+  }
+  auto default_logger = spdlog::default_logger();
+  if (!default_logger) {
+    lock.unlock();
+    init_logger(spdlog::level::info);
+    lock.lock();
+    default_logger = spdlog::default_logger();
+  }
+  std::vector<spdlog::sink_ptr> sinks;
+  if (default_logger) {
+    sinks = default_logger->sinks();
+  } else {
+    sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+  }
+  auto new_logger = std::make_shared<spdlog::logger>(
+      "agpm." + category, sinks.begin(), sinks.end());
+  auto level = default_logger ? default_logger->level() : spdlog::level::info;
+  new_logger->set_level(level);
+  spdlog::register_logger(new_logger);
+  return new_logger;
+}
+
+void configure_log_categories(
+    const std::unordered_map<std::string, spdlog::level::level_enum>
+        &overrides) {
+  if (overrides.empty()) {
+    return;
+  }
+  for (const auto &[category, level] : overrides) {
+    auto logger = category_logger(category);
+    logger->set_level(level);
+    logger->info("Category '{}' set to level {}", category,
+                 spdlog::level::to_string_view(level));
+  }
+  auto log = category_logger("logging");
+  log->info("Applied {} log category override(s)", overrides.size());
 }
 
 } // namespace agpm

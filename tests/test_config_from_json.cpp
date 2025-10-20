@@ -12,6 +12,7 @@ TEST_CASE("test config from json") {
   j["log_limit"] = 210;
   j["log_rotate"] = 6;
   j["log_compress"] = true;
+  j["log_categories"] = {{"history", "trace"}, {"http", "debug"}};
   j["include_repos"] = {"a", "b"};
   j["pr_since"] = "5m";
   j["http_timeout"] = 40;
@@ -34,12 +35,11 @@ TEST_CASE("test config from json") {
   j["pat_value"] = "cfg_pat_value";
   j["single_open_prs_repo"] = "cfg/open";
   j["single_branches_repo"] = "cfg/branches";
-  j["hotkeys"] = {
-      {"enabled", false},
-      {"bindings",
-       {{"refresh", nlohmann::json::array({"Ctrl+R", "r"})},
-        {"merge", nullptr},
-        {"details", "enter"}}}};
+  j["hotkeys"] = {{"enabled", false},
+                  {"bindings",
+                   {{"refresh", nlohmann::json::array({"Ctrl+R", "r"})},
+                    {"merge", nullptr},
+                    {"details", "enter"}}}};
 
   agpm::Config cfg = agpm::Config::from_json(j);
 
@@ -50,6 +50,8 @@ TEST_CASE("test config from json") {
   REQUIRE(cfg.log_limit() == 210);
   REQUIRE(cfg.log_rotate() == 6);
   REQUIRE(cfg.log_compress());
+  REQUIRE(cfg.log_categories().at("history") == "trace");
+  REQUIRE(cfg.log_categories().at("http") == "debug");
   REQUIRE(cfg.include_repos().size() == 2);
   REQUIRE(cfg.pr_since() == std::chrono::minutes(5));
   REQUIRE(cfg.http_timeout() == 40);

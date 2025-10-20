@@ -2,8 +2,10 @@
 #define AUTOGITHUBPULLMERGE_LOG_HPP
 
 #include <cstddef>
+#include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <unordered_map>
 
 namespace agpm {
 
@@ -21,10 +23,28 @@ namespace agpm {
  *        compressed automatically.
  */
 void init_logger(spdlog::level::level_enum level,
-                 const std::string &pattern = "",
-                 const std::string &file = "",
-                 std::size_t rotate_files = 3,
-                 bool compress_rotations = false);
+                 const std::string &pattern = "", const std::string &file = "",
+                 std::size_t rotate_files = 3, bool compress_rotations = false);
+
+/**
+ * Retrieve or create a logger dedicated to a specific category.
+ *
+ * Category loggers share sinks with the default logger so messages appear in
+ * the same destinations. They allow fine-grained log-level overrides.
+ *
+ * @param category Arbitrary category name used as the logger identifier.
+ * @return Shared pointer to the category logger.
+ */
+std::shared_ptr<spdlog::logger> category_logger(const std::string &category);
+
+/**
+ * Apply log level overrides for specific categories.
+ *
+ * @param overrides Mapping of category name to desired log level.
+ */
+void configure_log_categories(
+    const std::unordered_map<std::string, spdlog::level::level_enum>
+        &overrides);
 
 /**
  * Ensure a default logger exists before logging.

@@ -127,6 +127,21 @@ public:
   /// Enable or disable compression of rotated log files.
   void set_log_compress(bool enable) { log_compress_ = enable; }
 
+  /// Retrieve configured log category overrides.
+  const std::unordered_map<std::string, std::string> &log_categories() const {
+    return log_categories_;
+  }
+
+  /// Replace configured log category overrides.
+  void set_log_categories(std::unordered_map<std::string, std::string> values) {
+    log_categories_ = std::move(values);
+  }
+
+  /// Set or update a single log category override.
+  void set_log_category(const std::string &name, const std::string &level) {
+    log_categories_[name] = level;
+  }
+
   /// Repositories to include.
   const std::vector<std::string> &include_repos() const {
     return include_repos_;
@@ -174,9 +189,7 @@ public:
   void set_include_merged(bool include) { include_merged_ = include; }
 
   /// Repository discovery mode.
-  RepoDiscoveryMode repo_discovery_mode() const {
-    return repo_discovery_mode_;
-  }
+  RepoDiscoveryMode repo_discovery_mode() const { return repo_discovery_mode_; }
 
   /// Set repository discovery mode.
   void set_repo_discovery_mode(RepoDiscoveryMode mode) {
@@ -384,7 +397,8 @@ public:
   }
 
   /// Replace hotkey bindings.
-  void set_hotkey_bindings(std::unordered_map<std::string, std::string> values) {
+  void
+  set_hotkey_bindings(std::unordered_map<std::string, std::string> values) {
     hotkey_bindings_ = std::move(values);
   }
 
@@ -451,6 +465,7 @@ private:
   int log_limit_ = 200;
   int log_rotate_ = 3;
   bool log_compress_ = false;
+  std::unordered_map<std::string, std::string> log_categories_;
   std::vector<std::string> include_repos_;
   std::vector<std::string> exclude_repos_;
   std::vector<std::string> protected_branches_;

@@ -31,8 +31,9 @@ For example, `-C` maps to `--config` and `-1` toggles `--only-poll-prs`.
 - `--log-file` - write logs to a rotating file in addition to the console.
 - `--log-limit` - throttle in-memory log history (default `200`).
 - `--log-rotate N` - retain `N` rotated log files (default `3`, `0` disables rotation).
-- `--log-compress` / `--no-log-compress` - toggle gzip compression for rotated
-  log files (disabled by default).
+- `--log-compress` - enable gzip compression for rotated log files (disabled by default).
+- `--log-category NAME[=LEVEL]` - enable a logging category with an optional level override (defaults to `debug`). Repeat to
+  enable multiple categories.
 
 ### Repository Filters
 

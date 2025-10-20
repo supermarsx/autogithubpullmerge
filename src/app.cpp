@@ -6,8 +6,9 @@
 #include <cstdlib>
 #include <exception>
 #include <iostream>
-#include <string>
 #include <spdlog/spdlog.h>
+#include <string>
+#include <unordered_map>
 
 namespace agpm {
 
@@ -61,6 +62,11 @@ int App::run(int argc, char **argv) {
   }
   if (!options_.log_compress_explicit) {
     options_.log_compress = config_.log_compress();
+  }
+  if (!options_.log_categories_explicit) {
+    options_.log_categories = config_.log_categories();
+  } else {
+    config_.set_log_categories(options_.log_categories);
   }
   options_.reject_dirty = options_.reject_dirty || config_.reject_dirty();
   options_.delete_stray = options_.delete_stray || config_.delete_stray();
@@ -126,6 +132,16 @@ int App::run(int argc, char **argv) {
   init_logger(lvl, pattern, log_file,
               static_cast<std::size_t>(options_.log_rotate),
               options_.log_compress);
+  std::unordered_map<std::string, spdlog::level::level_enum> category_levels;
+  for (const auto &[category, level_str] : options_.log_categories) {
+    try {
+      category_levels[category] = spdlog::level::from_str(level_str);
+    } catch (const spdlog::spdlog_ex &) {
+      spdlog::warn("Ignoring invalid log level '{}' for category '{}'",
+                   level_str, category);
+    }
+  }
+  configure_log_categories(category_levels);
   if (options_.verbose) {
     spdlog::debug("Verbose mode enabled");
   }

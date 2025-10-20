@@ -14,6 +14,9 @@ TEST_CASE("test config") {
     f << "log_limit: 150\n";
     f << "log_rotate: 5\n";
     f << "log_compress: true\n";
+    f << "log_categories:\n";
+    f << "  history: trace\n";
+    f << "  http: debug\n";
     f << "include_repos:\n  - repoA\n  - repoB\n";
     f << "exclude_repos:\n  - repoC\n";
     f << "api_keys:\n  - a\n  - b\n";
@@ -64,6 +67,8 @@ TEST_CASE("test config") {
   REQUIRE(yaml_cfg.log_limit() == 150);
   REQUIRE(yaml_cfg.log_rotate() == 5);
   REQUIRE(yaml_cfg.log_compress());
+  REQUIRE(yaml_cfg.log_categories().at("history") == "trace");
+  REQUIRE(yaml_cfg.log_categories().at("http") == "debug");
   REQUIRE(yaml_cfg.include_repos().size() == 2);
   REQUIRE(yaml_cfg.include_repos()[0] == "repoA");
   REQUIRE(yaml_cfg.exclude_repos().size() == 1);
@@ -115,6 +120,7 @@ TEST_CASE("test config") {
     f << "\"log_limit\":175,";
     f << "\"log_rotate\":2,";
     f << "\"log_compress\":true,";
+    f << "\"log_categories\":{\"history\":\"trace\",\"http\":\"debug\"},";
     f << "\"include_repos\":[\"x\"],";
     f << "\"exclude_repos\":[\"y\",\"z\"],";
     f << "\"api_keys\":[\"k1\"],";
@@ -145,7 +151,7 @@ TEST_CASE("test config") {
     f << "\"single_open_prs_repo\":\"single/repo\",";
     f << "\"single_branches_repo\":\"single/repo\",";
     f << "\"hotkeys\":{\"enabled\":true,"
-          "\"bindings\":{\"open\":\"o\",\"quit\":[\"Ctrl+Q\",\"q\"]}}";
+         "\"bindings\":{\"open\":\"o\",\"quit\":[\"Ctrl+Q\",\"q\"]}}";
     f << "}";
     f.close();
   }
@@ -157,6 +163,8 @@ TEST_CASE("test config") {
   REQUIRE(json_cfg.log_limit() == 175);
   REQUIRE(json_cfg.log_rotate() == 2);
   REQUIRE(json_cfg.log_compress());
+  REQUIRE(json_cfg.log_categories().at("history") == "trace");
+  REQUIRE(json_cfg.log_categories().at("http") == "debug");
   REQUIRE(json_cfg.include_repos().size() == 1);
   REQUIRE(json_cfg.include_repos()[0] == "x");
   REQUIRE(json_cfg.exclude_repos().size() == 2);
@@ -203,6 +211,9 @@ TEST_CASE("test config") {
     f << "log_limit = 220\n";
     f << "log_rotate = 4\n";
     f << "log_compress = true\n";
+    f << "[log_categories]\n";
+    f << "history = \"trace\"\n";
+    f << "http = \"debug\"\n";
     f << "include_repos = [\"repoTomlA\", \"repoTomlB\"]\n";
     f << "exclude_repos = [\"repoTomlC\"]\n";
     f << "api_keys = [\"tok1\", \"tok2\"]\n";
@@ -230,6 +241,8 @@ TEST_CASE("test config") {
   REQUIRE(toml_cfg.log_limit() == 220);
   REQUIRE(toml_cfg.log_rotate() == 4);
   REQUIRE(toml_cfg.log_compress());
+  REQUIRE(toml_cfg.log_categories().at("history") == "trace");
+  REQUIRE(toml_cfg.log_categories().at("http") == "debug");
   REQUIRE(toml_cfg.include_repos().size() == 2);
   REQUIRE(toml_cfg.include_repos()[1] == "repoTomlB");
   REQUIRE(toml_cfg.exclude_repos().size() == 1);
@@ -274,7 +287,8 @@ TEST_CASE("test config") {
     cfg << R"({"repo_discovery_root":"/var/repos","repo_discovery_mode":"filesystem"})";
     cfg.close();
     agpm::Config cfg_root = agpm::Config::from_file("cfg_root.json");
-    REQUIRE(cfg_root.repo_discovery_mode() == agpm::RepoDiscoveryMode::Filesystem);
+    REQUIRE(cfg_root.repo_discovery_mode() ==
+            agpm::RepoDiscoveryMode::Filesystem);
     REQUIRE(cfg_root.repo_discovery_roots().size() == 1);
     REQUIRE(cfg_root.repo_discovery_roots()[0] == "/var/repos");
   }

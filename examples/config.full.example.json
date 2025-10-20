@@ -3,6 +3,11 @@
   "poll_interval": 5,
   "max_request_rate": 15,
   "log_level": "warn",
+  "log_compress": true,
+  "log_categories": {
+    "logging": "trace",
+    "history": "debug"
+  },
   "http_timeout": 50,
   "http_retries": 4,
   "download_limit": 21,

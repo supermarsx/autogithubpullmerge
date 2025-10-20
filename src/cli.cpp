@@ -140,7 +140,8 @@ static std::string get_env_var(const char *name) {
  * @param input Path provided by the user or discovered during scanning.
  * @return Canonical path when available, otherwise a lexically-normalized path.
  */
-static std::filesystem::path canonicalize_path(const std::filesystem::path &input) {
+static std::filesystem::path
+canonicalize_path(const std::filesystem::path &input) {
   if (input.empty()) {
     return {};
   }
@@ -162,13 +163,14 @@ static std::filesystem::path canonicalize_path(const std::filesystem::path &inpu
  *
  * @param exe_path Path to the running executable (argv[0]).
  * @param repo_roots Directories supplied via repository discovery options.
- * @param existing_files Canonical paths already provided explicitly by the user.
+ * @param existing_files Canonical paths already provided explicitly by the
+ * user.
  * @return Collection of unique token file paths.
  */
-static std::vector<std::filesystem::path> discover_token_files(
-    const std::filesystem::path &exe_path,
-    const std::vector<std::string> &repo_roots,
-    const std::unordered_set<std::string> &existing_files) {
+static std::vector<std::filesystem::path>
+discover_token_files(const std::filesystem::path &exe_path,
+                     const std::vector<std::string> &repo_roots,
+                     const std::unordered_set<std::string> &existing_files) {
   std::vector<std::filesystem::path> search_dirs;
   search_dirs.reserve(16);
   std::unordered_set<std::string> seen_dirs;
@@ -196,9 +198,8 @@ static std::vector<std::filesystem::path> discover_token_files(
 
   if (!exe_path.empty()) {
     auto exe_full = canonicalize_path(exe_path);
-    std::filesystem::path exe_dir = exe_full.has_parent_path()
-                                        ? exe_full.parent_path()
-                                        : exe_full;
+    std::filesystem::path exe_dir =
+        exe_full.has_parent_path() ? exe_full.parent_path() : exe_full;
     add_dir(exe_dir);
   }
 
@@ -285,8 +286,9 @@ static std::vector<std::filesystem::path> discover_token_files(
       auto ext = entry.path().extension().string();
       std::string ext_lower;
       ext_lower.reserve(ext.size());
-      std::transform(ext.begin(), ext.end(), std::back_inserter(ext_lower),
-                     [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+      std::transform(
+          ext.begin(), ext.end(), std::back_inserter(ext_lower),
+          [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
       if (ext_lower != ".json" && ext_lower != ".yaml" && ext_lower != ".yml" &&
           ext_lower != ".toml") {
         continue;
@@ -294,10 +296,9 @@ static std::vector<std::filesystem::path> discover_token_files(
       auto filename = entry.path().filename().string();
       std::string filename_lower;
       filename_lower.reserve(filename.size());
-      std::transform(filename.begin(), filename.end(),
-                     std::back_inserter(filename_lower), [](unsigned char c) {
-                       return static_cast<char>(std::tolower(c));
-                     });
+      std::transform(
+          filename.begin(), filename.end(), std::back_inserter(filename_lower),
+          [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
       if (filename_lower.find("token") == std::string::npos) {
         continue;
       }
@@ -348,11 +349,6 @@ CliOptions parse_cli(int argc, char **argv) {
       options.log_compress_explicit = true;
       continue;
     }
-    if (arg == "--no-log-compress") {
-      options.log_compress = false;
-      options.log_compress_explicit = true;
-      continue;
-    }
     if (arg == "--open-pat-page") {
       options.open_pat_window = true;
       continue;
@@ -381,8 +377,7 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("LEVEL")
       ->default_val("info")
       ->group("Logging");
-  app.add_option("-F,--log-file", options.log_file,
-                 "Path to rotating log file")
+  app.add_option("-F,--log-file", options.log_file, "Path to rotating log file")
       ->type_name("FILE")
       ->group("Logging");
   app.add_option("-L,--log-limit", options.log_limit,
@@ -390,18 +385,38 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("N")
       ->default_val("200")
       ->group("Logging");
-  app
-      .add_option_function<int>(
-          "--log-rotate",
-          [&options](int value) {
-            if (value < 0) {
-              throw CLI::ValidationError("--log-rotate",
-                                         "rotation count must be non-negative");
-            }
-            options.log_rotate = value;
-            options.log_rotate_explicit = true;
-          },
-          "Number of rotated log files to retain (0 disables rotation)")
+  app.add_option_function<std::string>(
+         "--log-category",
+         [&options](const std::string &value) {
+           auto pos = value.find('=');
+           std::string name =
+               pos == std::string::npos ? value : value.substr(0, pos);
+           std::string level = pos == std::string::npos ? std::string{"debug"}
+                                                        : value.substr(pos + 1);
+           if (name.empty()) {
+             throw CLI::ValidationError("--log-category",
+                                        "category name must not be empty");
+           }
+           if (level.empty()) {
+             level = "debug";
+           }
+           options.log_categories[name] = level;
+           options.log_categories_explicit = true;
+         },
+         "Enable a logging category (NAME or NAME=LEVEL)")
+      ->type_name("NAME[=LEVEL]")
+      ->group("Logging");
+  app.add_option_function<int>(
+         "--log-rotate",
+         [&options](int value) {
+           if (value < 0) {
+             throw CLI::ValidationError("--log-rotate",
+                                        "rotation count must be non-negative");
+           }
+           options.log_rotate = value;
+           options.log_rotate_explicit = true;
+         },
+         "Number of rotated log files to retain (0 disables rotation)")
       ->type_name("N")
       ->group("Logging");
   app.add_flag("-y,--yes", options.assume_yes,
@@ -413,31 +428,30 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("--demo-tui", options.demo_tui,
                "Launch interactive demo TUI with mock data")
       ->group("General");
-  app
-      .add_option_function<std::string>(
-          "--hotkeys",
-          [&options](const std::string &value) {
-            std::string lower;
-            lower.reserve(value.size());
-            std::transform(value.begin(), value.end(), std::back_inserter(lower),
-                           [](unsigned char c) {
-                             return static_cast<char>(std::tolower(c));
-                           });
-            if (lower == "on" || lower == "enable" || lower == "enabled" ||
-                lower == "true") {
-              options.hotkeys_enabled = true;
-              options.hotkeys_explicit = true;
-            } else if (lower == "off" || lower == "disable" ||
-                       lower == "disabled" || lower == "false") {
-              options.hotkeys_enabled = false;
-              options.hotkeys_explicit = true;
-            } else {
-              throw CLI::ValidationError(
-                  std::string("--hotkeys: expected 'on' or 'off', got '") +
-                  value + "'");
-            }
-          },
-          "Explicitly enable or disable interactive hotkeys (on/off)")
+  app.add_option_function<std::string>(
+         "--hotkeys",
+         [&options](const std::string &value) {
+           std::string lower;
+           lower.reserve(value.size());
+           std::transform(value.begin(), value.end(), std::back_inserter(lower),
+                          [](unsigned char c) {
+                            return static_cast<char>(std::tolower(c));
+                          });
+           if (lower == "on" || lower == "enable" || lower == "enabled" ||
+               lower == "true") {
+             options.hotkeys_enabled = true;
+             options.hotkeys_explicit = true;
+           } else if (lower == "off" || lower == "disable" ||
+                      lower == "disabled" || lower == "false") {
+             options.hotkeys_enabled = false;
+             options.hotkeys_explicit = true;
+           } else {
+             throw CLI::ValidationError(
+                 std::string("--hotkeys: expected 'on' or 'off', got '") +
+                 value + "'");
+           }
+         },
+         "Explicitly enable or disable interactive hotkeys (on/off)")
       ->type_name("on|off")
       ->group("General");
   app.add_option("-I,--include", options.include_repos,
@@ -445,19 +459,19 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("REPO")
       ->expected(-1)
       ->group("Repositories");
-  app
-      .add_option_function<std::string>(
-          "--repo-discovery",
-          [&options](const std::string &value) {
-            try {
-              options.repo_discovery_mode = repo_discovery_mode_from_string(value);
-              options.repo_discovery_explicit = true;
-            } catch (const std::invalid_argument &e) {
-              throw CLI::ValidationError(
-                  std::string("--repo-discovery: ") + e.what());
-            }
-          },
-          "Control repository discovery (disabled/all/filesystem)")
+  app.add_option_function<std::string>(
+         "--repo-discovery",
+         [&options](const std::string &value) {
+           try {
+             options.repo_discovery_mode =
+                 repo_discovery_mode_from_string(value);
+             options.repo_discovery_explicit = true;
+           } catch (const std::invalid_argument &e) {
+             throw CLI::ValidationError(std::string("--repo-discovery: ") +
+                                        e.what());
+           }
+         },
+         "Control repository discovery (disabled/all/filesystem)")
       ->type_name("disabled|all|filesystem")
       ->group("Repositories");
   app.add_option("--repo-discovery-root", options.repo_discovery_roots,
@@ -551,8 +565,7 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("RATE")
       ->default_val("60")
       ->group("Polling");
-  app.add_option("-W,--workers", options.workers,
-                 "Number of worker threads")
+  app.add_option("-W,--workers", options.workers, "Number of worker threads")
       ->type_name("N")
       ->check(CLI::NonNegativeNumber)
       ->group("Polling");
@@ -603,16 +616,19 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("DURATION")
       ->default_val("0")
       ->group("Pull Request Management");
-  app.add_option("-O,--single-open-prs", options.single_open_prs_repo,
-                 "Fetch open PRs for a single repo via one HTTP request and exit")
+  app.add_option(
+         "-O,--single-open-prs", options.single_open_prs_repo,
+         "Fetch open PRs for a single repo via one HTTP request and exit")
       ->type_name("OWNER/REPO")
       ->group("Testing");
-  app.add_option("-N,--single-branches", options.single_branches_repo,
-                 "Fetch branches for a single repo via one HTTP request and exit")
+  app.add_option(
+         "-N,--single-branches", options.single_branches_repo,
+         "Fetch branches for a single repo via one HTTP request and exit")
       ->type_name("OWNER/REPO")
       ->group("Testing");
-  app.add_option("-s,--sort", options.sort,
-                 "Sort pull requests: alpha, reverse, alphanum, reverse-alphanum")
+  app.add_option(
+         "-s,--sort", options.sort,
+         "Sort pull requests: alpha, reverse, alphanum, reverse-alphanum")
       ->type_name("MODE")
       ->check(
           CLI::IsMember({"alpha", "reverse", "alphanum", "reverse-alphanum"}))
@@ -629,8 +645,9 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("-4,--delete-stray", options.delete_stray,
                "Delete stray branches without requiring a prefix")
       ->group("Branch Management");
-  app.add_flag("-5,--allow-delete-base-branch", options.allow_delete_base_branch,
-               "Allow deletion of base branches such as main/master (dangerous)")
+  app.add_flag(
+         "-5,--allow-delete-base-branch", options.allow_delete_base_branch,
+         "Allow deletion of base branches such as main/master (dangerous)")
       ->group("Branch Management");
   app.add_flag("-6,--auto-merge", options.auto_merge,
                "Automatically merge pull requests")
@@ -675,15 +692,16 @@ CliOptions parse_cli(int argc, char **argv) {
       canonical_token_files.insert(canonical_str);
     }
     auto tokens = load_tokens_from_file(token_file);
-    options.api_keys.insert(options.api_keys.end(), tokens.begin(), tokens.end());
+    options.api_keys.insert(options.api_keys.end(), tokens.begin(),
+                            tokens.end());
   }
   if (options.auto_detect_token_files) {
     std::filesystem::path exe_arg;
     if (!filtered_args.empty()) {
       exe_arg = filtered_args.front();
     }
-    auto discovered = discover_token_files(exe_arg, options.repo_discovery_roots,
-                                           canonical_token_files);
+    auto discovered = discover_token_files(
+        exe_arg, options.repo_discovery_roots, canonical_token_files);
     for (const auto &path : discovered) {
       auto canonical = canonicalize_path(path);
       auto canonical_str = canonical.generic_string();
@@ -700,8 +718,8 @@ CliOptions parse_cli(int argc, char **argv) {
         options.api_keys.insert(options.api_keys.end(), tokens.begin(),
                                 tokens.end());
       } catch (const std::exception &e) {
-        spdlog::warn("Failed to load auto-detected token file {}: {}", path_string,
-                     e.what());
+        spdlog::warn("Failed to load auto-detected token file {}: {}",
+                     path_string, e.what());
       }
     }
   }

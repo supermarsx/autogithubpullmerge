@@ -2,5 +2,9 @@
   "verbose": false,
   "poll_interval": 30,
   "max_request_rate": 50,
-  "use_graphql": true
+  "use_graphql": true,
+  "log_compress": false,
+  "log_categories": {
+    "logging": "debug"
+  }
 }
