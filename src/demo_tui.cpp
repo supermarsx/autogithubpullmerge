@@ -17,6 +17,7 @@ struct _win_st;
 using WINDOW = _win_st;
 #endif
 
+#include <memory>
 #include <string>
 #if defined(_WIN32)
 #include <io.h>
@@ -30,6 +31,14 @@ using WINDOW = _win_st;
 namespace agpm {
 
 namespace {
+std::shared_ptr<spdlog::logger> demo_log() {
+  static auto logger = [] {
+    ensure_default_logger();
+    return category_logger("demo_tui");
+  }();
+  return logger;
+}
+
 struct DemoPullRequest {
   std::string owner;
   std::string repo;
@@ -152,12 +161,13 @@ void draw_branches(const std::vector<DemoBranch> &branches, int selected,
  * @return Zero on successful execution, non-zero on failure.
  */
 int run_demo_tui() {
-  if (!isatty(fileno(stdout)) || !isatty(fileno(stdin)) || !isatty(fileno(stderr))) {
-    spdlog::error("Demo TUI requires an interactive terminal");
+  if (!isatty(fileno(stdout)) || !isatty(fileno(stdin)) ||
+      !isatty(fileno(stderr))) {
+    demo_log()->error("Demo TUI requires an interactive terminal");
     return 1;
   }
   if (initscr() == nullptr) {
-    spdlog::error("Failed to initialize curses for demo TUI");
+    demo_log()->error("Failed to initialize curses for demo TUI");
     return 1;
   }
   cbreak();

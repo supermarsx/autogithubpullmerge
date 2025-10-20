@@ -1,9 +1,11 @@
 #include "cli.hpp"
 #include "curl/curl.h"
+#include "log.hpp"
 #include "token_loader.hpp"
 #include "util/duration.hpp"
 #include <CLI/CLI.hpp>
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <chrono>
 #include <cstdlib>
@@ -12,7 +14,9 @@
 #include <fstream>
 #include <iomanip>
 #include <iterator>
+#include <memory>
 #include <sstream>
+#include <string_view>
 #include <stdexcept>
 #include <system_error>
 #include <unordered_set>
@@ -20,6 +24,34 @@
 #include <spdlog/spdlog.h>
 
 namespace agpm {
+
+namespace {
+std::shared_ptr<spdlog::logger> cli_log() {
+  static auto logger = [] {
+    ensure_default_logger();
+    return category_logger("cli");
+  }();
+  return logger;
+}
+
+std::string log_category_help_text() {
+  static const std::array<std::string_view, 12> categories = {
+      "app",          "cli",          "config",       "demo_tui",
+      "github.client", "github.poller", "history",      "logging",
+      "main",         "pat",          "repo.discovery", "tui"};
+  std::ostringstream oss;
+  oss << "Logging categories: ";
+  for (std::size_t i = 0; i < categories.size(); ++i) {
+    if (i != 0) {
+      oss << ", ";
+    }
+    oss << categories[i];
+  }
+  oss << "\nUse --log-category NAME=LEVEL to override (e.g., repo.discovery=debug).";
+  oss << " Configuration files accept the same mapping under 'log_categories'.";
+  return oss.str();
+}
+} // namespace
 
 /**
  * libcurl write callback that appends the received data to a string buffer.
@@ -331,6 +363,7 @@ discover_token_files(const std::filesystem::path &exe_path,
  */
 CliOptions parse_cli(int argc, char **argv) {
   CLI::App app{"autogithubpullmerge command line"};
+  app.get_formatter()->set_footer(log_category_help_text());
   CliOptions options;
   std::vector<std::string> raw_args;
   raw_args.reserve(static_cast<std::size_t>(argc));
@@ -403,7 +436,7 @@ CliOptions parse_cli(int argc, char **argv) {
            options.log_categories[name] = level;
            options.log_categories_explicit = true;
          },
-         "Enable a logging category (NAME or NAME=LEVEL)")
+         "Enable a logging category (NAME or NAME=LEVEL). See help footer for available categories.")
       ->type_name("NAME[=LEVEL]")
       ->group("Logging");
   app.add_option_function<int>(
@@ -718,8 +751,8 @@ CliOptions parse_cli(int argc, char **argv) {
         options.api_keys.insert(options.api_keys.end(), tokens.begin(),
                                 tokens.end());
       } catch (const std::exception &e) {
-        spdlog::warn("Failed to load auto-detected token file {}: {}",
-                     path_string, e.what());
+        cli_log()->warn("Failed to load auto-detected token file {}: {}",
+                        path_string, e.what());
       }
     }
   }

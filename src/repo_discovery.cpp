@@ -1,9 +1,11 @@
 #include "repo_discovery.hpp"
+#include "log.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -17,6 +19,14 @@
 namespace agpm {
 
 namespace {
+
+std::shared_ptr<spdlog::logger> discovery_log() {
+  static auto logger = [] {
+    ensure_default_logger();
+    return category_logger("repo.discovery");
+  }();
+  return logger;
+}
 
 /**
  * Produce a lowercase copy of the input string.
@@ -163,13 +173,13 @@ void try_add_repo(const std::filesystem::path &config_path,
                   std::vector<std::pair<std::string, std::string>> &out) {
   auto parsed = parse_origin_from_config(config_path);
   if (!parsed) {
-    spdlog::warn("Skipping repository at '{}' (missing GitHub remote origin)", root.string());
+    discovery_log()->warn("Skipping repository at '{}' (missing GitHub remote origin)", root.string());
     return;
   }
   std::string key = parsed->first + "/" + parsed->second;
   if (seen.insert(key).second) {
     out.push_back(*parsed);
-    spdlog::info("Discovered repository {} from {}", key, root.string());
+    discovery_log()->info("Discovered repository {} from {}", key, root.string());
   }
 }
 
@@ -324,7 +334,7 @@ discover_repositories_from_filesystem(const std::vector<std::string> &roots) {
       continue;
     std::filesystem::path root(root_str);
     if (!std::filesystem::exists(root, ec)) {
-      spdlog::warn("Repository discovery root '{}' does not exist", root_str);
+      discovery_log()->warn("Repository discovery root '{}' does not exist", root_str);
       continue;
     }
     inspect_candidate(root, seen, repos);

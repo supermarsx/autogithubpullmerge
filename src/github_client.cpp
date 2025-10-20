@@ -7,6 +7,7 @@
 #include <ctime>
 #include <fstream>
 #include <iomanip>
+#include <memory>
 #include <mutex>
 #include <regex>
 #include <spdlog/spdlog.h>
@@ -17,6 +18,14 @@
 namespace agpm {
 
 namespace {
+
+std::shared_ptr<spdlog::logger> github_client_log() {
+  static auto logger = [] {
+    ensure_default_logger();
+    return category_logger("github.client");
+  }();
+  return logger;
+}
 
 /**
  * Convert a shell-style glob pattern to a regular expression.
@@ -368,16 +377,16 @@ CurlHttpClient::get_with_headers(const std::string &url,
   total_downloaded_ += dl;
   total_uploaded_ += ul;
   if (max_download_ > 0 && total_downloaded_ > max_download_) {
-    spdlog::error("Maximum download exceeded");
+    github_client_log()->error("Maximum download exceeded");
     throw std::runtime_error("Maximum download exceeded");
   }
   if (max_upload_ > 0 && total_uploaded_ > max_upload_) {
-    spdlog::error("Maximum upload exceeded");
+    github_client_log()->error("Maximum upload exceeded");
     throw std::runtime_error("Maximum upload exceeded");
   }
   if (res != CURLE_OK) {
     std::string msg = format_curl_error("GET", url, res, errbuf);
-    spdlog::error(msg);
+    github_client_log()->error(msg);
     throw std::runtime_error(msg);
   }
   if (http_code < 200 || http_code >= 300) {
@@ -385,7 +394,7 @@ CurlHttpClient::get_with_headers(const std::string &url,
       // Let caller handle rate limiting
       return {response, resp_headers, http_code};
     }
-    spdlog::error("curl GET {} failed with HTTP code {}", url, http_code);
+    github_client_log()->error("curl GET {} failed with HTTP code {}", url, http_code);
     throw std::runtime_error("curl GET failed with HTTP code " +
                              std::to_string(http_code));
   }
@@ -441,20 +450,20 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   total_downloaded_ += dl;
   total_uploaded_ += ul;
   if (max_download_ > 0 && total_downloaded_ > max_download_) {
-    spdlog::error("Maximum download exceeded");
+    github_client_log()->error("Maximum download exceeded");
     throw std::runtime_error("Maximum download exceeded");
   }
   if (max_upload_ > 0 && total_uploaded_ > max_upload_) {
-    spdlog::error("Maximum upload exceeded");
+    github_client_log()->error("Maximum upload exceeded");
     throw std::runtime_error("Maximum upload exceeded");
   }
   if (res != CURLE_OK) {
     std::string msg = format_curl_error("PUT", url, res, errbuf);
-    spdlog::error(msg);
+    github_client_log()->error(msg);
     throw std::runtime_error(msg);
   }
   if (http_code < 200 || http_code >= 300) {
-    spdlog::error("curl PUT {} failed with HTTP code {}", url, http_code);
+    github_client_log()->error("curl PUT {} failed with HTTP code {}", url, http_code);
     throw std::runtime_error("curl PUT failed with HTTP code " +
                              std::to_string(http_code));
   }
@@ -501,20 +510,20 @@ std::string CurlHttpClient::del(const std::string &url,
   total_downloaded_ += dl;
   total_uploaded_ += ul;
   if (max_download_ > 0 && total_downloaded_ > max_download_) {
-    spdlog::error("Maximum download exceeded");
+    github_client_log()->error("Maximum download exceeded");
     throw std::runtime_error("Maximum download exceeded");
   }
   if (max_upload_ > 0 && total_uploaded_ > max_upload_) {
-    spdlog::error("Maximum upload exceeded");
+    github_client_log()->error("Maximum upload exceeded");
     throw std::runtime_error("Maximum upload exceeded");
   }
   if (res != CURLE_OK) {
     std::string msg = format_curl_error("DELETE", url, res, errbuf);
-    spdlog::error(msg);
+    github_client_log()->error(msg);
     throw std::runtime_error(msg);
   }
   if (http_code < 200 || http_code >= 300) {
-    spdlog::error("curl DELETE {} failed with HTTP code {}", url, http_code);
+    github_client_log()->error("curl DELETE {} failed with HTTP code {}", url, http_code);
     throw std::runtime_error("curl DELETE failed with HTTP code " +
                              std::to_string(http_code));
   }
@@ -644,7 +653,7 @@ GitHubClient::get_with_cache(const std::string &url,
   }
   HttpResponse res = http_->get_with_headers(url, hdrs);
   if (res.status_code == 304 && it != cache_.end()) {
-    spdlog::debug("Cache hit for {}", url);
+    github_client_log()->debug("Cache hit for {}", url);
     return {it->second.body, it->second.headers, 200};
   }
   const auto etag_it =
@@ -722,7 +731,7 @@ bool GitHubClient::repo_allowed(const std::string &owner,
 std::vector<std::pair<std::string, std::string>>
 GitHubClient::list_repositories() {
   std::vector<std::pair<std::string, std::string>> repos;
-  spdlog::info("Listing repositories");
+  github_client_log()->info("Listing repositories");
   std::string url = api_base_ + "/user/repos?per_page=100";
   std::vector<std::string> headers;
   if (!tokens_.empty())
@@ -734,13 +743,13 @@ GitHubClient::list_repositories() {
     try {
       res = get_with_cache(url, headers);
     } catch (const std::exception &e) {
-      spdlog::error("HTTP GET failed: {}", e.what());
+      github_client_log()->error("HTTP GET failed: {}", e.what());
       break;
     }
     if (handle_rate_limit(res))
       continue;
     if (res.status_code < 200 || res.status_code >= 300) {
-      spdlog::error("HTTP GET {} failed with HTTP code {}", url,
+      github_client_log()->error("HTTP GET {} failed with HTTP code {}", url,
                     res.status_code);
       break;
     }
@@ -748,7 +757,7 @@ GitHubClient::list_repositories() {
     try {
       j = nlohmann::json::parse(res.body);
     } catch (const std::exception &e) {
-      spdlog::error("Failed to parse repository list: {}", e.what());
+      github_client_log()->error("Failed to parse repository list: {}", e.what());
       break;
     }
     for (const auto &item : j) {
@@ -757,7 +766,7 @@ GitHubClient::list_repositories() {
       std::string owner = item["owner"]["login"].get<std::string>();
       std::string name = item["name"].get<std::string>();
       if (repo_allowed(owner, name)) {
-        spdlog::debug("Found repo {}/{}", owner, name);
+        github_client_log()->debug("Found repo {}/{}", owner, name);
         repos.emplace_back(owner, name);
       }
     }
@@ -782,7 +791,7 @@ GitHubClient::list_repositories() {
       break;
     url = next_url;
   }
-  spdlog::info("Found {} repositories", repos.size());
+  github_client_log()->info("Found {} repositories", repos.size());
   return repos;
 }
 
@@ -820,13 +829,13 @@ GitHubClient::list_pull_requests(const std::string &owner,
     try {
       res = get_with_cache(url, headers);
     } catch (const std::exception &e) {
-      spdlog::error("HTTP GET failed: {}", e.what());
+      github_client_log()->error("HTTP GET failed: {}", e.what());
       break;
     }
     if (handle_rate_limit(res))
       continue;
     if (res.status_code < 200 || res.status_code >= 300) {
-      spdlog::error("HTTP GET {} failed with HTTP code {}", url,
+      github_client_log()->error("HTTP GET {} failed with HTTP code {}", url,
                     res.status_code);
       break;
     }
@@ -834,7 +843,7 @@ GitHubClient::list_pull_requests(const std::string &owner,
     try {
       j = nlohmann::json::parse(res.body);
     } catch (const std::exception &e) {
-      spdlog::error("Failed to parse pull request list: {}", e.what());
+      github_client_log()->error("Failed to parse pull request list: {}", e.what());
       auto num_pos = res.body.find("\"number\"");
       auto title_pos = res.body.find("\"title\"");
       if (num_pos != std::string::npos && title_pos != std::string::npos) {
@@ -935,7 +944,7 @@ GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
     // Intentionally avoid caching/pagination: tests require a single call
     res = http_->get_with_headers(url, headers);
   } catch (const std::exception &e) {
-    spdlog::error("Failed to fetch open pull requests: {}", e.what());
+    github_client_log()->error("Failed to fetch open pull requests: {}", e.what());
     return prs;
   }
   try {
@@ -955,7 +964,7 @@ GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
       prs.push_back(std::move(pr));
     }
   } catch (const std::exception &e) {
-    spdlog::error("Failed to parse pull request list: {}", e.what());
+    github_client_log()->error("Failed to parse pull request list: {}", e.what());
   }
   return prs;
 }
@@ -964,10 +973,10 @@ GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
 bool GitHubClient::merge_pull_request(const std::string &owner,
                                       const std::string &repo, int pr_number) {
   if (!repo_allowed(owner, repo)) {
-    spdlog::debug("Skipping merge for disallowed repo {}/{}", owner, repo);
+    github_client_log()->debug("Skipping merge for disallowed repo {}/{}", owner, repo);
     return false;
   }
-  spdlog::info("Attempting to merge PR #{} in {}/{}", pr_number, owner, repo);
+  github_client_log()->info("Attempting to merge PR #{} in {}/{}", pr_number, owner, repo);
   std::vector<std::string> headers;
   if (!tokens_.empty())
     headers.push_back("Authorization: token " + tokens_[token_index_]);
@@ -981,7 +990,7 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
     std::string pr_resp = get_with_cache(pr_url, headers).body;
     meta = nlohmann::json::parse(pr_resp);
   } catch (const std::exception &e) {
-    spdlog::error("Failed to fetch pull request metadata: {}", e.what());
+    github_client_log()->error("Failed to fetch pull request metadata: {}", e.what());
     return false;
   }
   if (!meta.is_object()) {
@@ -989,23 +998,23 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   }
   int approvals = meta.value("approvals", 0);
   if (required_approvals_ > 0 && approvals < required_approvals_) {
-    spdlog::info("PR #{} requires {} approvals but has {}", pr_number,
+    github_client_log()->info("PR #{} requires {} approvals but has {}", pr_number,
                  required_approvals_, approvals);
     return false;
   }
   if (require_status_success_ && meta.value("mergeable_state", "") != "clean") {
-    spdlog::info("PR #{} status checks not successful", pr_number);
+    github_client_log()->info("PR #{} status checks not successful", pr_number);
     return false;
   }
   if (require_mergeable_state_ && !meta.value("mergeable", false)) {
-    spdlog::info("PR #{} is not mergeable", pr_number);
+    github_client_log()->info("PR #{} is not mergeable", pr_number);
     return false;
   }
   enforce_delay();
   std::string url = api_base_ + "/repos/" + owner + "/" + repo + "/pulls/" +
                     std::to_string(pr_number) + "/merge";
   if (dry_run_) {
-    spdlog::info("[dry-run] Would merge PR #{} in {}/{}", pr_number, owner,
+    github_client_log()->info("[dry-run] Would merge PR #{} in {}/{}", pr_number, owner,
                  repo);
     return true;
   }
@@ -1014,13 +1023,13 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
     nlohmann::json j = nlohmann::json::parse(resp);
     bool merged = j.contains("merged") && j["merged"].get<bool>();
     if (merged) {
-      spdlog::info("Merged PR #{} in {}/{}", pr_number, owner, repo);
+      github_client_log()->info("Merged PR #{} in {}/{}", pr_number, owner, repo);
     } else {
-      spdlog::info("PR #{} in {}/{} was not merged", pr_number, owner, repo);
+      github_client_log()->info("PR #{} in {}/{} was not merged", pr_number, owner, repo);
     }
     return merged;
   } catch (const std::exception &e) {
-    spdlog::error("Failed to merge pull request: {}", e.what());
+    github_client_log()->error("Failed to merge pull request: {}", e.what());
     return false;
   }
 }
@@ -1042,14 +1051,14 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
   try {
     repo_resp = get_with_cache(repo_url, headers).body;
   } catch (const std::exception &e) {
-    spdlog::error("Failed to fetch repo metadata: {}", e.what());
+    github_client_log()->error("Failed to fetch repo metadata: {}", e.what());
     return branches;
   }
   nlohmann::json repo_json;
   try {
     repo_json = nlohmann::json::parse(repo_resp);
   } catch (const std::exception &e) {
-    spdlog::error("Failed to parse repo metadata: {}", e.what());
+    github_client_log()->error("Failed to parse repo metadata: {}", e.what());
     return branches;
   }
   if (!repo_json.is_object() || !repo_json.contains("default_branch")) {
@@ -1063,14 +1072,14 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
     try {
       res = get_with_cache(url, headers);
     } catch (const std::exception &e) {
-      spdlog::error("Failed to fetch branches: {}", e.what());
+      github_client_log()->error("Failed to fetch branches: {}", e.what());
       return branches;
     }
     nlohmann::json j;
     try {
       j = nlohmann::json::parse(res.body);
     } catch (const std::exception &e) {
-      spdlog::error("Failed to parse branches list: {}", e.what());
+      github_client_log()->error("Failed to parse branches list: {}", e.what());
       return branches;
     }
     if (!j.is_array()) {
@@ -1136,7 +1145,7 @@ GitHubClient::list_branches_single(const std::string &owner_repo,
     // Single call, no pagination or extra default_branch metadata
     res = http_->get_with_headers(url, headers);
   } catch (const std::exception &e) {
-    spdlog::error("Failed to fetch branches: {}", e.what());
+    github_client_log()->error("Failed to fetch branches: {}", e.what());
     return branches;
   }
   try {
@@ -1149,7 +1158,7 @@ GitHubClient::list_branches_single(const std::string &owner_repo,
       }
     }
   } catch (const std::exception &e) {
-    spdlog::error("Failed to parse branches list: {}", e.what());
+    github_client_log()->error("Failed to parse branches list: {}", e.what());
   }
   return branches;
 }
@@ -1161,15 +1170,15 @@ void GitHubClient::cleanup_branches(
     const std::vector<std::string> &protected_branches,
     const std::vector<std::string> &protected_branch_excludes) {
   if (!repo_allowed(owner, repo) || prefix.empty()) {
-    spdlog::debug("Skipping branch cleanup for {}/{}", owner, repo);
+    github_client_log()->debug("Skipping branch cleanup for {}/{}", owner, repo);
     return;
   }
   if (!allow_delete_base_branch_ && is_base_branch_name(prefix)) {
-    spdlog::warn("Refusing to delete protected base branch {} in {}/{}", prefix,
+    github_client_log()->warn("Refusing to delete protected base branch {} in {}/{}", prefix,
                  owner, repo);
     return;
   }
-  spdlog::info("Cleaning up branches in {}/{} with prefix {}", owner, repo,
+  github_client_log()->info("Cleaning up branches in {}/{} with prefix {}", owner, repo,
                prefix);
   std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
   std::string url = repo_url + "/pulls?state=closed";
@@ -1186,7 +1195,7 @@ void GitHubClient::cleanup_branches(
         default_branch = repo_json["default_branch"].get<std::string>();
       }
     } catch (const std::exception &e) {
-      spdlog::debug("Failed to retrieve default branch for {}/{}: {}", owner,
+      github_client_log()->debug("Failed to retrieve default branch for {}/{}: {}", owner,
                     repo, e.what());
     }
   }
@@ -1196,14 +1205,14 @@ void GitHubClient::cleanup_branches(
     try {
       res = get_with_cache(url, headers);
     } catch (const std::exception &e) {
-      spdlog::error("Failed to fetch pull requests for cleanup: {}", e.what());
+      github_client_log()->error("Failed to fetch pull requests for cleanup: {}", e.what());
       return;
     }
     nlohmann::json j;
     try {
       j = nlohmann::json::parse(res.body);
     } catch (const std::exception &e) {
-      spdlog::error("Failed to parse pull requests for cleanup: {}", e.what());
+      github_client_log()->error("Failed to parse pull requests for cleanup: {}", e.what());
       return;
     }
     if (!j.is_array()) {
@@ -1217,13 +1226,13 @@ void GitHubClient::cleanup_branches(
                                  protected_branch_excludes)) {
           if (!allow_delete_base_branch_ &&
               (!default_branch.empty() && branch == default_branch)) {
-            spdlog::warn(
+            github_client_log()->warn(
                 "Skipping deletion of repository default branch {} in {}/{}",
                 branch, owner, repo);
             continue;
           }
           if (!allow_delete_base_branch_ && is_base_branch_name(branch)) {
-            spdlog::warn(
+            github_client_log()->warn(
                 "Skipping deletion of protected base branch {} in {}/{}",
                 branch, owner, repo);
             continue;
@@ -1232,13 +1241,13 @@ void GitHubClient::cleanup_branches(
           std::string del_url = api_base_ + "/repos/" + owner + "/" + repo +
                                 "/git/refs/heads/" + branch;
           if (dry_run_) {
-            spdlog::info("[dry-run] Would delete branch {}", branch);
+            github_client_log()->info("[dry-run] Would delete branch {}", branch);
           } else {
             try {
               (void)http_->del(del_url, headers);
-              spdlog::info("Deleted branch {}", branch);
+              github_client_log()->info("Deleted branch {}", branch);
             } catch (const std::exception &e) {
-              spdlog::error("Failed to delete branch {}: {}", branch, e.what());
+              github_client_log()->error("Failed to delete branch {}: {}", branch, e.what());
             }
           }
         }
@@ -1291,14 +1300,14 @@ void GitHubClient::close_dirty_branches(
     // requested via `get_with_headers`.
     repo_resp = http_->get(repo_url, headers);
   } catch (const std::exception &e) {
-    spdlog::error("Failed to fetch repo metadata: {}", e.what());
+    github_client_log()->error("Failed to fetch repo metadata: {}", e.what());
     return;
   }
   nlohmann::json repo_json;
   try {
     repo_json = nlohmann::json::parse(repo_resp);
   } catch (const std::exception &e) {
-    spdlog::error("Failed to parse repo metadata: {}", e.what());
+    github_client_log()->error("Failed to parse repo metadata: {}", e.what());
     return;
   }
   if (!repo_json.is_object() || !repo_json.contains("default_branch")) {
@@ -1313,14 +1322,14 @@ void GitHubClient::close_dirty_branches(
     try {
       res = get_with_cache(url, headers);
     } catch (const std::exception &e) {
-      spdlog::error("Failed to fetch branches: {}", e.what());
+      github_client_log()->error("Failed to fetch branches: {}", e.what());
       return;
     }
     nlohmann::json branches_json;
     try {
       branches_json = nlohmann::json::parse(res.body);
     } catch (const std::exception &e) {
-      spdlog::error("Failed to parse branches list: {}", e.what());
+      github_client_log()->error("Failed to parse branches list: {}", e.what());
       return;
     }
     if (!branches_json.is_array()) {
@@ -1336,7 +1345,7 @@ void GitHubClient::close_dirty_branches(
         continue;
       }
       if (!allow_delete_base_branch_ && is_base_branch_name(branch)) {
-        spdlog::warn(
+        github_client_log()->warn(
             "Skipping deletion of protected base branch {} in {}/{}", branch,
             owner, repo);
         continue;
@@ -1355,14 +1364,14 @@ void GitHubClient::close_dirty_branches(
         // some HttpClient test doubles only implement `get`.
         compare_resp = http_->get(compare_url, headers);
       } catch (const std::exception &e) {
-        spdlog::error("Failed to compare branch {}: {}", branch, e.what());
+        github_client_log()->error("Failed to compare branch {}: {}", branch, e.what());
         continue;
       }
       nlohmann::json compare_json;
       try {
         compare_json = nlohmann::json::parse(compare_resp);
       } catch (const std::exception &e) {
-        spdlog::error("Failed to parse compare JSON for branch {}: {}", branch,
+        github_client_log()->error("Failed to parse compare JSON for branch {}: {}", branch,
                       e.what());
         continue;
       }
@@ -1376,12 +1385,12 @@ void GitHubClient::close_dirty_branches(
         enforce_delay();
         std::string del_url = repo_url + "/git/refs/heads/" + branch;
         if (dry_run_) {
-          spdlog::info("[dry-run] Would delete dirty branch {}", branch);
+          github_client_log()->info("[dry-run] Would delete dirty branch {}", branch);
         } else {
           try {
             (void)http_->del(del_url, headers);
           } catch (const std::exception &e) {
-            spdlog::error("Failed to delete branch {}: {}", branch, e.what());
+            github_client_log()->error("Failed to delete branch {}: {}", branch, e.what());
           }
         }
       }
@@ -1428,7 +1437,7 @@ bool GitHubClient::handle_rate_limit(const HttpResponse &resp) {
   if ((resp.status_code == 403 || resp.status_code == 429) &&
       tokens_.size() > 1) {
     token_index_ = (token_index_ + 1) % tokens_.size();
-    spdlog::warn("Rate limit hit, switching to next token (index {})",
+    github_client_log()->warn("Rate limit hit, switching to next token (index {})",
                  token_index_);
     last_request_ = std::chrono::steady_clock::now();
     return true;
@@ -1514,7 +1523,7 @@ GitHubGraphQLClient::list_pull_requests(const std::string &owner,
   curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers.get());
   CURLcode res = curl_easy_perform(curl.get());
   if (res != CURLE_OK) {
-    spdlog::error("GraphQL query failed: {}", curl_easy_strerror(res));
+    github_client_log()->error("GraphQL query failed: {}", curl_easy_strerror(res));
     return prs;
   }
   try {
@@ -1530,7 +1539,7 @@ GitHubGraphQLClient::list_pull_requests(const std::string &owner,
       prs.push_back(std::move(pr));
     }
   } catch (const std::exception &e) {
-    spdlog::error("Failed to parse GraphQL response: {}", e.what());
+    github_client_log()->error("Failed to parse GraphQL response: {}", e.what());
   }
   return prs;
 }

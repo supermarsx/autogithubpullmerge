@@ -6,6 +6,7 @@
 #include <cctype>
 #include <fstream>
 #include <iterator>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -19,6 +20,14 @@
 namespace agpm {
 
 namespace {
+
+std::shared_ptr<spdlog::logger> config_log() {
+  static auto logger = [] {
+    ensure_default_logger();
+    return category_logger("config");
+  }();
+  return logger;
+}
 
 /**
  * Convert a YAML node into a structurally equivalent JSON object.
@@ -212,9 +221,9 @@ void Config::load_json(const nlohmann::json &j) {
         } else if (v.is_null()) {
           assign_category(key, "debug");
         } else {
-          spdlog::warn("Unsupported value for log category '{}'; expected "
-                       "string or null",
-                       key);
+          config_log()->warn(
+              "Unsupported value for log category '{}'; expected string or null",
+              key);
         }
       }
     } else if (value.is_array()) {
@@ -259,7 +268,7 @@ void Config::load_json(const nlohmann::json &j) {
       set_repo_discovery_mode(repo_discovery_mode_from_string(
           j["repo_discovery_mode"].get<std::string>()));
     } catch (const std::exception &e) {
-      spdlog::error("Invalid repo_discovery_mode: {}", e.what());
+      config_log()->error("Invalid repo_discovery_mode: {}", e.what());
       throw;
     }
   }
@@ -301,7 +310,7 @@ void Config::load_json(const nlohmann::json &j) {
         api_keys_.insert(api_keys_.end(), file_tokens.begin(),
                          file_tokens.end());
       } catch (const std::exception &e) {
-        spdlog::error("Failed to load token file {}: {}", file, e.what());
+        config_log()->error("Failed to load token file {}: {}", file, e.what());
         throw;
       }
     }
@@ -422,7 +431,7 @@ void Config::load_json(const nlohmann::json &j) {
                                             exclude_repos_.end());
     for (const auto &r : include_repos_) {
       if (exclude.count(r) > 0) {
-        spdlog::warn(
+        config_log()->warn(
             "Repository '{}' listed in both include_repos and exclude_repos;"
             " exclusion takes precedence",
             r);
@@ -436,7 +445,7 @@ void Config::load_json(const nlohmann::json &j) {
                                                   protected_branches_.end());
     for (const auto &p : protected_branch_excludes_) {
       if (protected_set.count(p) > 0) {
-        spdlog::warn(
+        config_log()->warn(
             "Protected branch pattern '{}' also present in protected_branch_"
             "excludes; exclusion takes precedence",
             p);
@@ -471,10 +480,10 @@ Config Config::from_json(const nlohmann::json &j) {
  */
 Config Config::from_file(const std::string &path) {
   ensure_default_logger();
-  spdlog::debug("Loading config from {}", path);
+  config_log()->debug("Loading config from {}", path);
   auto pos = path.find_last_of('.');
   if (pos == std::string::npos) {
-    spdlog::error("Unknown config file extension for {}", path);
+    config_log()->error("Unknown config file extension for {}", path);
     throw std::runtime_error("Unknown config file extension");
   }
   std::string ext = path.substr(pos + 1);
@@ -482,7 +491,7 @@ Config Config::from_file(const std::string &path) {
   std::transform(
       ext_lower.begin(), ext_lower.end(), ext_lower.begin(),
       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-  spdlog::debug("Detected config file type: {}", ext_lower);
+  config_log()->debug("Detected config file type: {}", ext_lower);
   nlohmann::json j;
   try {
     if (ext_lower == "yaml" || ext_lower == "yml") {
@@ -491,7 +500,7 @@ Config Config::from_file(const std::string &path) {
     } else if (ext_lower == "json") {
       std::ifstream f(path);
       if (!f) {
-        spdlog::error("Failed to open config file {}", path);
+        config_log()->error("Failed to open config file {}", path);
         throw std::runtime_error("Failed to open config file");
       }
       f >> j;
@@ -499,16 +508,16 @@ Config Config::from_file(const std::string &path) {
       toml::table tbl = toml::parse_file(path);
       j = toml_to_json(tbl);
     } else {
-      spdlog::error("Unsupported config format: {}", ext);
+      config_log()->error("Unsupported config format: {}", ext);
       throw std::runtime_error("Unsupported config format");
     }
   } catch (const std::exception &e) {
-    spdlog::error("Failed to load config {}: {}", path, e.what());
+    config_log()->error("Failed to load config {}: {}", path, e.what());
     throw;
   }
   Config cfg;
   cfg.load_json(j);
-  spdlog::info("Config loaded successfully from {}", path);
+  config_log()->info("Config loaded successfully from {}", path);
   return cfg;
 }
 

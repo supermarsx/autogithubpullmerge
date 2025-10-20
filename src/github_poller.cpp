@@ -5,10 +5,21 @@
 #include <atomic>
 #include <future>
 #include <iterator>
+#include <memory>
 #include <mutex>
 #include <spdlog/spdlog.h>
 
 namespace agpm {
+
+namespace {
+std::shared_ptr<spdlog::logger> poller_log() {
+  static auto logger = [] {
+    ensure_default_logger();
+    return category_logger("github.poller");
+  }();
+  return logger;
+}
+} // namespace
 
 /**
  * Construct a poller coordinating periodic GitHub synchronization tasks.
@@ -69,7 +80,7 @@ GitHubPoller::GitHubPoller(
  * Launch the poller thread and begin scheduling work.
  */
 void GitHubPoller::start() {
-  spdlog::info("Starting GitHub poller");
+  poller_log()->info("Starting GitHub poller");
   poller_.start();
   running_ = true;
   thread_ = std::thread([this] {
@@ -84,7 +95,7 @@ void GitHubPoller::start() {
  * Stop the poller thread and wait for outstanding work to finish.
  */
 void GitHubPoller::stop() {
-  spdlog::info("Stopping GitHub poller");
+  poller_log()->info("Stopping GitHub poller");
   running_ = false;
   if (thread_.joinable()) {
     thread_.join();
@@ -150,7 +161,7 @@ void GitHubPoller::poll() {
     next_allowed_poll_ = now + min_poll_interval_;
   }
   bool skip_branch_ops = only_poll_prs_ || (max_rate_ > 0 && max_rate_ <= 1);
-  spdlog::debug("Polling repositories");
+  poller_log()->debug("Polling repositories");
   std::vector<PullRequest> all_prs;
   std::mutex pr_mutex;
   std::mutex log_mutex;
@@ -163,7 +174,7 @@ void GitHubPoller::poll() {
         [this, repo, skip_branch_ops, &all_prs, &pr_mutex, &log_mutex,
          &total_pr_count, &total_branch_count] {
       if (purge_only_) {
-        spdlog::debug("purge_only set - skipping repo {}/{}", repo.first,
+        poller_log()->debug("purge_only set - skipping repo {}/{}", repo.first,
                       repo.second);
         if (!purge_prefix_.empty()) {
           client_.cleanup_branches(repo.first, repo.second, purge_prefix_,
@@ -204,7 +215,7 @@ void GitHubPoller::poll() {
           log_cb_(repo.first + "/" + repo.second + " pull requests: " +
                   std::to_string(prs.size()));
         } else {
-          spdlog::info("Fetched {} pull requests for {}/{}", prs.size(),
+          poller_log()->info("Fetched {} pull requests for {}/{}", prs.size(),
                        repo.first, repo.second);
         }
         if (auto_merge_) {
@@ -249,7 +260,7 @@ void GitHubPoller::poll() {
           log_cb_(repo.first + "/" + repo.second + " branches: " +
                   std::to_string(branches.size()));
         } else {
-          spdlog::info("Fetched {} branches for {}/{}", branches.size(),
+          poller_log()->info("Fetched {} branches for {}/{}", branches.size(),
                        repo.first, repo.second);
         }
         std::vector<std::string> stray;
@@ -264,7 +275,7 @@ void GitHubPoller::poll() {
           log_cb_(repo.first + "/" + repo.second +
                   " stray branches: " + std::to_string(stray.size()));
         } else {
-          spdlog::info("{} / {} stray branches: {}", repo.first, repo.second,
+          poller_log()->info("{} / {} stray branches: {}", repo.first, repo.second,
                        stray.size());
         }
         if (delete_stray_) {
@@ -299,7 +310,7 @@ void GitHubPoller::poll() {
     std::lock_guard<std::mutex> lk(log_mutex);
     log_cb_("Total pull requests fetched: " + std::to_string(total_prs));
   } else {
-    spdlog::info("Total pull requests fetched: {}", total_prs);
+    poller_log()->info("Total pull requests fetched: {}", total_prs);
   }
   sort_pull_requests(all_prs, sort_mode_);
   if (pr_cb_) {
@@ -312,11 +323,11 @@ void GitHubPoller::poll() {
       std::lock_guard<std::mutex> lk(log_mutex);
       log_cb_("Total branches fetched: " + std::to_string(total_branches));
     } else {
-      spdlog::info("Total branches fetched: {}", total_branches);
+      poller_log()->info("Total branches fetched: {}", total_branches);
     }
   }
   if (export_cb_) {
-    spdlog::info("Running export callback");
+    poller_log()->info("Running export callback");
     export_cb_();
   }
   if (log_cb_ && skip_branch_ops) {

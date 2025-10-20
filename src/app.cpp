@@ -6,11 +6,22 @@
 #include <cstdlib>
 #include <exception>
 #include <iostream>
+#include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <unordered_map>
 
 namespace agpm {
+
+namespace {
+std::shared_ptr<spdlog::logger> app_log() {
+  static auto logger = [] {
+    ensure_default_logger();
+    return category_logger("app");
+  }();
+  return logger;
+}
+} // namespace
 
 /**
  * Execute the main application flow.
@@ -32,7 +43,7 @@ int App::run(int argc, char **argv) {
     should_exit_ = true;
     return exit.exit_code();
   } catch (const std::exception &e) {
-    spdlog::error("{}", e.what());
+    app_log()->error("{}", e.what());
     should_exit_ = true;
     return 1;
   }
@@ -107,7 +118,7 @@ int App::run(int argc, char **argv) {
     std::string resp;
     std::getline(std::cin, resp);
     if (!(resp == "y" || resp == "Y" || resp == "yes" || resp == "YES")) {
-      spdlog::error("Operation cancelled by user");
+      app_log()->error("Operation cancelled by user");
       should_exit_ = true;
       return 1;
     }
@@ -137,23 +148,23 @@ int App::run(int argc, char **argv) {
     try {
       category_levels[category] = spdlog::level::from_str(level_str);
     } catch (const spdlog::spdlog_ex &) {
-      spdlog::warn("Ignoring invalid log level '{}' for category '{}'",
-                   level_str, category);
+      app_log()->warn("Ignoring invalid log level '{}' for category '{}'",
+                      level_str, category);
     }
   }
   configure_log_categories(category_levels);
   if (options_.verbose) {
-    spdlog::debug("Verbose mode enabled");
+    app_log()->debug("Verbose mode enabled");
   }
   if (options_.dry_run) {
-    spdlog::info("Dry run mode enabled");
+    app_log()->info("Dry run mode enabled");
   }
   if (options_.open_pat_window) {
     bool ok = open_pat_creation_page();
     if (ok) {
-      spdlog::info("Opened GitHub PAT creation page");
+      app_log()->info("Opened GitHub PAT creation page");
     } else {
-      spdlog::error("Failed to open GitHub PAT creation page");
+      app_log()->error("Failed to open GitHub PAT creation page");
     }
     should_exit_ = true;
     return ok ? 0 : 1;
@@ -165,20 +176,21 @@ int App::run(int argc, char **argv) {
       std::getline(std::cin, pat_value);
     }
     if (pat_value.empty()) {
-      spdlog::error("No personal access token provided");
+      app_log()->error("No personal access token provided");
       should_exit_ = true;
       return 1;
     }
     bool ok = save_pat_to_file(options_.pat_save_path, pat_value);
     if (ok) {
-      spdlog::info("Personal access token saved to {}", options_.pat_save_path);
+      app_log()->info("Personal access token saved to {}",
+                      options_.pat_save_path);
     } else {
-      spdlog::error("Failed to persist personal access token");
+      app_log()->error("Failed to persist personal access token");
     }
     should_exit_ = true;
     return ok ? 0 : 1;
   }
-  spdlog::info("Running agpm app");
+  app_log()->info("Running agpm app");
 
   // Application logic goes here
   return 0;

@@ -9,6 +9,8 @@
 #include <vector>
 #include <zlib.h>
 
+#include <spdlog/async.h>
+#include <spdlog/async_logger.h>
 #include <spdlog/details/os.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
@@ -17,6 +19,15 @@
 namespace {
 std::weak_ptr<spdlog::logger> g_logger;
 std::mutex g_logger_mutex;
+std::once_flag g_thread_pool_once;
+
+void ensure_thread_pool() {
+  std::call_once(g_thread_pool_once, [] {
+    constexpr std::size_t queue_size = 32768;
+    constexpr std::size_t num_threads = 1;
+    spdlog::init_thread_pool(queue_size, num_threads);
+  });
+}
 
 namespace fs = std::filesystem;
 
@@ -84,13 +95,13 @@ bool compress_rotated_file(const std::string &path) {
   log->debug("Compressing rotated log '{}'", path);
   std::ifstream input(path, std::ios::binary);
   if (!input) {
-    spdlog::warn("Failed to open log file {} for compression", path);
+    log->warn("Failed to open log file {} for compression", path);
     return false;
   }
   std::string compressed_path_str = path + ".gz";
   gzFile gz = gzopen(compressed_path_str.c_str(), "wb");
   if (!gz) {
-    spdlog::warn("Failed to open compressed log {}", compressed_path_str);
+    log->warn("Failed to open compressed log {}", compressed_path_str);
     return false;
   }
   char buffer[16 * 1024];
@@ -102,8 +113,8 @@ bool compress_rotated_file(const std::string &path) {
       if (written == 0 || written != read) {
         int err = 0;
         const char *msg = gzerror(gz, &err);
-        spdlog::warn("Failed to compress log {}: {}", path,
-                     msg ? msg : "unknown");
+        log->warn("Failed to compress log {}: {}", path,
+                  msg ? msg : "unknown");
         gzclose(gz);
         std::error_code ec;
         fs::remove(fs::path(compressed_path_str), ec);
@@ -116,8 +127,8 @@ bool compress_rotated_file(const std::string &path) {
   std::error_code ec;
   fs::remove(fs::path(path), ec);
   if (ec) {
-    spdlog::warn("Failed to remove original log {} after compression: {}", path,
-                 ec.message());
+    log->warn("Failed to remove original log {} after compression: {}", path,
+              ec.message());
   }
   log->info("Compressed rotated log '{}'", compressed_path_str);
   return true;
@@ -138,6 +149,7 @@ namespace agpm {
 void init_logger(spdlog::level::level_enum level, const std::string &pattern,
                  const std::string &file, std::size_t rotate_files,
                  bool compress_rotations) {
+  ensure_thread_pool();
   std::unique_lock<std::mutex> lock(g_logger_mutex);
   auto logger = spdlog::get("agpm");
   if (!logger) {
@@ -164,8 +176,14 @@ void init_logger(spdlog::level::level_enum level, const std::string &pattern,
             std::make_shared<spdlog::sinks::basic_file_sink_mt>(file, true));
       }
     }
-    logger =
-        std::make_shared<spdlog::logger>("agpm", sinks.begin(), sinks.end());
+    auto *pool = spdlog::thread_pool();
+    if (pool == nullptr) {
+      ensure_thread_pool();
+      pool = spdlog::thread_pool();
+    }
+    logger = std::make_shared<spdlog::async_logger>(
+        "agpm", sinks.begin(), sinks.end(), pool,
+        spdlog::async_overflow_policy::block);
     spdlog::set_default_logger(logger);
     g_logger = logger;
   }
@@ -196,6 +214,7 @@ void ensure_default_logger() {
 }
 
 std::shared_ptr<spdlog::logger> category_logger(const std::string &category) {
+  ensure_thread_pool();
   std::unique_lock<std::mutex> lock(g_logger_mutex);
   auto logger = spdlog::get("agpm." + category);
   if (logger) {
@@ -214,8 +233,14 @@ std::shared_ptr<spdlog::logger> category_logger(const std::string &category) {
   } else {
     sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
   }
-  auto new_logger = std::make_shared<spdlog::logger>(
-      "agpm." + category, sinks.begin(), sinks.end());
+  auto *pool = spdlog::thread_pool();
+  if (pool == nullptr) {
+    ensure_thread_pool();
+    pool = spdlog::thread_pool();
+  }
+  auto new_logger = std::make_shared<spdlog::async_logger>(
+      "agpm." + category, sinks.begin(), sinks.end(), pool,
+      spdlog::async_overflow_policy::block);
   auto level = default_logger ? default_logger->level() : spdlog::level::info;
   new_logger->set_level(level);
   spdlog::register_logger(new_logger);

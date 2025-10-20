@@ -4,10 +4,12 @@
 #include "github_poller.hpp"
 #include "history.hpp"
 #include "repo_discovery.hpp"
+#include "log.hpp"
 #include "tui.hpp"
 
 #include <algorithm>
 #include <iostream>
+#include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <unordered_set>
@@ -21,6 +23,16 @@
  * @param argv Null-terminated array containing the raw CLI arguments.
  * @return Process exit code forwarded from the application logic.
  */
+namespace {
+std::shared_ptr<spdlog::logger> main_log() {
+  static auto logger = [] {
+    agpm::ensure_default_logger();
+    return agpm::category_logger("main");
+  }();
+  return logger;
+}
+} // namespace
+
 int main(int argc, char **argv) {
   agpm::App app;
   int ret = app.run(argc, argv);
@@ -68,7 +80,7 @@ int main(int argc, char **argv) {
     for (const auto &entry : list) {
       std::pair<std::string, std::string> parsed;
       if (!parse_repo(entry, parsed)) {
-        spdlog::error("Invalid repository identifier '{}' in {} list", entry, label);
+        main_log()->error("Invalid repository identifier '{}' in {} list", entry, label);
         return false;
       }
       out.insert(repo_to_string(parsed));
@@ -195,7 +207,7 @@ int main(int argc, char **argv) {
   std::vector<std::pair<std::string, std::string>> repos;
   if (opts.repo_discovery_mode == agpm::RepoDiscoveryMode::Disabled) {
     if (include.empty()) {
-      spdlog::error(
+      main_log()->error(
           "Repository discovery disabled but no repositories specified via --include or config");
       return 1;
     }
@@ -203,7 +215,7 @@ int main(int argc, char **argv) {
     for (const auto &r : include) {
       std::pair<std::string, std::string> parsed;
       if (!parse_repo(r, parsed)) {
-        spdlog::error("Invalid repository identifier '{}'; expected OWNER/REPO", r);
+        main_log()->error("Invalid repository identifier '{}'; expected OWNER/REPO", r);
         return 1;
       }
       if (!exclude_set.empty() &&
@@ -213,7 +225,7 @@ int main(int argc, char **argv) {
       repos.push_back(std::move(parsed));
     }
     if (repos.empty()) {
-      spdlog::error(
+      main_log()->error(
           "No repositories remain after applying include/exclude filters with discovery disabled");
       return 1;
     }
@@ -238,11 +250,11 @@ int main(int argc, char **argv) {
                   repos.end());
     }
     if (repos.empty()) {
-      spdlog::warn("Repository discovery returned no repositories after filters");
+      main_log()->warn("Repository discovery returned no repositories after filters");
     }
   } else if (agpm::repo_discovery_uses_filesystem(opts.repo_discovery_mode)) {
     if (discovery_roots.empty()) {
-      spdlog::error(
+      main_log()->error(
           "Filesystem discovery requires at least one --repo-discovery-root or config entry");
       return 1;
     }
@@ -266,10 +278,10 @@ int main(int argc, char **argv) {
                   repos.end());
     }
     if (repos.empty()) {
-      spdlog::warn("Filesystem discovery located no repositories after filters");
+      main_log()->warn("Filesystem discovery located no repositories after filters");
     }
   } else {
-    spdlog::error("Unsupported repository discovery mode");
+    main_log()->error("Unsupported repository discovery mode");
     return 1;
   }
 

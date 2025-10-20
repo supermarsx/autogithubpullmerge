@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <sstream>
 #include <spdlog/spdlog.h>
@@ -21,6 +22,14 @@
 #endif
 
 namespace {
+
+std::shared_ptr<spdlog::logger> tui_log() {
+  static auto logger = [] {
+    agpm::ensure_default_logger();
+    return agpm::category_logger("tui");
+  }();
+  return logger;
+}
 
 struct ParsedBinding {
   int key;
@@ -317,7 +326,7 @@ void Tui::set_bindings_for_action(
     }
     auto existing = key_to_action_.find(binding.key);
     if (existing != key_to_action_.end() && existing->second != action) {
-      spdlog::warn(
+      tui_log()->warn(
           "Hotkey '{}' already assigned to '{}'; '{}' will take precedence",
           binding.label, existing->second, action);
     }
@@ -336,12 +345,12 @@ void Tui::configure_hotkeys(
   for (const auto &entry : bindings) {
     std::string canonical = canonicalize_action(entry.first);
     if (valid_actions().count(canonical) == 0) {
-      spdlog::warn("Unknown hotkey action '{}' in configuration", entry.first);
+      tui_log()->warn("Unknown hotkey action '{}' in configuration", entry.first);
       continue;
     }
     std::string value = trim_copy(entry.second);
     if (value.empty()) {
-      spdlog::info("Disabling hotkey bindings for action '{}'", canonical);
+      tui_log()->info("Disabling hotkey bindings for action '{}'", canonical);
       set_bindings_for_action(canonical, {});
       continue;
     }
@@ -351,7 +360,7 @@ void Tui::configure_hotkeys(
     }
     if (lower_value == "none" || lower_value == "disabled" ||
         lower_value == "off") {
-      spdlog::info("Disabling hotkey bindings for action '{}'", canonical);
+      tui_log()->info("Disabling hotkey bindings for action '{}'", canonical);
       set_bindings_for_action(canonical, {});
       continue;
     }
@@ -360,7 +369,7 @@ void Tui::configure_hotkeys(
     for (const auto &spec : specs) {
       std::vector<ParsedBinding> parsed_list = parse_binding_spec(spec);
       if (parsed_list.empty()) {
-        spdlog::warn(
+        tui_log()->warn(
             "Ignoring unrecognized hotkey binding '{}' for action '{}'", spec,
             canonical);
         continue;
@@ -370,7 +379,7 @@ void Tui::configure_hotkeys(
       }
     }
     if (parsed.empty()) {
-      spdlog::warn(
+      tui_log()->warn(
           "No valid hotkey bindings provided for action '{}'; keeping existing "
           "bindings",
           canonical);
@@ -586,10 +595,10 @@ void Tui::draw() {
 void Tui::handle_key(int ch) {
   if (!initialized_)
     return;
-  spdlog::debug("Key pressed: {}", ch);
+  tui_log()->debug("Key pressed: {}", ch);
   auto it = key_to_action_.find(ch);
   if (it == key_to_action_.end()) {
-    spdlog::debug("Unhandled key: {}", ch);
+    tui_log()->debug("Unhandled key: {}", ch);
     return;
   }
   const std::string &action = it->second;
@@ -597,19 +606,19 @@ void Tui::handle_key(int ch) {
       (action == "navigate_up" || action == "navigate_down");
   const bool is_quit = (action == "quit");
   if (!hotkeys_enabled_ && !is_navigation && !is_quit) {
-    spdlog::debug("Hotkeys disabled; ignoring action {}", action);
+    tui_log()->debug("Hotkeys disabled; ignoring action {}", action);
     return;
   }
   if (action == "quit") {
-    spdlog::info("Quit requested");
+    tui_log()->info("Quit requested");
     running_ = false;
   } else if (action == "refresh") {
-    spdlog::info("Manual refresh requested");
+    tui_log()->info("Manual refresh requested");
     poller_.poll_now();
   } else if (action == "merge") {
     if (selected_ < static_cast<int>(prs_.size())) {
       const auto &pr = prs_[selected_];
-      spdlog::info("Merge requested for PR #{}", pr.number);
+      tui_log()->info("Merge requested for PR #{}", pr.number);
       if (client_.merge_pull_request(pr.owner, pr.repo, pr.number)) {
         log("Merged PR #" + std::to_string(pr.number));
       }
@@ -632,15 +641,15 @@ void Tui::handle_key(int ch) {
   } else if (action == "navigate_up") {
     if (selected_ > 0) {
       --selected_;
-      spdlog::debug("Moved selection up to {}", selected_);
+      tui_log()->debug("Moved selection up to {}", selected_);
     }
   } else if (action == "navigate_down") {
     if (selected_ + 1 < static_cast<int>(prs_.size())) {
       ++selected_;
-      spdlog::debug("Moved selection down to {}", selected_);
+      tui_log()->debug("Moved selection down to {}", selected_);
     }
   } else {
-    spdlog::debug("Unhandled action '{}' for key {}", action, ch);
+    tui_log()->debug("Unhandled action '{}' for key {}", action, ch);
   }
 }
 

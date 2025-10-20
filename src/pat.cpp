@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <system_error>
 
@@ -30,6 +31,16 @@ extern char **environ;
 
 namespace agpm {
 
+namespace {
+std::shared_ptr<spdlog::logger> pat_log() {
+  static auto logger = [] {
+    ensure_default_logger();
+    return category_logger("pat");
+  }();
+  return logger;
+}
+} // namespace
+
 /**
  * Check whether an environment flag is enabled.
  *
@@ -53,19 +64,19 @@ static bool env_flag_enabled(const char *name) {
 static bool ls_open_url(const std::string &url) {
   CFStringRef cfstr = CFStringCreateWithCString(kCFAllocatorDefault, url.c_str(), kCFStringEncodingUTF8);
   if (!cfstr) {
-    spdlog::warn("CFStringCreateWithCString failed");
+    pat_log()->warn("CFStringCreateWithCString failed");
     return false;
   }
   CFURLRef cfurl = CFURLCreateWithString(kCFAllocatorDefault, cfstr, nullptr);
   CFRelease(cfstr);
   if (!cfurl) {
-    spdlog::warn("CFURLCreateWithString failed");
+    pat_log()->warn("CFURLCreateWithString failed");
     return false;
   }
   OSStatus st = LSOpenCFURLRef(cfurl, /*outLaunchedRef*/nullptr);
   CFRelease(cfurl);
   if (st != noErr) {
-    spdlog::warn("LSOpenCFURLRef failed: {}", static_cast<int>(st));
+    pat_log()->warn("LSOpenCFURLRef failed: {}", static_cast<int>(st));
     return false;
   }
   return true;
@@ -86,7 +97,7 @@ static bool spawn_detached(const std::vector<std::string> &argv) {
   pid_t pid = 0;
   int rc = posix_spawnp(&pid, cargv[0], /*file_actions*/nullptr, /*attrp*/nullptr, cargv.data(), environ);
   if (rc != 0) {
-    spdlog::warn("posix_spawnp('{}') failed: {} ({})", argv[0], std::strerror(rc), rc);
+    pat_log()->warn("posix_spawnp('{}') failed: {} ({})", argv[0], std::strerror(rc), rc);
     return false;
   }
   return true; // don't wait; let launchd/OS handle it
@@ -143,7 +154,7 @@ bool open_pat_creation_page() {
   if (code > 32) {
     return true;
   }
-  spdlog::warn("ShellExecuteA failed with code {}", code);
+  pat_log()->warn("ShellExecuteA failed with code {}", code);
   return false;
 #elif defined(__APPLE__)
   // On macOS, avoid any shell. Order:
@@ -152,13 +163,13 @@ bool open_pat_creation_page() {
   if (try_open_with_browser_env(url)) return true;
   if (try_open_cmds(url)) return true;
 
-  spdlog::warn("Failed to launch default browser for '{}'. Try: /usr/bin/open {}", url, url);
+  pat_log()->warn("Failed to launch default browser for '{}'. Try: /usr/bin/open {}", url, url);
   return false;
 #else
   // Linux/Unix: still rely on xdg-open but keep shell usage minimal in the rest of the codebase.
   int rc = std::system((std::string("xdg-open \"") + url + "\" >/dev/null 2>&1 &").c_str());
   if (rc != 0) {
-    spdlog::warn("xdg-open command returned {}", rc);
+    pat_log()->warn("xdg-open command returned {}", rc);
   }
   return rc == 0;
 #endif
@@ -179,20 +190,20 @@ bool save_pat_to_file(const std::string &path_str, const std::string &pat) {
   if (path.has_parent_path()) {
     fs::create_directories(path.parent_path(), ec);
     if (ec) {
-      spdlog::error("Failed to create directories for {}: {}", path_str,
+      pat_log()->error("Failed to create directories for {}: {}", path_str,
                     ec.message());
       return false;
     }
   }
   std::ofstream out(path, std::ios::out | std::ios::trunc);
   if (!out) {
-    spdlog::error("Failed to open {} for writing", path_str);
+    pat_log()->error("Failed to open {} for writing", path_str);
     return false;
   }
   out << pat << '\n';
   out.close();
   if (!out) {
-    spdlog::error("Failed to write personal access token to {}", path_str);
+    pat_log()->error("Failed to write personal access token to {}", path_str);
     return false;
   }
 #ifndef _WIN32
