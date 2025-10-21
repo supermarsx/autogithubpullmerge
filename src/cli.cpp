@@ -382,6 +382,16 @@ CliOptions parse_cli(int argc, char **argv) {
       options.log_compress_explicit = true;
       continue;
     }
+    if (arg == "--log-sidecar") {
+      options.log_sidecar = true;
+      options.log_sidecar_explicit = true;
+      continue;
+    }
+    if (arg == "--no-log-sidecar") {
+      options.log_sidecar = false;
+      options.log_sidecar_explicit = true;
+      continue;
+    }
     if (arg == "--open-pat-page") {
       options.open_pat_window = true;
       continue;
@@ -417,6 +427,11 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Maximum number of log messages to retain")
       ->type_name("N")
       ->default_val("200")
+      ->group("Logging");
+  app.add_flag("--log-sidecar", "Display logs in a dedicated sidecar window")
+      ->group("Logging");
+  app.add_flag("--no-log-sidecar",
+               "Disable the logger sidecar and use the default layout")
       ->group("Logging");
   app.add_option_function<std::string>(
          "--log-category",
@@ -482,8 +497,8 @@ CliOptions parse_cli(int argc, char **argv) {
              throw CLI::ValidationError(
                  std::string("--hotkeys: expected 'on' or 'off', got '") +
                  value + "'");
-           }
-         },
+         }
+        },
          "Explicitly enable or disable interactive hotkeys (on/off)")
       ->type_name("on|off")
       ->group("General");
@@ -597,6 +612,20 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Maximum requests per minute")
       ->type_name("RATE")
       ->default_val("60")
+      ->group("Polling");
+  app.add_option_function<double>(
+         "--rate-limit-margin",
+         [&options](double value) {
+           if (value < 0.0 || value >= 1.0) {
+             throw CLI::ValidationError(
+                 "--rate-limit-margin",
+                 "margin must be between 0 (inclusive) and 1 (exclusive)");
+           }
+           options.rate_limit_margin = value;
+           options.rate_limit_margin_explicit = true;
+         },
+         "Fraction of the hourly GitHub rate limit to reserve (default 0.7)")
+      ->type_name("FRACTION")
       ->group("Polling");
   app.add_option("-W,--workers", options.workers, "Number of worker threads")
       ->type_name("N")

@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -352,6 +353,17 @@ public:
       const std::string &owner, const std::string &repo,
       const std::vector<std::string> &protected_branches = {},
       const std::vector<std::string> &protected_branch_excludes = {});
+
+  /// Snapshot of GitHub rate limit information for the authenticated token.
+  struct RateLimitStatus {
+    long limit{0};
+    long remaining{0};
+    long used{0};
+    std::chrono::seconds reset_after{0};
+  };
+
+  /// Retrieve the current GitHub rate limit status (core resource).
+  std::optional<RateLimitStatus> rate_limit_status();
 
 private:
   std::vector<std::string> tokens_;

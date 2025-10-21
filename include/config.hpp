@@ -127,6 +127,12 @@ public:
   /// Enable or disable compression of rotated log files.
   void set_log_compress(bool enable) { log_compress_ = enable; }
 
+  /// Return whether the logger sidecar window is enabled.
+  bool log_sidecar() const { return log_sidecar_; }
+
+  /// Enable or disable the logger sidecar window.
+  void set_log_sidecar(bool enable) { log_sidecar_ = enable; }
+
   /// Retrieve configured log category overrides.
   const std::unordered_map<std::string, std::string> &log_categories() const {
     return log_categories_;
@@ -385,6 +391,12 @@ public:
   /// Enable or disable GraphQL usage.
   void set_use_graphql(bool v) { use_graphql_ = v; }
 
+  /// Fraction of the hourly GitHub rate limit kept in reserve.
+  double rate_limit_margin() const { return rate_limit_margin_; }
+
+  /// Set the fraction of the hourly GitHub rate limit kept in reserve.
+  void set_rate_limit_margin(double margin);
+
   /// Determine whether TUI hotkeys are enabled.
   bool hotkeys_enabled() const { return hotkeys_enabled_; }
 
@@ -465,6 +477,7 @@ private:
   int log_limit_ = 200;
   int log_rotate_ = 3;
   bool log_compress_ = false;
+  bool log_sidecar_ = false;
   std::unordered_map<std::string, std::string> log_categories_;
   std::vector<std::string> include_repos_;
   std::vector<std::string> exclude_repos_;
@@ -502,6 +515,7 @@ private:
   int http_timeout_ = 30;
   int http_retries_ = 3;
   std::string api_base_ = "https://api.github.com";
+  double rate_limit_margin_ = 0.7;
   long long download_limit_ = 0;
   long long upload_limit_ = 0;
   long long max_download_ = 0;

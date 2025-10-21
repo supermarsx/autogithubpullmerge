@@ -137,6 +137,10 @@ nlohmann::json toml_to_json(const toml::node &node) {
 
 } // namespace
 
+void Config::set_rate_limit_margin(double margin) {
+  rate_limit_margin_ = std::clamp(margin, 0.0, 0.95);
+}
+
 /**
  * Populate configuration settings from a JSON object.
  *
@@ -153,6 +157,9 @@ void Config::load_json(const nlohmann::json &j) {
   }
   if (j.contains("max_request_rate")) {
     set_max_request_rate(j["max_request_rate"].get<int>());
+  }
+  if (j.contains("rate_limit_margin")) {
+    set_rate_limit_margin(j["rate_limit_margin"].get<double>());
   }
   if (j.contains("workers")) {
     set_workers(std::max(1, j["workers"].get<int>()));
@@ -201,6 +208,9 @@ void Config::load_json(const nlohmann::json &j) {
   }
   if (j.contains("log_compress")) {
     set_log_compress(j["log_compress"].get<bool>());
+  }
+  if (j.contains("log_sidecar")) {
+    set_log_sidecar(j["log_sidecar"].get<bool>());
   }
   if (j.contains("log_categories")) {
     std::unordered_map<std::string, std::string> categories;

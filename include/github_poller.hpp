@@ -58,7 +58,8 @@ public:
                std::vector<std::string> protected_branch_excludes = {},
                bool dry_run = false,
                GitHubGraphQLClient *graphql_client = nullptr,
-               bool delete_stray = false);
+               bool delete_stray = false,
+               double rate_limit_margin = 0.7);
 
   /// Start polling in a background thread.
   void start();
@@ -100,14 +101,17 @@ public:
 
 private:
   void poll();
+  void adjust_rate_budget();
 
   GitHubClient &client_;
   std::vector<std::pair<std::string, std::string>> repos_;
   Poller poller_;
   int interval_ms_;
+  int base_interval_ms_;
   std::thread thread_;
   std::atomic<bool> running_{false};
   int max_rate_;
+  int base_max_rate_;
   bool only_poll_prs_;
   bool only_poll_stray_;
   bool reject_dirty_;
@@ -133,6 +137,10 @@ private:
   std::chrono::steady_clock::duration min_poll_interval_{};
   std::chrono::steady_clock::time_point next_allowed_poll_{};
   std::mutex poll_rate_mutex_;
+  double rate_limit_margin_;
+  std::chrono::steady_clock::time_point last_budget_refresh_{};
+  std::chrono::seconds budget_refresh_period_{std::chrono::seconds(60)};
+  bool adaptive_rate_limit_{true};
 };
 
 } // namespace agpm

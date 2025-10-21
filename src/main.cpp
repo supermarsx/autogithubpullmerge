@@ -203,6 +203,7 @@ int main(int argc, char **argv) {
   int workers = opts.workers == 0 ? cfg.workers() : opts.workers;
   if (workers <= 0)
     workers = 1;
+  double rate_limit_margin = opts.rate_limit_margin;
 
   std::vector<std::pair<std::string, std::string>> repos;
   if (opts.repo_discovery_mode == agpm::RepoDiscoveryMode::Disabled) {
@@ -295,7 +296,7 @@ int main(int argc, char **argv) {
       sort_mode, &history, protected_branches, protected_branch_excludes,
       opts.dry_run,
       (opts.use_graphql || cfg.use_graphql()) ? &graphql_client : nullptr,
-      delete_stray);
+      delete_stray, rate_limit_margin);
 
   if (!opts.export_csv.empty() || !opts.export_json.empty()) {
     poller.set_export_callback([&history, &opts]() {
@@ -307,7 +308,7 @@ int main(int argc, char **argv) {
       }
     });
   }
-  agpm::Tui ui(client, poller, opts.log_limit);
+  agpm::Tui ui(client, poller, opts.log_limit, opts.log_sidecar);
   bool hotkeys_enabled = cfg.hotkeys_enabled();
   if (opts.hotkeys_explicit) {
     hotkeys_enabled = opts.hotkeys_enabled;

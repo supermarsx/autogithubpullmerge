@@ -41,7 +41,8 @@ public:
    * @param poller Poller providing periodic updates to display.
    * @param log_limit Maximum number of log messages to keep in memory.
    */
-  Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit = 200);
+  Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit = 200,
+      bool log_sidecar = false);
   ~Tui();
 
   /// Initialize the curses library and windows.
@@ -102,6 +103,9 @@ public:
   /// Enable or disable interactive hotkeys at runtime.
   void set_hotkeys_enabled(bool enabled) { hotkeys_enabled_ = enabled; }
 
+  /// Toggle the logger sidecar layout.
+  void set_log_sidecar(bool enabled);
+
   /**
    * Override the configured hotkey bindings.
    *
@@ -141,6 +145,7 @@ private:
   int last_h_{0}; ///< Cached terminal height for resize detection.
   int last_w_{0}; ///< Cached terminal width for resize detection.
   bool hotkeys_enabled_{true};
+  bool log_sidecar_{false};
   std::vector<std::string> hotkey_help_order_;
   std::unordered_map<std::string, std::vector<HotkeyBinding>> action_bindings_;
   std::unordered_map<int, std::string> key_to_action_;

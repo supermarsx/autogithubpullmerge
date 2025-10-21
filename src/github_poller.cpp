@@ -3,10 +3,12 @@
 #include "sort.hpp"
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <future>
 #include <iterator>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <spdlog/spdlog.h>
 
 namespace agpm {
@@ -51,9 +53,11 @@ GitHubPoller::GitHubPoller(
     bool purge_only, std::string sort_mode, PullRequestHistory *history,
     std::vector<std::string> protected_branches,
     std::vector<std::string> protected_branch_excludes, bool dry_run,
-    GitHubGraphQLClient *graphql_client, bool delete_stray)
+    GitHubGraphQLClient *graphql_client, bool delete_stray,
+    double rate_limit_margin)
     : client_(client), repos_(std::move(repos)), poller_(workers, max_rate),
-      interval_ms_(interval_ms), max_rate_(max_rate),
+      interval_ms_(interval_ms), base_interval_ms_(interval_ms),
+      max_rate_(max_rate), base_max_rate_(max_rate),
       only_poll_prs_(only_poll_prs), only_poll_stray_(only_poll_stray),
       reject_dirty_(reject_dirty), delete_stray_(delete_stray),
       purge_prefix_(std::move(purge_prefix)), auto_merge_(auto_merge),
@@ -61,9 +65,18 @@ GitHubPoller::GitHubPoller(
       dry_run_(dry_run), graphql_client_(graphql_client),
       protected_branches_(std::move(protected_branches)),
       protected_branch_excludes_(std::move(protected_branch_excludes)),
-      history_(history) {
+      history_(history), rate_limit_margin_(rate_limit_margin) {
   ensure_default_logger();
   next_allowed_poll_ = std::chrono::steady_clock::now();
+  if (rate_limit_margin_ <= 0.0) {
+    rate_limit_margin_ = 0.0;
+    adaptive_rate_limit_ = false;
+  } else {
+    if (rate_limit_margin_ >= 0.95)
+      rate_limit_margin_ = 0.95;
+    adaptive_rate_limit_ = true;
+  }
+  last_budget_refresh_ = std::chrono::steady_clock::time_point::min();
   if (max_rate_ > 0) {
     auto interval =
         std::chrono::duration<double>(60.0 / static_cast<double>(max_rate_));
@@ -152,6 +165,7 @@ void GitHubPoller::set_notifier(NotifierPtr notifier) {
  * @return void
  */
 void GitHubPoller::poll() {
+  adjust_rate_budget();
   if (max_rate_ > 0 && max_rate_ <= 1) {
     auto now = std::chrono::steady_clock::now();
     std::lock_guard<std::mutex> lk(poll_rate_mutex_);
@@ -333,6 +347,108 @@ void GitHubPoller::poll() {
   if (log_cb_ && skip_branch_ops) {
     std::lock_guard<std::mutex> lk(log_mutex);
     log_cb_("Polled " + std::to_string(all_prs.size()) + " pull requests");
+  }
+}
+
+void GitHubPoller::adjust_rate_budget() {
+  if (!adaptive_rate_limit_) {
+    if (base_max_rate_ != max_rate_) {
+      poller_.set_max_rate(base_max_rate_);
+      max_rate_ = base_max_rate_;
+    }
+    if (interval_ms_ != base_interval_ms_) {
+      interval_ms_ = base_interval_ms_;
+    }
+    return;
+  }
+  auto now = std::chrono::steady_clock::now();
+  if (last_budget_refresh_ != std::chrono::steady_clock::time_point::min() &&
+      now - last_budget_refresh_ < budget_refresh_period_) {
+    return;
+  }
+  last_budget_refresh_ = now;
+  auto status_opt = client_.rate_limit_status();
+  if (!status_opt) {
+    return;
+  }
+  const auto &status = *status_opt;
+  if (status.limit <= 0) {
+    return;
+  }
+  long reserve = static_cast<long>(
+      std::floor(static_cast<double>(status.limit) * rate_limit_margin_));
+  if (reserve < 0)
+    reserve = 0;
+  if (reserve > status.limit)
+    reserve = status.limit;
+  long usable = status.remaining - reserve;
+  if (usable < 0)
+    usable = 0;
+  double seconds_left =
+      std::max<double>(status.reset_after.count(), 60.0);
+  double minutes_left = seconds_left / 60.0;
+  double hourly_cap =
+      static_cast<double>(status.limit) * (1.0 - rate_limit_margin_) / 60.0;
+  if (hourly_cap <= 0.0) {
+    hourly_cap = static_cast<double>(status.limit) / 60.0;
+  }
+  double remaining_cap = minutes_left > 0.0
+                             ? static_cast<double>(usable) / minutes_left
+                             : static_cast<double>(usable);
+  double allowed = hourly_cap;
+  if (remaining_cap > 0.0) {
+    allowed = std::min(allowed, remaining_cap);
+  }
+  if (base_max_rate_ > 0) {
+    allowed = std::min(allowed, static_cast<double>(base_max_rate_));
+  }
+  int desired_rate = 0;
+  if (allowed > 0.0) {
+    desired_rate = static_cast<int>(std::floor(allowed));
+    if (desired_rate <= 0) {
+      desired_rate = 1;
+    }
+  } else if (base_max_rate_ > 0) {
+    desired_rate = std::max(1, base_max_rate_);
+  } else {
+    desired_rate = 1;
+  }
+  if (base_max_rate_ > 0 && desired_rate > base_max_rate_) {
+    desired_rate = base_max_rate_;
+  }
+  if (desired_rate <= 0) {
+    desired_rate = base_max_rate_ > 0 ? base_max_rate_ : 1;
+  }
+  if (desired_rate != max_rate_) {
+    poller_log()->info(
+        "Adjusting request rate to {} rpm (limit {} remaining {} reserve {})",
+        desired_rate, status.limit, status.remaining, reserve);
+    poller_.set_max_rate(desired_rate);
+    max_rate_ = desired_rate;
+  }
+  int new_interval = base_interval_ms_;
+  if (max_rate_ > 0) {
+    int per_minute_delay = static_cast<int>(
+        std::lround(60000.0 / static_cast<double>(max_rate_)));
+    per_minute_delay = std::max(per_minute_delay, 1);
+    if (per_minute_delay < base_interval_ms_) {
+      per_minute_delay = base_interval_ms_;
+    }
+    new_interval = std::max(base_interval_ms_, per_minute_delay);
+  }
+  if (new_interval != interval_ms_) {
+    poller_log()->info("Adjusting poll interval to {} ms", new_interval);
+    interval_ms_ = new_interval;
+  }
+  if (max_rate_ > 0 && max_rate_ <= 1) {
+    auto interval =
+        std::chrono::duration<double>(60.0 / static_cast<double>(max_rate_));
+    min_poll_interval_ =
+        std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+            interval);
+    if (min_poll_interval_.count() <= 0) {
+      min_poll_interval_ = std::chrono::nanoseconds(1);
+    }
   }
 }
 

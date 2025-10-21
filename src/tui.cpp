@@ -229,8 +229,10 @@ namespace agpm {
  * @param poller Poller providing live data updates.
  * @param log_limit Maximum number of log entries to retain.
  */
-Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit)
-    : client_(client), poller_(poller), log_limit_(log_limit) {
+Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit,
+         bool log_sidecar)
+    : client_(client), poller_(poller), log_limit_(log_limit),
+      log_sidecar_(log_sidecar) {
   ensure_default_logger();
   initialize_default_hotkeys();
   open_cmd_ = [](const std::string &url) {
@@ -243,6 +245,28 @@ Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit)
 #endif
     return std::system(cmd.c_str());
   };
+}
+
+void Tui::set_log_sidecar(bool enabled) {
+  if (log_sidecar_ == enabled)
+    return;
+  log_sidecar_ = enabled;
+  last_h_ = 0;
+  last_w_ = 0;
+  if (!initialized_)
+    return;
+  if (pr_win_) {
+    delwin(pr_win_);
+    pr_win_ = nullptr;
+  }
+  if (log_win_) {
+    delwin(log_win_);
+    log_win_ = nullptr;
+  }
+  if (help_win_) {
+    delwin(help_win_);
+    help_win_ = nullptr;
+  }
 }
 
 /**
@@ -472,9 +496,80 @@ void Tui::draw() {
     return;
   int h, w;
   getmaxyx(stdscr, h, w);
-  int log_h = h / 3;
-  int help_w = w / 3;
-  if (h != last_h_ || w != last_w_) {
+  int pr_height = 0;
+  int pr_width = 0;
+  const int pr_y = 0;
+  const int pr_x = 0;
+  int log_height = 0;
+  int log_width = 0;
+  int log_y = 0;
+  int log_x = 0;
+  int help_height = 0;
+  int help_width = 0;
+  int help_y = 0;
+  int help_x = 0;
+
+  if (log_sidecar_) {
+    log_width = std::max(20, w / 3);
+    if (log_width >= w) {
+      log_width = std::max(1, w - 1);
+    }
+    pr_width = w - log_width;
+    if (pr_width < 20) {
+      pr_width = std::max(10, w / 2);
+      log_width = std::max(1, w - pr_width);
+    }
+    log_height = std::max(3, h);
+    help_height = std::max(3, h / 4);
+    if (help_height >= h) {
+      help_height = std::max(3, h - 3);
+    }
+    pr_height = h - help_height;
+    if (pr_height < 3) {
+      pr_height = std::max(3, h - 3);
+      help_height = h - pr_height;
+    }
+    help_width = pr_width;
+    log_y = 0;
+    log_x = pr_width;
+    help_y = pr_height;
+    help_x = 0;
+  } else {
+    log_height = std::max(3, h / 3);
+    if (log_height >= h) {
+      log_height = std::max(3, h - 3);
+    }
+    help_width = std::max(20, w / 3);
+    if (help_width >= w) {
+      help_width = std::max(20, w - 1);
+    }
+    log_width = w - help_width;
+    if (log_width < 10) {
+      log_width = std::max(10, w - 10);
+      help_width = w - log_width;
+    }
+    pr_height = h - log_height;
+    if (pr_height < 3) {
+      pr_height = std::max(3, h - 3);
+      log_height = h - pr_height;
+    }
+    pr_width = w;
+    help_height = log_height;
+    log_y = h - log_height;
+    log_x = 0;
+    help_y = h - help_height;
+    help_x = w - help_width;
+  }
+
+  pr_height = std::max(1, pr_height);
+  pr_width = std::max(1, pr_width);
+  log_height = std::max(1, log_height);
+  log_width = std::max(1, log_width);
+  help_height = std::max(1, help_height);
+  help_width = std::max(1, help_width);
+
+  if (h != last_h_ || w != last_w_ || pr_win_ == nullptr ||
+      log_win_ == nullptr || help_win_ == nullptr) {
     last_h_ = h;
     last_w_ = w;
     if (pr_win_)
@@ -483,13 +578,13 @@ void Tui::draw() {
       delwin(log_win_);
     if (help_win_)
       delwin(help_win_);
-    pr_win_ = newwin(h - log_h, w, 0, 0);
-    log_win_ = newwin(log_h, w - help_w, h - log_h, 0);
-    help_win_ = newwin(log_h, help_w, h - log_h, w - help_w);
     if (detail_win_) {
       delwin(detail_win_);
       detail_win_ = nullptr;
     }
+    pr_win_ = newwin(pr_height, pr_width, pr_y, pr_x);
+    log_win_ = newwin(log_height, log_width, log_y, log_x);
+    help_win_ = newwin(help_height, help_width, help_y, help_x);
   }
   if (has_colors()) {
     wbkgd(pr_win_, COLOR_PAIR(0));
@@ -503,7 +598,10 @@ void Tui::draw() {
   werase(pr_win_);
   box(pr_win_, 0, 0);
   mvwprintw(pr_win_, 0, 2, "Active PRs");
-  int max_pr_lines = h - log_h - 2;
+  int pr_win_h = 0;
+  int pr_win_w = 0;
+  getmaxyx(pr_win_, pr_win_h, pr_win_w);
+  int max_pr_lines = std::max(0, pr_win_h - 2);
   for (int i = 0; i < static_cast<int>(prs_.size()) && i < max_pr_lines; ++i) {
     if (i == selected_) {
       wattron(pr_win_, COLOR_PAIR(1));
@@ -520,7 +618,10 @@ void Tui::draw() {
   werase(log_win_);
   box(log_win_, 0, 0);
   mvwprintw(log_win_, 0, 2, "Logs");
-  int max_log_lines = log_h - 2;
+  int log_win_h = 0;
+  int log_win_w = 0;
+  getmaxyx(log_win_, log_win_h, log_win_w);
+  int max_log_lines = std::max(0, log_win_h - 2);
   int start = logs_.size() > static_cast<size_t>(max_log_lines)
                   ? static_cast<int>(logs_.size()) - max_log_lines
                   : 0;
@@ -538,7 +639,10 @@ void Tui::draw() {
   mvwprintw(help_win_, 0, 2, "Hotkeys");
   const auto &descriptions = action_descriptions();
   int line = 1;
-  int max_lines = log_h - 2;
+  int help_win_h = 0;
+  int help_win_w = 0;
+  getmaxyx(help_win_, help_win_h, help_win_w);
+  int max_lines = std::max(0, help_win_h - 2);
   if (has_colors())
     wattron(help_win_, COLOR_PAIR(3));
   for (const auto &action : hotkey_help_order_) {

@@ -44,6 +44,9 @@ public:
    */
   std::future<void> submit(std::function<void()> job);
 
+  /// Adjust the maximum request rate enforced by the token bucket.
+  void set_max_rate(int max_rate);
+
 private:
   void worker();
   bool acquire_token();

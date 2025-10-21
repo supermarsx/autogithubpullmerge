@@ -13,9 +13,10 @@ public:
   explicit CountHttpClient(std::atomic<int> &c) : counter(c) {}
   std::string get(const std::string &url,
                   const std::vector<std::string> &headers) override {
-    (void)url;
     (void)headers;
-    ++counter;
+    if (url.find("/rate_limit") == std::string::npos) {
+      ++counter;
+    }
     return "[]";
   }
   std::string put(const std::string &url, const std::string &data,

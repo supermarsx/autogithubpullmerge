@@ -36,7 +36,7 @@ A cross‑platform tool that both automates safe pull request merging and manage
   discovery via `--repo-discovery all`, or filesystem scanning with
   `--repo-discovery filesystem` and repeatable `--repo-discovery-root`
 - Supports YAML, TOML, and JSON configuration files
-- Rate limiting to control GitHub API usage
+- Adaptive rate limiting with a configurable margin to protect GitHub API usage
 - Branch protection patterns to guard important branches
 - Dry-run mode and HTTP/HTTPS proxy support
 
@@ -278,6 +278,7 @@ Logging
 - `--log-limit N` Max number of in-memory log messages shown in the TUI (default `200`).
 - `--log-rotate N` Number of rotated log files to retain (default `3`, `0` disables rotation).
 - `--log-compress` Enable gzip compression for rotated log files (disabled by default).
+- `--log-sidecar` Show logs in a dedicated sidecar window beside the pull request list.
 - `--log-category NAME[=LEVEL]` Enable a specific logging category and optionally set its level (defaults to `debug`). Repeat to enable multiple categories.
 
 Repositories
@@ -356,6 +357,7 @@ Networking
 Polling
 - `--poll-interval SECONDS` Poll frequency; `0` disables background polling (default `0`).
 - `--max-request-rate RATE` Max requests per minute (default `60`).
+- `--rate-limit-margin FRACTION` Reserve a fraction of the hourly GitHub rate limit (default `0.7`, ~30% usage target).
 - `--workers N` Number of worker threads (non-negative; default from config or 1).
 
 Testing / Utilities

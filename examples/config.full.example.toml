@@ -1,8 +1,10 @@
 verbose = true
 poll_interval = 10
 max_request_rate = 20
+rate_limit_margin = 0.7
 log_level = "debug"
 log_compress = true
+log_sidecar = true
 
 [log_categories]
 logging = "trace"

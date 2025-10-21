@@ -2,6 +2,7 @@
 #include "curl/curl.h"
 #include "log.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cctype>
 #include <chrono>
 #include <ctime>
@@ -1416,6 +1417,71 @@ void GitHubClient::close_dirty_branches(
       break;
     url = next_url;
   }
+}
+
+std::optional<GitHubClient::RateLimitStatus>
+GitHubClient::rate_limit_status() {
+  std::vector<std::string> headers;
+  if (!tokens_.empty()) {
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  }
+  headers.push_back("Accept: application/vnd.github+json");
+  std::string url = api_base_ + "/rate_limit";
+  for (int attempt = 0; attempt < 2; ++attempt) {
+    enforce_delay();
+    HttpResponse res;
+    try {
+      res = http_->get_with_headers(url, headers);
+    } catch (const std::exception &e) {
+      github_client_log()->warn("Failed to query rate limit: {}", e.what());
+      return std::nullopt;
+    }
+    if (handle_rate_limit(res)) {
+      continue;
+    }
+    if (res.status_code < 200 || res.status_code >= 300) {
+      github_client_log()->warn("Rate limit endpoint returned HTTP {}", res.status_code);
+      return std::nullopt;
+    }
+    try {
+      nlohmann::json j = nlohmann::json::parse(res.body);
+      const nlohmann::json *core = nullptr;
+      if (j.contains("resources") && j["resources"].is_object()) {
+        const auto &resources = j["resources"];
+        if (resources.contains("core") && resources["core"].is_object()) {
+          core = &resources["core"];
+        }
+      }
+      if (!core && j.contains("rate") && j["rate"].is_object()) {
+        core = &j["rate"];
+      }
+      if (!core) {
+        github_client_log()->warn("Unexpected rate limit payload");
+        return std::nullopt;
+      }
+      RateLimitStatus status;
+      status.limit = core->value("limit", 0L);
+      status.remaining = core->value("remaining", 0L);
+      status.used = core->value("used", status.limit - status.remaining);
+      long reset_epoch = core->value("reset", 0L);
+      if (reset_epoch > 0) {
+        auto now = std::chrono::system_clock::now();
+        auto reset_time =
+            std::chrono::system_clock::time_point(std::chrono::seconds(reset_epoch));
+        if (reset_time > now) {
+          status.reset_after = std::chrono::duration_cast<std::chrono::seconds>(
+              reset_time - now);
+        } else {
+          status.reset_after = std::chrono::seconds(0);
+        }
+      }
+      return status;
+    } catch (const std::exception &e) {
+      github_client_log()->warn("Failed to parse rate limit response: {}", e.what());
+      return std::nullopt;
+    }
+  }
+  return std::nullopt;
 }
 
 /**

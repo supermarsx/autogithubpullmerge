@@ -79,6 +79,16 @@ int App::run(int argc, char **argv) {
   } else {
     config_.set_log_categories(options_.log_categories);
   }
+  if (!options_.log_sidecar_explicit) {
+    options_.log_sidecar = config_.log_sidecar();
+  } else {
+    config_.set_log_sidecar(options_.log_sidecar);
+  }
+  if (!options_.rate_limit_margin_explicit) {
+    options_.rate_limit_margin = config_.rate_limit_margin();
+  } else {
+    config_.set_rate_limit_margin(options_.rate_limit_margin);
+  }
   options_.reject_dirty = options_.reject_dirty || config_.reject_dirty();
   options_.delete_stray = options_.delete_stray || config_.delete_stray();
   options_.allow_delete_base_branch =

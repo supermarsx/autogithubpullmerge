@@ -63,6 +63,8 @@ struct CliOptions {
   std::unordered_map<std::string, std::string>
       log_categories; ///< Category -> level overrides requested via CLI/config
   bool log_categories_explicit{false}; ///< True if CLI specified categories
+  bool log_sidecar{false};              ///< Show logs in a sidecar window
+  bool log_sidecar_explicit{false};     ///< True if CLI toggled log sidecar
   bool assume_yes{false};              ///< Skip confirmation prompts
   bool dry_run{false};                 ///< Simulate operations without changes
   std::vector<std::string> include_repos; ///< Repositories to include
@@ -123,6 +125,9 @@ struct CliOptions {
   bool use_graphql{false}; ///< Use GraphQL API for pull requests
   bool hotkeys_enabled{true};   ///< Whether interactive hotkeys are enabled
   bool hotkeys_explicit{false}; ///< True if CLI explicitly toggled hotkeys
+
+  double rate_limit_margin{0.7}; ///< Fraction of hourly budget reserved
+  bool rate_limit_margin_explicit{false}; ///< True if CLI set rate margin
 
   bool demo_tui{false}; ///< Launch mock TUI demo mode
 

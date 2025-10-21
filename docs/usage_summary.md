@@ -32,6 +32,7 @@ For example, `-C` maps to `--config` and `-1` toggles `--only-poll-prs`.
 - `--log-limit` - throttle in-memory log history (default `200`).
 - `--log-rotate N` - retain `N` rotated log files (default `3`, `0` disables rotation).
 - `--log-compress` - enable gzip compression for rotated log files (disabled by default).
+- `--log-sidecar` - open a dedicated log window alongside pull request details.
 - `--log-category NAME[=LEVEL]` - enable a logging category with an optional level override (defaults to `debug`). Repeat to
   enable multiple categories.
 
@@ -69,6 +70,7 @@ In configuration files, use the `repo_discovery_mode` key with values
 
 - `--poll-interval` - how often to poll GitHub (seconds, `0` disables).
 - `--max-request-rate` - limit GitHub requests per minute.
+- `--rate-limit-margin` - reserve a fraction of the hourly GitHub rate limit (default `0.7`).
 - `--pr-limit` - limit how many pull requests to fetch when listing.
 - `--pr-since` - only list pull requests newer than the given duration
   (e.g. `30m`, `2h`, `1d`).
@@ -125,18 +127,25 @@ automatically, overriding the protection for dirty branches.
 
 ## Rate Limiting
 
-Use `--max-request-rate` to throttle GitHub API calls. This option limits how
-many requests are issued per minute to avoid hitting GitHub's API quotas.
+Use `--max-request-rate` to throttle GitHub API calls. The poller also queries
+GitHub's `/rate_limit` endpoint and dynamically adjusts the active request rate
+to keep usage comfortably below the configured margin (70% reserved by
+default, targeting 30% utilisation).
+
+Tune the reserve with `--rate-limit-margin` or the matching configuration key
+to leave additional headroom for merge operations and branch maintenance.
 
 YAML:
 ```yaml
 max_request_rate: 60
+rate_limit_margin: 0.7
 ```
 
 JSON:
 ```json
 {
-  "max_request_rate": 60
+  "max_request_rate": 60,
+  "rate_limit_margin": 0.7
 }
 ```
 
