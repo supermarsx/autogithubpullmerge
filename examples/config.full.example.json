@@ -1,23 +1,45 @@
 {
-  "verbose": false,
-  "poll_interval": 5,
-  "max_request_rate": 15,
-  "rate_limit_margin": 0.7,
-  "log_level": "warn",
-  "log_compress": true,
-  "log_sidecar": true,
-  "log_categories": {
-    "logging": "trace",
-    "history": "debug"
+  "core": {
+    "_comment": "Core polling cadence configuration",
+    "verbose": false,
+    "poll_interval": 5
   },
-  "http_timeout": 50,
-  "http_retries": 4,
-  "download_limit": 21,
-  "upload_limit": 22,
-  "max_download": 23,
-  "max_upload": 24,
-  "http_proxy": "http://proxy",
-  "https_proxy": "http://secureproxy",
-  "use_graphql": false
-}
 
+  "rate_limits": {
+    "_comment": "Request pacing and rate limit safety configuration",
+    "max_request_rate": 15,
+    "max_hourly_requests": 2000,
+    "rate_limit_margin": 0.7,
+    "rate_limit_refresh_interval": 45,
+    "retry_rate_limit_endpoint": true,
+    "rate_limit_retry_limit": 5
+  },
+
+  "logging": {
+    "_comment": "Logging defaults and per-category overrides",
+    "log_level": "warn",
+    "log_compress": true,
+    "log_sidecar": true,
+    "log_categories": {
+      "logging": "trace",
+      "history": "debug"
+    }
+  },
+
+  "network": {
+    "_comment": "HTTP behaviour and throttling limits",
+    "http_timeout": 50,
+    "http_retries": 4,
+    "download_limit": 21,
+    "upload_limit": 22,
+    "max_download": 23,
+    "max_upload": 24,
+    "http_proxy": "http://proxy",
+    "https_proxy": "http://secureproxy"
+  },
+
+  "features": {
+    "_comment": "Feature toggles and optional integrations",
+    "use_graphql": false
+  }
+}

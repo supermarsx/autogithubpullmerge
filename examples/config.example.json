@@ -1,12 +1,31 @@
 {
-  "verbose": false,
-  "poll_interval": 30,
-  "max_request_rate": 50,
-  "rate_limit_margin": 0.7,
-  "use_graphql": true,
-  "log_compress": false,
-  "log_sidecar": false,
-  "log_categories": {
-    "logging": "debug"
+  "core": {
+    "_comment": "Core polling cadence configuration",
+    "verbose": false,
+    "poll_interval": 30
+  },
+
+  "rate_limits": {
+    "_comment": "Request pacing and rate limit safety configuration",
+    "max_request_rate": 50,
+    "max_hourly_requests": 3000,
+    "rate_limit_margin": 0.7,
+    "rate_limit_refresh_interval": 60,
+    "retry_rate_limit_endpoint": false,
+    "rate_limit_retry_limit": 3
+  },
+
+  "features": {
+    "_comment": "Feature flags and integrations",
+    "use_graphql": true
+  },
+
+  "logging": {
+    "_comment": "Logging output and per-category overrides",
+    "log_compress": false,
+    "log_sidecar": false,
+    "log_categories": {
+      "logging": "debug"
+    }
   }
 }

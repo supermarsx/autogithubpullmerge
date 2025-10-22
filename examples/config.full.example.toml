@@ -1,21 +1,40 @@
-verbose = true
-poll_interval = 10
-max_request_rate = 20
-rate_limit_margin = 0.7
-log_level = "debug"
-log_compress = true
-log_sidecar = true
+# Comprehensive configuration sample showcasing grouped settings
 
-[log_categories]
-logging = "trace"
-history = "debug"
+# --- Core polling cadence ---------------------------------------------------
+[core]
+verbose = true                       # Emit verbose logging to stdout
+poll_interval = 10                   # Seconds between GitHub poll cycles
 
-http_timeout = 60
-http_retries = 7
-download_limit = 11
-upload_limit = 12
-max_download = 13
-max_upload = 14
-http_proxy = "http://proxy"
-https_proxy = "http://secureproxy"
-use_graphql = true
+# --- Rate limit management --------------------------------------------------
+[rate_limits]
+max_request_rate = 20                # Requests per minute cap enforced by scheduler
+max_hourly_requests = 2000           # Hard hourly ceiling (0 autodetects via API)
+rate_limit_margin = 0.7              # Fraction of hourly budget reserved as safety buffer
+rate_limit_refresh_interval = 45     # Seconds between /rate_limit checks
+retry_rate_limit_endpoint = true     # Continue probing the endpoint after the first failure
+rate_limit_retry_limit = 5           # Maximum scheduled retries when retries are enabled
+
+# --- Logging ----------------------------------------------------------------
+[logging]
+log_level = "debug"                  # Default log verbosity
+log_compress = true                  # Compress rotated log files on disk
+log_sidecar = true                   # Display log sidecar in the TUI
+
+[logging.log_categories]
+logging = "trace"                    # Override log level for specific categories
+history = "debug"                    # Elevate history logging for audit output
+
+# --- Network behaviour ------------------------------------------------------
+[network]
+http_timeout = 60                    # HTTP request timeout in seconds
+http_retries = 7                     # Retry attempts for transient HTTP failures
+download_limit = 11                  # Download rate limit (bytes per second)
+upload_limit = 12                    # Upload rate limit (bytes per second)
+max_download = 13                    # Maximum cumulative download in bytes
+max_upload = 14                      # Maximum cumulative upload in bytes
+http_proxy = "http://proxy"          # Proxy URL for HTTP requests
+https_proxy = "http://secureproxy"   # Proxy URL for HTTPS requests
+
+# --- Integrations -----------------------------------------------------------
+[features]
+use_graphql = true                   # Prefer GraphQL API for pull request listing

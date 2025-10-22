@@ -1420,14 +1420,15 @@ void GitHubClient::close_dirty_branches(
 }
 
 std::optional<GitHubClient::RateLimitStatus>
-GitHubClient::rate_limit_status() {
+GitHubClient::rate_limit_status(int max_attempts) {
   std::vector<std::string> headers;
   if (!tokens_.empty()) {
     headers.push_back("Authorization: token " + tokens_[token_index_]);
   }
   headers.push_back("Accept: application/vnd.github+json");
   std::string url = api_base_ + "/rate_limit";
-  for (int attempt = 0; attempt < 2; ++attempt) {
+  int attempts = std::max(1, max_attempts);
+  for (int attempt = 0; attempt < attempts; ++attempt) {
     enforce_delay();
     HttpResponse res;
     try {

@@ -31,6 +31,14 @@ public:
   /// Set maximum request rate.
   void set_max_request_rate(int rate) { max_request_rate_ = rate; }
 
+  /// Maximum requests per hour (0 = auto-detected).
+  int max_hourly_requests() const { return max_hourly_requests_; }
+
+  /// Set maximum hourly request limit (0 = auto).
+  void set_max_hourly_requests(int requests) {
+    max_hourly_requests_ = requests < 0 ? 0 : requests;
+  }
+
   /// Number of worker threads used for polling operations.
   int workers() const { return workers_; }
 
@@ -397,6 +405,30 @@ public:
   /// Set the fraction of the hourly GitHub rate limit kept in reserve.
   void set_rate_limit_margin(double margin);
 
+  /// Interval between rate limit endpoint checks in seconds.
+  int rate_limit_refresh_interval() const { return rate_limit_refresh_interval_; }
+
+  /// Set the interval between rate limit endpoint checks (seconds).
+  void set_rate_limit_refresh_interval(int seconds) {
+    rate_limit_refresh_interval_ = seconds <= 0 ? 60 : seconds;
+  }
+
+  /// Whether to continue querying the rate limit endpoint after failures.
+  bool retry_rate_limit_endpoint() const { return retry_rate_limit_endpoint_; }
+
+  /// Enable or disable retrying the rate limit endpoint after failures.
+  void set_retry_rate_limit_endpoint(bool enable) {
+    retry_rate_limit_endpoint_ = enable;
+  }
+
+  /// Maximum scheduled retries of the rate limit endpoint when retries enabled.
+  int rate_limit_retry_limit() const { return rate_limit_retry_limit_; }
+
+  /// Set maximum scheduled retries of the rate limit endpoint when enabled.
+  void set_rate_limit_retry_limit(int limit) {
+    rate_limit_retry_limit_ = limit <= 0 ? 1 : limit;
+  }
+
   /// Determine whether TUI hotkeys are enabled.
   bool hotkeys_enabled() const { return hotkeys_enabled_; }
 
@@ -470,6 +502,7 @@ private:
   bool verbose_ = false;
   int poll_interval_ = 0;
   int max_request_rate_ = 60;
+  int max_hourly_requests_ = 0;
   int workers_ = 4; ///< Default number of worker threads
   std::string log_level_ = "info";
   std::string log_pattern_;
@@ -516,6 +549,9 @@ private:
   int http_retries_ = 3;
   std::string api_base_ = "https://api.github.com";
   double rate_limit_margin_ = 0.7;
+  int rate_limit_refresh_interval_ = 60;
+  bool retry_rate_limit_endpoint_ = false;
+  int rate_limit_retry_limit_ = 3;
   long long download_limit_ = 0;
   long long upload_limit_ = 0;
   long long max_download_ = 0;

@@ -107,6 +107,11 @@ int main(int argc, char **argv) {
                                              : cfg.max_request_rate();
   if (max_rate <= 0)
     max_rate = 60;
+  int hourly_limit = opts.max_hourly_requests != 0
+                         ? opts.max_hourly_requests
+                         : cfg.max_hourly_requests();
+  if (hourly_limit < 0)
+    hourly_limit = 0;
   int delay_ms = max_rate > 0 ? 60000 / max_rate : 0;
 
   int http_timeout =
@@ -204,6 +209,9 @@ int main(int argc, char **argv) {
   if (workers <= 0)
     workers = 1;
   double rate_limit_margin = opts.rate_limit_margin;
+  int rate_limit_refresh_interval = opts.rate_limit_refresh_interval;
+  bool retry_rate_limit_endpoint = opts.retry_rate_limit_endpoint;
+  int rate_limit_retry_limit = opts.rate_limit_retry_limit;
 
   std::vector<std::pair<std::string, std::string>> repos;
   if (opts.repo_discovery_mode == agpm::RepoDiscoveryMode::Disabled) {
@@ -291,12 +299,14 @@ int main(int argc, char **argv) {
   agpm::PullRequestHistory history(history_db);
 
   agpm::GitHubPoller poller(
-      client, repos, interval_ms, max_rate, workers, only_poll_prs,
+      client, repos, interval_ms, max_rate, hourly_limit, workers, only_poll_prs,
       only_poll_stray, reject_dirty, purge_prefix, auto_merge, purge_only,
       sort_mode, &history, protected_branches, protected_branch_excludes,
       opts.dry_run,
       (opts.use_graphql || cfg.use_graphql()) ? &graphql_client : nullptr,
-      delete_stray, rate_limit_margin);
+      delete_stray, rate_limit_margin,
+      std::chrono::seconds(rate_limit_refresh_interval),
+      retry_rate_limit_endpoint, rate_limit_retry_limit);
 
   if (!opts.export_csv.empty() || !opts.export_json.empty()) {
     poller.set_export_callback([&history, &opts]() {

@@ -362,8 +362,15 @@ public:
     std::chrono::seconds reset_after{0};
   };
 
-  /// Retrieve the current GitHub rate limit status (core resource).
-  std::optional<RateLimitStatus> rate_limit_status();
+  /**
+   * Retrieve the current GitHub rate limit status for the core REST resource.
+   *
+   * @param max_attempts Number of attempts to query `/rate_limit` before
+   *        giving up (minimum of one).
+   * @return Populated status snapshot when the endpoint succeeds; `std::nullopt`
+   *         if the probe fails or returns malformed data.
+   */
+  std::optional<RateLimitStatus> rate_limit_status(int max_attempts = 1);
 
 private:
   std::vector<std::string> tokens_;

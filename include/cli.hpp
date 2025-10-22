@@ -97,6 +97,8 @@ struct CliOptions {
   std::string export_json;               ///< Path to export JSON file
   int poll_interval = 0;                 ///< Polling interval in seconds
   int max_request_rate = 60;             ///< Max requests per minute
+  int max_hourly_requests = 0;           ///< Max requests per hour (0 = auto)
+  bool max_hourly_requests_explicit{false}; ///< True if CLI set hourly limit
   int workers = 0;                       ///< Number of worker threads
   int http_timeout = 30;                 ///< HTTP timeout in seconds
   int http_retries = 3;                  ///< Number of HTTP retries
@@ -128,6 +130,13 @@ struct CliOptions {
 
   double rate_limit_margin{0.7}; ///< Fraction of hourly budget reserved
   bool rate_limit_margin_explicit{false}; ///< True if CLI set rate margin
+
+  int rate_limit_refresh_interval{60}; ///< Seconds between rate limit checks
+  bool rate_limit_refresh_interval_explicit{false};
+  bool retry_rate_limit_endpoint{false}; ///< Continue querying after failures
+  bool retry_rate_limit_endpoint_explicit{false};
+  int rate_limit_retry_limit{3}; ///< Maximum retries when endpoint fails
+  bool rate_limit_retry_limit_explicit{false};
 
   bool demo_tui{false}; ///< Launch mock TUI demo mode
 

@@ -7,6 +7,7 @@
 #include <functional>
 #include <future>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <thread>
 #include <vector>
@@ -20,12 +21,14 @@ namespace agpm {
 class Poller {
 public:
   /**
-   * Construct a thread pool.
+   * Construct a thread pool and request scheduler.
    *
    * @param workers Number of worker threads used to execute polling jobs.
    * @param max_rate Maximum allowed requests per minute (0 = unlimited).
+   * @param smoothing_factor Exponential moving-average factor in the range
+   *        (0, 1] applied to request rate sampling.
    */
-  Poller(int workers, int max_rate);
+  Poller(int workers, int max_rate, double smoothing_factor = 0.2);
 
   /// Destructor stops the worker threads.
   ~Poller();
@@ -44,12 +47,65 @@ public:
    */
   std::future<void> submit(std::function<void()> job);
 
-  /// Adjust the maximum request rate enforced by the token bucket.
+  /**
+   * Adjust the maximum request rate enforced by the token bucket.
+   *
+   * @param max_rate Updated requests-per-minute ceiling (0 disables the
+   *        limiter).
+   */
   void set_max_rate(int max_rate);
+
+  /**
+   * Update the exponential smoothing factor used for rate estimation.
+   *
+   * @param factor Value in the range (0, 1] weighting the most recent
+   *        observation.
+   */
+  void set_smoothing_factor(double factor);
+
+  /**
+   * Retrieve the exponentially smoothed requests-per-minute estimate.
+   *
+   * @return Moving-average request rate reflecting recent executions.
+   */
+  double smoothed_requests_per_minute() const;
+
+  /**
+   * Return the number of queued plus in-flight jobs managed by the scheduler.
+   *
+   * @return Outstanding job count awaiting execution or completion.
+   */
+  std::size_t outstanding_jobs() const;
+
+  /**
+   * Estimate the amount of time required to drain outstanding jobs.
+   *
+   * @return Optional clearance estimate rounded to seconds; `std::nullopt`
+   *         indicates insufficient data to compute a projection.
+   */
+  std::optional<std::chrono::seconds> estimate_clearance_time() const;
+
+  /**
+   * Configure backlog alert thresholds and notification callback.
+   *
+   * @param job_threshold Minimum number of outstanding jobs required to
+   *        trigger the alert.
+   * @param clearance_threshold Minimum estimated clearance time that must be
+   *        exceeded before the callback is invoked.
+   * @param cb Callback receiving the current backlog size and clearance
+   *        estimate when thresholds are met.
+   */
+  void set_backlog_alert(std::size_t job_threshold,
+                         std::chrono::seconds clearance_threshold,
+                         std::function<void(std::size_t, std::chrono::seconds)> cb);
 
 private:
   void worker();
   bool acquire_token();
+  void record_execution();
+  void check_backlog();
+  std::optional<std::chrono::seconds>
+  estimate_clearance_time_unlocked(std::size_t outstanding) const;
 
   int workers_;
   int max_rate_;
@@ -63,6 +119,21 @@ private:
   std::mutex rate_mutex_;
   std::chrono::steady_clock::duration min_interval_{};
   std::chrono::steady_clock::time_point next_allowed_{};
+
+  // Scheduler statistics
+  double smoothing_factor_;
+  mutable std::mutex stats_mutex_;
+  std::chrono::steady_clock::time_point last_execution_{};
+  double ema_rpm_{0.0};
+  std::atomic<std::size_t> queued_{0};
+  std::atomic<std::size_t> in_flight_{0};
+
+  // Backlog alerting
+  std::size_t backlog_job_threshold_{0};
+  std::chrono::seconds backlog_time_threshold_{0};
+  std::function<void(std::size_t, std::chrono::seconds)> backlog_callback_;
+  std::chrono::steady_clock::time_point last_backlog_alert_{};
+  std::chrono::seconds backlog_alert_cooldown_{std::chrono::seconds(30)};
 };
 
 } // namespace agpm

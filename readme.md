@@ -357,7 +357,15 @@ Networking
 Polling
 - `--poll-interval SECONDS` Poll frequency; `0` disables background polling (default `0`).
 - `--max-request-rate RATE` Max requests per minute (default `60`).
+- `--max-hourly-requests RATE` Max requests per hour (default auto; falls back to
+  `5000`/hour when detection fails and still honours the rate limit margin).
 - `--rate-limit-margin FRACTION` Reserve a fraction of the hourly GitHub rate limit (default `0.7`, ~30% usage target).
+- `--rate-limit-refresh-interval SECONDS` Frequency for querying GitHub's rate
+  limit endpoint (default `60`).
+- `--retry-rate-limit-endpoint` Continue polling the rate limit endpoint after a
+  failure instead of switching permanently to the fallback limit.
+- `--rate-limit-retry-limit N` Cap how many scheduled retries are attempted
+  when the retry flag is enabled (default `3`).
 - `--workers N` Number of worker threads (non-negative; default from config or 1).
 
 Testing / Utilities

@@ -1,10 +1,26 @@
 # Example configuration for autogithubpullmerge
-verbose: true
-poll_interval: 60
-max_request_rate: 100
-rate_limit_margin: 0.7
-use_graphql: true
-log_compress: false
-log_sidecar: false
-log_categories:
-  logging: debug
+
+core:
+  # --- Core polling cadence -----------------------------------------------
+  verbose: true                      # Emit verbose logging to stdout
+  poll_interval: 60                  # Seconds between GitHub poll cycles
+
+rate_limits:
+  # --- Rate limit management ----------------------------------------------
+  max_request_rate: 100              # Requests per minute cap enforced by scheduler
+  max_hourly_requests: 3000          # Hard hourly ceiling (0 autodetects via API)
+  rate_limit_margin: 0.7             # Fraction of hourly budget reserved as safety buffer
+  rate_limit_refresh_interval: 60    # Seconds between /rate_limit checks
+  retry_rate_limit_endpoint: false   # Continue probing the endpoint after the first failure
+  rate_limit_retry_limit: 3          # Maximum scheduled retries when retries are enabled
+
+features:
+  # --- Feature toggles ----------------------------------------------------
+  use_graphql: true                  # Prefer GraphQL API for pull request listing
+
+logging:
+  # --- Logging -------------------------------------------------------------
+  log_compress: false                # Compress rotated log files on disk
+  log_sidecar: false                 # Display log sidecar in the TUI
+  log_categories:
+    logging: debug                   # Override log level for a specific category
