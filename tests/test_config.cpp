@@ -1,4 +1,5 @@
 #include "config.hpp"
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <fstream>
@@ -7,62 +8,89 @@ TEST_CASE("test config") {
   // YAML config with extended options
   {
     std::ofstream f("cfg.yaml");
-    f << "verbose: true\n";
-    f << "poll_interval: 3\n";
-    f << "max_request_rate: 10\n";
-    f << "log_level: debug\n";
-    f << "log_limit: 150\n";
-    f << "log_rotate: 5\n";
-    f << "log_compress: true\n";
-    f << "log_categories:\n";
-    f << "  history: trace\n";
-    f << "  http: debug\n";
-    f << "include_repos:\n  - repoA\n  - repoB\n";
-    f << "exclude_repos:\n  - repoC\n";
-    f << "api_keys:\n  - a\n  - b\n";
-    f << "include_merged: true\n";
-    f << "repo_discovery_mode: all\n";
-    f << "repo_discovery_roots:\n  - /tmp/repos\n";
-    f << "history_db: hist.db\n";
-    f << "export_csv: export.csv\n";
-    f << "export_json: export.json\n";
-    f << "assume_yes: true\n";
-    f << "dry_run: true\n";
-    f << "only_poll_prs: true\n";
-    f << "reject_dirty: true\n";
-    f << "delete_stray: true\n";
-    f << "auto_merge: true\n";
-    f << "allow_delete_base_branch: true\n";
-    f << "purge_only: true\n";
-    f << "purge_prefix: tmp/\n";
-    f << "pr_limit: 25\n";
-    f << "pr_since: 2h\n";
-    f << "sort: reverse\n";
-    f << "download_limit: 1000\n";
-    f << "upload_limit: 2000\n";
-    f << "max_download: 3000\n";
-    f << "max_upload: 4000\n";
-    f << "http_proxy: http://proxy\n";
-    f << "https_proxy: http://secureproxy\n";
-    f << "open_pat_page: true\n";
-    f << "pat_save_path: pat.txt\n";
-    f << "pat_value: config_pat\n";
-    f << "single_open_prs_repo: owner/repo\n";
-    f << "single_branches_repo: owner/repo\n";
-    f << "hotkeys:\n";
-    f << "  enabled: false\n";
-    f << "  bindings:\n";
-    f << "    refresh:\n";
-    f << "      - Ctrl+R\n";
-    f << "      - r\n";
-    f << "    merge: null\n";
-    f << "    details: \"enter|d\"\n";
+    f << "core:\n";
+    f << "  verbose: true\n";
+    f << "  poll_interval: 3\n";
+    f << "rate_limits:\n";
+    f << "  max_request_rate: 10\n";
+    f << "  max_hourly_requests: 2400\n";
+    f << "  rate_limit_margin: 0.6\n";
+    f << "  rate_limit_refresh_interval: 75\n";
+    f << "  retry_rate_limit_endpoint: true\n";
+    f << "  rate_limit_retry_limit: 4\n";
+    f << "logging:\n";
+    f << "  log_level: debug\n";
+    f << "  log_limit: 150\n";
+    f << "  log_rotate: 5\n";
+    f << "  log_compress: true\n";
+    f << "  log_categories:\n";
+    f << "    history: trace\n";
+    f << "    http: debug\n";
+    f << "repositories:\n";
+    f << "  include_repos:\n";
+    f << "    - repoA\n";
+    f << "    - repoB\n";
+    f << "  exclude_repos:\n";
+    f << "    - repoC\n";
+    f << "  include_merged: true\n";
+    f << "  repo_discovery_mode: all\n";
+    f << "  repo_discovery_roots:\n";
+    f << "    - /tmp/repos\n";
+    f << "tokens:\n";
+    f << "  api_keys:\n";
+    f << "    - a\n";
+    f << "    - b\n";
+    f << "artifacts:\n";
+    f << "  history_db: hist.db\n";
+    f << "  export_csv: export.csv\n";
+    f << "  export_json: export.json\n";
+    f << "workflow:\n";
+    f << "  assume_yes: true\n";
+    f << "  dry_run: true\n";
+    f << "  only_poll_prs: true\n";
+    f << "  reject_dirty: true\n";
+    f << "  delete_stray: true\n";
+    f << "  auto_merge: true\n";
+    f << "  allow_delete_base_branch: true\n";
+    f << "  purge_only: true\n";
+    f << "  purge_prefix: tmp/\n";
+    f << "  pr_limit: 25\n";
+    f << "  pr_since: 2h\n";
+    f << "  sort: reverse\n";
+    f << "network:\n";
+    f << "  download_limit: 1000\n";
+    f << "  upload_limit: 2000\n";
+    f << "  max_download: 3000\n";
+    f << "  max_upload: 4000\n";
+    f << "  http_proxy: http://proxy\n";
+    f << "  https_proxy: http://secureproxy\n";
+    f << "personal_access_tokens:\n";
+    f << "  open_pat_page: true\n";
+    f << "  pat_save_path: pat.txt\n";
+    f << "  pat_value: config_pat\n";
+    f << "single_run:\n";
+    f << "  single_open_prs_repo: owner/repo\n";
+    f << "  single_branches_repo: owner/repo\n";
+    f << "ui:\n";
+    f << "  hotkeys:\n";
+    f << "    enabled: false\n";
+    f << "    bindings:\n";
+    f << "      refresh:\n";
+    f << "        - Ctrl+R\n";
+    f << "        - r\n";
+    f << "      merge: null\n";
+    f << "      details: \"enter|d\"\n";
     f.close();
   }
   agpm::Config yaml_cfg = agpm::Config::from_file("cfg.yaml");
   REQUIRE(yaml_cfg.verbose());
   REQUIRE(yaml_cfg.poll_interval() == 3);
   REQUIRE(yaml_cfg.max_request_rate() == 10);
+  REQUIRE(yaml_cfg.max_hourly_requests() == 2400);
+  REQUIRE(yaml_cfg.rate_limit_margin() == Catch::Approx(0.6));
+  REQUIRE(yaml_cfg.rate_limit_refresh_interval() == 75);
+  REQUIRE(yaml_cfg.retry_rate_limit_endpoint());
+  REQUIRE(yaml_cfg.rate_limit_retry_limit() == 4);
   REQUIRE(yaml_cfg.log_level() == "debug");
   REQUIRE(yaml_cfg.log_limit() == 150);
   REQUIRE(yaml_cfg.log_rotate() == 5);
@@ -111,54 +139,87 @@ TEST_CASE("test config") {
 
   // JSON config with extended options
   {
+    nlohmann::json doc;
+    auto &core = doc["core"];
+    core["verbose"] = false;
+    core["poll_interval"] = 2;
+
+    auto &limits = doc["rate_limits"];
+    limits["max_request_rate"] = 5;
+    limits["max_hourly_requests"] = 2600;
+    limits["rate_limit_margin"] = 0.5;
+    limits["rate_limit_refresh_interval"] = 45;
+    limits["retry_rate_limit_endpoint"] = false;
+    limits["rate_limit_retry_limit"] = 2;
+
+    auto &logging = doc["logging"];
+    logging["log_level"] = "warn";
+    logging["log_limit"] = 175;
+    logging["log_rotate"] = 2;
+    logging["log_compress"] = true;
+    logging["log_categories"] = {{"history", "trace"}, {"http", "debug"}};
+
+    auto &repos = doc["repositories"];
+    repos["include_repos"] = {"x"};
+    repos["exclude_repos"] = {"y", "z"};
+    repos["repo_discovery_mode"] = "disabled";
+    repos["repo_discovery_roots"] = {"./repos"};
+
+    auto &tokens = doc["tokens"];
+    tokens["api_keys"] = {"k1"};
+
+    auto &artifacts = doc["artifacts"];
+    artifacts["history_db"] = "db.sqlite";
+    artifacts["export_csv"] = "out.csv";
+    artifacts["export_json"] = "out.json";
+
+    auto &workflow = doc["workflow"];
+    workflow["assume_yes"] = false;
+    workflow["dry_run"] = true;
+    workflow["only_poll_stray"] = true;
+    workflow["purge_only"] = true;
+    workflow["purge_prefix"] = "test/";
+    workflow["pr_limit"] = 30;
+    workflow["pr_since"] = "15m";
+    workflow["sort"] = "alphanum";
+    workflow["delete_stray"] = false;
+    workflow["allow_delete_base_branch"] = false;
+
+    auto &network = doc["network"];
+    network["download_limit"] = 500;
+    network["upload_limit"] = 600;
+    network["max_download"] = 700;
+    network["max_upload"] = 800;
+    network["http_proxy"] = "http://proxy";
+    network["https_proxy"] = "http://secureproxy";
+
+    auto &pat = doc["personal_access_tokens"];
+    pat["open_pat_page"] = false;
+    pat["pat_save_path"] = "";
+    pat["pat_value"] = "";
+
+    auto &single = doc["single_run"];
+    single["single_open_prs_repo"] = "single/repo";
+    single["single_branches_repo"] = "single/repo";
+
+    auto &ui = doc["ui"];
+    ui["hotkeys"] = {{"enabled", true},
+                      {"bindings",
+                       {{"open", "o"},
+                        {"quit", nlohmann::json::array({"Ctrl+Q", "q"})}}}};
+
     std::ofstream f("cfg.json");
-    f << "{";
-    f << "\"verbose\": false,";
-    f << "\"poll_interval\":2,";
-    f << "\"max_request_rate\":5,";
-    f << "\"log_level\":\"warn\",";
-    f << "\"log_limit\":175,";
-    f << "\"log_rotate\":2,";
-    f << "\"log_compress\":true,";
-    f << "\"log_categories\":{\"history\":\"trace\",\"http\":\"debug\"},";
-    f << "\"include_repos\":[\"x\"],";
-    f << "\"exclude_repos\":[\"y\",\"z\"],";
-    f << "\"api_keys\":[\"k1\"],";
-    f << "\"repo_discovery_mode\":\"disabled\",";
-    f << "\"repo_discovery_roots\":[\"./repos\"],";
-    f << "\"history_db\":\"db.sqlite\",";
-    f << "\"export_csv\":\"out.csv\",";
-    f << "\"export_json\":\"out.json\",";
-    f << "\"assume_yes\": false,";
-    f << "\"dry_run\": true,";
-    f << "\"only_poll_stray\":true,";
-    f << "\"purge_only\":true,";
-    f << "\"purge_prefix\":\"test/\",";
-    f << "\"pr_limit\":30,";
-    f << "\"pr_since\":\"15m\",";
-    f << "\"sort\":\"alphanum\",";
-    f << "\"download_limit\":500,";
-    f << "\"upload_limit\":600,";
-    f << "\"max_download\":700,";
-    f << "\"max_upload\":800,";
-    f << "\"http_proxy\":\"http://proxy\",";
-    f << "\"https_proxy\":\"http://secureproxy\",";
-    f << "\"delete_stray\":false,";
-    f << "\"allow_delete_base_branch\":false,";
-    f << "\"open_pat_page\":false,";
-    f << "\"pat_save_path\":\"\",";
-    f << "\"pat_value\":\"\",";
-    f << "\"single_open_prs_repo\":\"single/repo\",";
-    f << "\"single_branches_repo\":\"single/repo\",";
-    f << "\"hotkeys\":{\"enabled\":true,"
-         "\"bindings\":{\"open\":\"o\",\"quit\":[\"Ctrl+Q\",\"q\"]}}";
-    f << "}";
-    f.close();
+    f << doc.dump();
   }
   agpm::Config json_cfg = agpm::Config::from_file("cfg.json");
   REQUIRE(!json_cfg.verbose());
   REQUIRE(json_cfg.poll_interval() == 2);
   REQUIRE(json_cfg.max_request_rate() == 5);
+  REQUIRE(json_cfg.max_hourly_requests() == 2600);
+  REQUIRE(json_cfg.rate_limit_margin() == Catch::Approx(0.5));
+  REQUIRE(json_cfg.rate_limit_refresh_interval() == 45);
+  REQUIRE_FALSE(json_cfg.retry_rate_limit_endpoint());
+  REQUIRE(json_cfg.rate_limit_retry_limit() == 2);
   REQUIRE(json_cfg.log_level() == "warn");
   REQUIRE(json_cfg.log_limit() == 175);
   REQUIRE(json_cfg.log_rotate() == 2);
@@ -204,39 +265,57 @@ TEST_CASE("test config") {
   // TOML config with extended options
   {
     std::ofstream f("cfg.toml");
+    f << "[core]\n";
     f << "verbose = true\n";
     f << "poll_interval = 8\n";
+    f << "use_graphql = true\n\n";
+
+    f << "[rate_limits]\n";
     f << "max_request_rate = 12\n";
+    f << "max_hourly_requests = 2800\n\n";
+
+    f << "[logging]\n";
     f << "log_level = \"info\"\n";
     f << "log_limit = 220\n";
     f << "log_rotate = 4\n";
-    f << "log_compress = true\n";
-    f << "[log_categories]\n";
+    f << "log_compress = true\n\n";
+
+    f << "[logging.log_categories]\n";
     f << "history = \"trace\"\n";
-    f << "http = \"debug\"\n";
+    f << "http = \"debug\"\n\n";
+
+    f << "[repositories]\n";
     f << "include_repos = [\"repoTomlA\", \"repoTomlB\"]\n";
-    f << "exclude_repos = [\"repoTomlC\"]\n";
-    f << "api_keys = [\"tok1\", \"tok2\"]\n";
-    f << "history_db = \"history_toml.db\"\n";
+    f << "exclude_repos = [\"repoTomlC\"]\n\n";
+
+    f << "[tokens]\n";
+    f << "api_keys = [\"tok1\", \"tok2\"]\n\n";
+
+    f << "[artifacts]\n";
+    f << "history_db = \"history_toml.db\"\n\n";
+
+    f << "[workflow]\n";
     f << "only_poll_stray = true\n";
     f << "purge_only = false\n";
     f << "purge_prefix = \"hotfix/\"\n";
     f << "pr_limit = 15\n";
     f << "pr_since = \"45m\"\n";
-    f << "sort = \"reverse-alphanum\"\n";
+    f << "sort = \"reverse-alphanum\"\n\n";
+
+    f << "[network]\n";
     f << "download_limit = 1500\n";
     f << "upload_limit = 1600\n";
     f << "max_download = 1700\n";
     f << "max_upload = 1800\n";
     f << "http_timeout = 45\n";
     f << "http_retries = 6\n";
-    f << "use_graphql = true\n";
     f.close();
   }
   agpm::Config toml_cfg = agpm::Config::from_file("cfg.toml");
   REQUIRE(toml_cfg.verbose());
   REQUIRE(toml_cfg.poll_interval() == 8);
   REQUIRE(toml_cfg.max_request_rate() == 12);
+  REQUIRE(toml_cfg.max_hourly_requests() == 2800);
   REQUIRE(toml_cfg.log_level() == "info");
   REQUIRE(toml_cfg.log_limit() == 220);
   REQUIRE(toml_cfg.log_rotate() == 4);
@@ -272,7 +351,7 @@ TEST_CASE("test config") {
     t << "token = \"ttok\"\n";
     t.close();
     std::ofstream cfg("cfg_tokens.json");
-    cfg << R"({"api_keys":["direct"],"api_key_files":["tokens.yaml","tokens.toml"]})";
+    cfg << R"({"tokens":{"api_keys":["direct"],"api_key_files":["tokens.yaml","tokens.toml"]}})";
     cfg.close();
     agpm::Config cfg_tokens = agpm::Config::from_file("cfg_tokens.json");
     REQUIRE(cfg_tokens.api_keys().size() == 4);
@@ -284,7 +363,7 @@ TEST_CASE("test config") {
 
   {
     std::ofstream cfg("cfg_root.json");
-    cfg << R"({"repo_discovery_root":"/var/repos","repo_discovery_mode":"filesystem"})";
+    cfg << R"({"repositories":{"repo_discovery_root":"/var/repos","repo_discovery_mode":"filesystem"}})";
     cfg.close();
     agpm::Config cfg_root = agpm::Config::from_file("cfg_root.json");
     REQUIRE(cfg_root.repo_discovery_mode() ==

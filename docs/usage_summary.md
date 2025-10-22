@@ -70,7 +70,15 @@ In configuration files, use the `repo_discovery_mode` key with values
 
 - `--poll-interval` - how often to poll GitHub (seconds, `0` disables).
 - `--max-request-rate` - limit GitHub requests per minute.
+- `--max-hourly-requests` - cap GitHub requests per hour (auto-detected with a
+  `5000`/hour fallback when the API is unavailable).
 - `--rate-limit-margin` - reserve a fraction of the hourly GitHub rate limit (default `0.7`).
+- `--rate-limit-refresh-interval` - query GitHub's rate limit endpoint every
+  _N_ seconds (default `60`).
+- `--retry-rate-limit-endpoint` - keep retrying the rate limit endpoint after a
+  failure instead of falling back permanently.
+- `--rate-limit-retry-limit` - cap how many scheduled retries are attempted
+  when `--retry-rate-limit-endpoint` is supplied (default `3`).
 - `--pr-limit` - limit how many pull requests to fetch when listing.
 - `--pr-since` - only list pull requests newer than the given duration
   (e.g. `30m`, `2h`, `1d`).
@@ -127,25 +135,46 @@ automatically, overriding the protection for dirty branches.
 
 ## Rate Limiting
 
-Use `--max-request-rate` to throttle GitHub API calls. The poller also queries
-GitHub's `/rate_limit` endpoint and dynamically adjusts the active request rate
-to keep usage comfortably below the configured margin (70% reserved by
-default, targeting 30% utilisation).
+Use `--max-request-rate` to throttle GitHub API calls and
+`--max-hourly-requests` to enforce an absolute hourly ceiling. The poller also
+monitors GitHub's `/rate_limit` endpoint at the configured refresh interval and
+uses a FIFO request scheduler to pace calls. Each completed request updates a
+smoothed average that drives the scheduler's per-request delay, keeping usage
+comfortably below the configured margin (70% reserved by default, targeting 30%
+utilisation). When the rate limit endpoint fails the poller falls back to a
+5,000 requests/hour budget; it stops querying the endpoint after the first
+failure unless `--retry-rate-limit-endpoint` is supplied, in which case it will
+retry up to `--rate-limit-retry-limit` times before giving up.
+
+The scheduler raises a warning when the backlog grows large and includes an
+estimated time to drain outstanding requests based on the current rate budget.
 
 Tune the reserve with `--rate-limit-margin` or the matching configuration key
-to leave additional headroom for merge operations and branch maintenance.
+and adjust the refresh interval and retry behaviour via the new rate limit
+flags to leave additional headroom for merge operations and branch maintenance.
 
 YAML:
 ```yaml
-max_request_rate: 60
-rate_limit_margin: 0.7
+rate_limits:
+  max_request_rate: 60               # Requests per minute cap enforced by scheduler
+  max_hourly_requests: 2000          # Hard hourly ceiling (0 autodetects via API)
+  rate_limit_margin: 0.7             # Fraction of hourly budget reserved as safety buffer
+  rate_limit_refresh_interval: 60    # Seconds between /rate_limit checks
+  retry_rate_limit_endpoint: false   # Continue probing the endpoint after the first failure
+  rate_limit_retry_limit: 3          # Maximum scheduled retries when retries are enabled
 ```
 
 JSON:
 ```json
 {
-  "max_request_rate": 60,
-  "rate_limit_margin": 0.7
+  "rate_limits": {
+    "max_request_rate": 60,
+    "max_hourly_requests": 2000,
+    "rate_limit_margin": 0.7,
+    "rate_limit_refresh_interval": 60,
+    "retry_rate_limit_endpoint": false,
+    "rate_limit_retry_limit": 3
+  }
 }
 ```
 
@@ -193,33 +222,47 @@ autogithubpullmerge --dry-run --http-proxy http://proxy --https-proxy http://sec
 
 YAML:
 ```yaml
-http_proxy: http://proxy
-https_proxy: http://secureproxy
+network:
+  http_proxy: http://proxy
+  https_proxy: http://secureproxy
 ```
 
 JSON:
 ```json
 {
-  "http_proxy": "http://proxy",
-  "https_proxy": "http://secureproxy"
+  "network": {
+    "http_proxy": "http://proxy",
+    "https_proxy": "http://secureproxy"
+  }
 }
 ```
 
 ## Configuration File Examples
 
+Configuration entries are organised into nested sections (for example `core`,
+`rate_limits`, `network`, and `logging`) so related settings stay together
+regardless of format. Each nested group expands to the same keys exposed by
+the CLI options described above.
+
 YAML:
 ```yaml
-verbose: true
-poll_interval: 60
-max_request_rate: 100
+core:
+  verbose: true
+  poll_interval: 60
+rate_limits:
+  max_request_rate: 100
 ```
 
 JSON:
 ```json
 {
-  "verbose": false,
-  "poll_interval": 30,
-  "max_request_rate": 50
+  "core": {
+    "verbose": false,
+    "poll_interval": 30
+  },
+  "rate_limits": {
+    "max_request_rate": 50
+  }
 }
 ```
 

@@ -230,6 +230,33 @@ TEST_CASE("test cli", "[cli]") {
   REQUIRE(opts11.poll_interval == 5);
   REQUIRE(opts11.max_request_rate == 100);
 
+  char hourly_flag[] = "--max-hourly-requests";
+  char hourly_val[] = "720";
+  char *argv_hourly[] = {prog, hourly_flag, hourly_val};
+  agpm::CliOptions opts_hourly = agpm::parse_cli(3, argv_hourly);
+  REQUIRE(opts_hourly.max_hourly_requests == 720);
+  REQUIRE(opts_hourly.max_hourly_requests_explicit);
+
+  char refresh_flag[] = "--rate-limit-refresh-interval";
+  char refresh_val[] = "90";
+  char *argv_refresh[] = {prog, refresh_flag, refresh_val};
+  agpm::CliOptions opts_refresh = agpm::parse_cli(3, argv_refresh);
+  REQUIRE(opts_refresh.rate_limit_refresh_interval == 90);
+  REQUIRE(opts_refresh.rate_limit_refresh_interval_explicit);
+
+  char retry_flag[] = "--retry-rate-limit-endpoint";
+  char *argv_retry[] = {prog, retry_flag};
+  agpm::CliOptions opts_retry = agpm::parse_cli(2, argv_retry);
+  REQUIRE(opts_retry.retry_rate_limit_endpoint);
+  REQUIRE(opts_retry.retry_rate_limit_endpoint_explicit);
+
+  char retry_limit_flag[] = "--rate-limit-retry-limit";
+  char retry_limit_val[] = "7";
+  char *argv_retry_limit[] = {prog, retry_limit_flag, retry_limit_val};
+  agpm::CliOptions opts_retry_limit = agpm::parse_cli(3, argv_retry_limit);
+  REQUIRE(opts_retry_limit.rate_limit_retry_limit == 7);
+  REQUIRE(opts_retry_limit.rate_limit_retry_limit_explicit);
+
   char db_flag[] = "--history-db";
   char path_db[] = "my.db";
   char *argv12[] = {prog, db_flag, path_db};

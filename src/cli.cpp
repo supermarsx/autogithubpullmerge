@@ -613,6 +613,21 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("RATE")
       ->default_val("60")
       ->group("Polling");
+  app.add_option_function<int>(
+         "--max-hourly-requests",
+         [&options](int value) {
+           if (value < 0) {
+             throw CLI::ValidationError(
+                 "--max-hourly-requests",
+                 "hourly request limit must be non-negative");
+           }
+           options.max_hourly_requests = value;
+           options.max_hourly_requests_explicit = true;
+         },
+         "Maximum requests per hour (0 uses auto-detected or fallback limit)")
+      ->type_name("RATE")
+      ->default_str("auto")
+      ->group("Polling");
   app.add_option_function<double>(
          "--rate-limit-margin",
          [&options](double value) {
@@ -626,6 +641,40 @@ CliOptions parse_cli(int argc, char **argv) {
          },
          "Fraction of the hourly GitHub rate limit to reserve (default 0.7)")
       ->type_name("FRACTION")
+      ->group("Polling");
+  app.add_option_function<int>(
+         "--rate-limit-refresh-interval",
+         [&options](int value) {
+           if (value <= 0) {
+             throw CLI::ValidationError(
+                 "--rate-limit-refresh-interval",
+                 "refresh interval must be positive seconds");
+           }
+           options.rate_limit_refresh_interval = value;
+           options.rate_limit_refresh_interval_explicit = true;
+         },
+         "Seconds between GitHub rate limit endpoint checks (default 60)")
+      ->type_name("SECONDS")
+      ->group("Polling");
+  app.add_flag("--retry-rate-limit-endpoint",
+               options.retry_rate_limit_endpoint,
+               "Continue querying the rate limit endpoint after failures")
+      ->group("Polling")
+      ->callback([&options]() {
+        options.retry_rate_limit_endpoint_explicit = true;
+      });
+  app.add_option_function<int>(
+         "--rate-limit-retry-limit",
+         [&options](int value) {
+           if (value <= 0) {
+             throw CLI::ValidationError("--rate-limit-retry-limit",
+                                       "retry limit must be positive");
+           }
+           options.rate_limit_retry_limit = value;
+           options.rate_limit_retry_limit_explicit = true;
+         },
+         "Maximum scheduled retries of the rate limit endpoint when enabled")
+      ->type_name("N")
       ->group("Polling");
   app.add_option("-W,--workers", options.workers, "Number of worker threads")
       ->type_name("N")

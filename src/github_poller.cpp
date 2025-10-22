@@ -5,15 +5,18 @@
 #include <atomic>
 #include <cmath>
 #include <future>
+#include <iomanip>
 #include <iterator>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <sstream>
 #include <spdlog/spdlog.h>
 
 namespace agpm {
 
 namespace {
+constexpr int kFallbackHourlyLimit = 5000;
 std::shared_ptr<spdlog::logger> poller_log() {
   static auto logger = [] {
     ensure_default_logger();
@@ -44,20 +47,30 @@ std::shared_ptr<spdlog::logger> poller_log() {
  * @param dry_run When true, perform logging without mutating repositories.
  * @param graphql_client Optional GraphQL client for PR listing.
  * @param delete_stray Delete stray branches automatically when true.
+ * @param rate_limit_margin Fraction of the detected hourly budget reserved.
+ * @param rate_limit_refresh_interval Seconds between `/rate_limit` probes.
+ * @param retry_rate_limit_endpoint Enable repeated `/rate_limit` queries after
+ *        failures when true.
+ * @param rate_limit_retry_limit Maximum number of scheduled retries before
+ *        disabling the `/rate_limit` endpoint.
  */
 GitHubPoller::GitHubPoller(
     GitHubClient &client,
     std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
-    int max_rate, int workers, bool only_poll_prs, bool only_poll_stray,
+    int max_rate, int hourly_request_limit, int workers, bool only_poll_prs,
+    bool only_poll_stray,
     bool reject_dirty, std::string purge_prefix, bool auto_merge,
     bool purge_only, std::string sort_mode, PullRequestHistory *history,
     std::vector<std::string> protected_branches,
     std::vector<std::string> protected_branch_excludes, bool dry_run,
     GitHubGraphQLClient *graphql_client, bool delete_stray,
-    double rate_limit_margin)
+    double rate_limit_margin, std::chrono::seconds rate_limit_refresh_interval,
+    bool retry_rate_limit_endpoint, int rate_limit_retry_limit)
     : client_(client), repos_(std::move(repos)), poller_(workers, max_rate),
       interval_ms_(interval_ms), base_interval_ms_(interval_ms),
       max_rate_(max_rate), base_max_rate_(max_rate),
+      hourly_request_limit_(hourly_request_limit > 0 ? hourly_request_limit : 0),
+      fallback_hourly_limit_(kFallbackHourlyLimit),
       only_poll_prs_(only_poll_prs), only_poll_stray_(only_poll_stray),
       reject_dirty_(reject_dirty), delete_stray_(delete_stray),
       purge_prefix_(std::move(purge_prefix)), auto_merge_(auto_merge),
@@ -77,6 +90,29 @@ GitHubPoller::GitHubPoller(
     adaptive_rate_limit_ = true;
   }
   last_budget_refresh_ = std::chrono::steady_clock::time_point::min();
+  budget_refresh_period_ =
+      rate_limit_refresh_interval.count() > 0 ? rate_limit_refresh_interval
+                                              : std::chrono::seconds(60);
+  retry_rate_limit_endpoint_ = retry_rate_limit_endpoint;
+  rate_limit_retry_limit_ = std::max(1, rate_limit_retry_limit);
+  rate_limit_query_attempts_ = 1;
+  if (!retry_rate_limit_endpoint_) {
+    rate_limit_retry_limit_ = 1;
+  }
+  min_request_delay_ =
+      std::chrono::milliseconds(max_rate_ > 0 ? std::max(1, 60000 / max_rate_)
+                                              : 0);
+  auto backlog_jobs_threshold =
+      static_cast<std::size_t>(std::max(workers * 2, 10));
+  auto clearance_threshold =
+      budget_refresh_period_ > std::chrono::seconds(0)
+          ? budget_refresh_period_
+          : std::chrono::seconds(60);
+  poller_.set_backlog_alert(backlog_jobs_threshold, clearance_threshold,
+                            [this](std::size_t outstanding,
+                                   std::chrono::seconds clearance) {
+                              handle_backlog(outstanding, clearance);
+                            });
   if (max_rate_ > 0) {
     auto interval =
         std::chrono::duration<double>(60.0 / static_cast<double>(max_rate_));
@@ -350,6 +386,9 @@ void GitHubPoller::poll() {
   }
 }
 
+/**
+ * Refresh rate limit information and tune scheduler parameters.
+ */
 void GitHubPoller::adjust_rate_budget() {
   if (!adaptive_rate_limit_) {
     if (base_max_rate_ != max_rate_) {
@@ -367,39 +406,91 @@ void GitHubPoller::adjust_rate_budget() {
     return;
   }
   last_budget_refresh_ = now;
-  auto status_opt = client_.rate_limit_status();
-  if (!status_opt) {
+  std::optional<GitHubClient::RateLimitStatus> status_opt;
+  bool queried_endpoint = false;
+  if (rate_limit_monitor_enabled_) {
+    status_opt = client_.rate_limit_status(rate_limit_query_attempts_);
+    queried_endpoint = true;
+    if (!status_opt) {
+      ++consecutive_rate_limit_failures_;
+      if (!retry_rate_limit_endpoint_ ||
+          consecutive_rate_limit_failures_ >= rate_limit_retry_limit_) {
+        rate_limit_monitor_enabled_ = false;
+        poller_log()->warn(
+            "Disabling rate limit endpoint polling after {} failure(s)",
+            consecutive_rate_limit_failures_);
+      } else {
+        poller_log()->warn(
+            "Rate limit endpoint unavailable ({} consecutive failure(s)); will retry in {}s",
+            consecutive_rate_limit_failures_, budget_refresh_period_.count());
+      }
+    } else {
+      consecutive_rate_limit_failures_ = 0;
+    }
+  }
+  long limit = 0;
+  long remaining = 0;
+  double seconds_left = 3600.0;
+  std::string source_tag;
+  if (status_opt && status_opt->limit > 0) {
+    limit = status_opt->limit;
+    remaining = status_opt->remaining;
+    seconds_left =
+        std::max<double>(status_opt->reset_after.count(), 60.0);
+    source_tag = "detected";
+    if (hourly_request_limit_ > 0 && limit > hourly_request_limit_) {
+      limit = hourly_request_limit_;
+      if (remaining > limit) {
+        remaining = limit;
+      }
+      source_tag = "detected+override";
+    }
+  } else {
+    limit = hourly_request_limit_ > 0 ? hourly_request_limit_
+                                      : fallback_hourly_limit_;
+    if (limit <= 0) {
+      limit = fallback_hourly_limit_;
+    }
+    remaining = limit;
+    if (!rate_limit_monitor_enabled_ && queried_endpoint) {
+      source_tag = "monitor-disabled";
+    } else {
+      source_tag = hourly_request_limit_ > 0 ? "configured" : "fallback";
+    }
+  }
+  if (remaining > limit) {
+    remaining = limit;
+  }
+  if (limit <= 0) {
     return;
   }
-  const auto &status = *status_opt;
-  if (status.limit <= 0) {
-    return;
-  }
-  long reserve = static_cast<long>(
-      std::floor(static_cast<double>(status.limit) * rate_limit_margin_));
+  long reserve =
+      static_cast<long>(std::floor(static_cast<double>(limit) * rate_limit_margin_));
   if (reserve < 0)
     reserve = 0;
-  if (reserve > status.limit)
-    reserve = status.limit;
-  long usable = status.remaining - reserve;
+  if (reserve > limit)
+    reserve = limit;
+  long usable = remaining - reserve;
   if (usable < 0)
     usable = 0;
-  double seconds_left =
-      std::max<double>(status.reset_after.count(), 60.0);
+  if (seconds_left < 60.0)
+    seconds_left = 60.0;
   double minutes_left = seconds_left / 60.0;
   double hourly_cap =
-      static_cast<double>(status.limit) * (1.0 - rate_limit_margin_) / 60.0;
+      static_cast<double>(limit) * (1.0 - rate_limit_margin_) / 60.0;
   if (hourly_cap <= 0.0) {
-    hourly_cap = static_cast<double>(status.limit) / 60.0;
+    hourly_cap = static_cast<double>(limit) / 60.0;
   }
   double remaining_cap = minutes_left > 0.0
                              ? static_cast<double>(usable) / minutes_left
                              : static_cast<double>(usable);
   double allowed = hourly_cap;
-  if (remaining_cap > 0.0) {
+  if (allowed <= 0.0 && remaining_cap > 0.0) {
+    allowed = remaining_cap;
+  } else if (remaining_cap > 0.0) {
     allowed = std::min(allowed, remaining_cap);
   }
-  if (base_max_rate_ > 0) {
+  if (base_max_rate_ > 0 && allowed > 0.0) {
     allowed = std::min(allowed, static_cast<double>(base_max_rate_));
   }
   int desired_rate = 0;
@@ -421,10 +512,15 @@ void GitHubPoller::adjust_rate_budget() {
   }
   if (desired_rate != max_rate_) {
     poller_log()->info(
-        "Adjusting request rate to {} rpm (limit {} remaining {} reserve {})",
-        desired_rate, status.limit, status.remaining, reserve);
+        "Adjusting request rate to {} rpm (limit {} remaining {} reserve {} source {})",
+        desired_rate, limit, remaining, reserve, source_tag);
     poller_.set_max_rate(desired_rate);
     max_rate_ = desired_rate;
+  }
+  double observed_rpm = poller_.smoothed_requests_per_minute();
+  if (observed_rpm > 0.0) {
+    poller_log()->debug("Request scheduler average {:.2f} rpm (~{:.0f} rph)",
+                        observed_rpm, observed_rpm * 60.0);
   }
   int new_interval = base_interval_ms_;
   if (max_rate_ > 0) {
@@ -435,6 +531,21 @@ void GitHubPoller::adjust_rate_budget() {
       per_minute_delay = base_interval_ms_;
     }
     new_interval = std::max(base_interval_ms_, per_minute_delay);
+    int smoothed_delay = per_minute_delay;
+    if (observed_rpm > 0.0) {
+      int averaged_delay = static_cast<int>(
+          std::lround(60000.0 / std::max(observed_rpm, 1.0)));
+      if (averaged_delay > smoothed_delay) {
+        smoothed_delay = averaged_delay;
+      }
+    }
+    if (smoothed_delay < 1) {
+      smoothed_delay = 1;
+    }
+    if (min_request_delay_.count() != smoothed_delay) {
+      min_request_delay_ = std::chrono::milliseconds(smoothed_delay);
+      client_.set_delay_ms(static_cast<int>(min_request_delay_.count()));
+    }
   }
   if (new_interval != interval_ms_) {
     poller_log()->info("Adjusting poll interval to {} ms", new_interval);
@@ -449,6 +560,27 @@ void GitHubPoller::adjust_rate_budget() {
     if (min_poll_interval_.count() <= 0) {
       min_poll_interval_ = std::chrono::nanoseconds(1);
     }
+  }
+}
+
+/**
+ * Emit a backlog warning describing current scheduler pressure.
+ *
+ * @param outstanding Number of outstanding jobs queued or executing.
+ * @param clearance_estimate Estimated time required to drain the backlog.
+ */
+void GitHubPoller::handle_backlog(std::size_t outstanding,
+                                  std::chrono::seconds clearance_estimate) {
+  std::ostringstream oss;
+  oss << "Request scheduler backlog " << outstanding
+      << " operations; estimated clearance " << clearance_estimate.count()
+      << "s with current rate limit margin "
+      << std::fixed << std::setprecision(2) << rate_limit_margin_;
+  const std::string message = oss.str();
+  if (log_cb_) {
+    log_cb_(message);
+  } else {
+    poller_log()->warn("{}", message);
   }
 }
 

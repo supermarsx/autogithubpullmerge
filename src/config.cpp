@@ -10,6 +10,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_set>
 
 #include <nlohmann/json.hpp>
@@ -135,6 +136,39 @@ nlohmann::json toml_to_json(const toml::node &node) {
   return nullptr;
 }
 
+/**
+ * Merge recognised configuration sections into the root object so grouped
+ * configuration files can expose the same flat keys that the loader expects.
+ *
+ * This preserves backwards compatibility with legacy flat configurations while
+ * allowing new examples to organise related settings under nested objects such
+ * as `core`, `rate_limits`, or `logging`.
+ */
+nlohmann::json normalize_config_sections(const nlohmann::json &source) {
+  nlohmann::json normalized = source;
+  auto merge_section = [&normalized](std::string_view name) {
+    auto it = normalized.find(std::string{name});
+    if (it == normalized.end() || !it->is_object()) {
+      return;
+    }
+    const nlohmann::json section = *it;
+    for (const auto &[key, value] : section.items()) {
+      normalized[key] = value;
+    }
+  };
+
+  for (std::string_view section : {"core", "rate_limits", "logging",
+                                    "network", "repositories", "tokens",
+                                    "features", "integrations", "workflow",
+                                    "artifacts", "ui",
+                                    "personal_access_tokens", "pat",
+                                    "single_run"}) {
+    merge_section(section);
+  }
+
+  return normalized;
+}
+
 } // namespace
 
 void Config::set_rate_limit_margin(double margin) {
@@ -149,72 +183,88 @@ void Config::set_rate_limit_margin(double margin) {
  *         to the expected types.
  */
 void Config::load_json(const nlohmann::json &j) {
-  if (j.contains("verbose")) {
-    set_verbose(j["verbose"].get<bool>());
+  nlohmann::json cfg = normalize_config_sections(j);
+
+  if (cfg.contains("verbose")) {
+    set_verbose(cfg["verbose"].get<bool>());
   }
-  if (j.contains("poll_interval")) {
-    set_poll_interval(j["poll_interval"].get<int>());
+  if (cfg.contains("poll_interval")) {
+    set_poll_interval(cfg["poll_interval"].get<int>());
   }
-  if (j.contains("max_request_rate")) {
-    set_max_request_rate(j["max_request_rate"].get<int>());
+  if (cfg.contains("max_request_rate")) {
+    set_max_request_rate(cfg["max_request_rate"].get<int>());
   }
-  if (j.contains("rate_limit_margin")) {
-    set_rate_limit_margin(j["rate_limit_margin"].get<double>());
+  if (cfg.contains("max_hourly_requests")) {
+    set_max_hourly_requests(cfg["max_hourly_requests"].get<int>());
   }
-  if (j.contains("workers")) {
-    set_workers(std::max(1, j["workers"].get<int>()));
+  if (cfg.contains("rate_limit_margin")) {
+    set_rate_limit_margin(cfg["rate_limit_margin"].get<double>());
   }
-  if (j.contains("http_timeout")) {
-    set_http_timeout(j["http_timeout"].get<int>());
+  if (cfg.contains("rate_limit_refresh_interval")) {
+    set_rate_limit_refresh_interval(
+        cfg["rate_limit_refresh_interval"].get<int>());
   }
-  if (j.contains("http_retries")) {
-    set_http_retries(j["http_retries"].get<int>());
+  if (cfg.contains("retry_rate_limit_endpoint")) {
+    set_retry_rate_limit_endpoint(
+        cfg["retry_rate_limit_endpoint"].get<bool>());
   }
-  if (j.contains("api_base")) {
-    set_api_base(j["api_base"].get<std::string>());
+  if (cfg.contains("rate_limit_retry_limit")) {
+    set_rate_limit_retry_limit(cfg["rate_limit_retry_limit"].get<int>());
   }
-  if (j.contains("download_limit")) {
-    set_download_limit(j["download_limit"].get<long long>());
+  if (cfg.contains("workers")) {
+    set_workers(std::max(1, cfg["workers"].get<int>()));
   }
-  if (j.contains("upload_limit")) {
-    set_upload_limit(j["upload_limit"].get<long long>());
+  if (cfg.contains("http_timeout")) {
+    set_http_timeout(cfg["http_timeout"].get<int>());
   }
-  if (j.contains("max_download")) {
-    set_max_download(j["max_download"].get<long long>());
+  if (cfg.contains("http_retries")) {
+    set_http_retries(cfg["http_retries"].get<int>());
   }
-  if (j.contains("max_upload")) {
-    set_max_upload(j["max_upload"].get<long long>());
+  if (cfg.contains("api_base")) {
+    set_api_base(cfg["api_base"].get<std::string>());
   }
-  if (j.contains("http_proxy")) {
-    set_http_proxy(j["http_proxy"].get<std::string>());
+  if (cfg.contains("download_limit")) {
+    set_download_limit(cfg["download_limit"].get<long long>());
   }
-  if (j.contains("https_proxy")) {
-    set_https_proxy(j["https_proxy"].get<std::string>());
+  if (cfg.contains("upload_limit")) {
+    set_upload_limit(cfg["upload_limit"].get<long long>());
   }
-  if (j.contains("log_level")) {
-    set_log_level(j["log_level"].get<std::string>());
+  if (cfg.contains("max_download")) {
+    set_max_download(cfg["max_download"].get<long long>());
   }
-  if (j.contains("log_pattern")) {
-    set_log_pattern(j["log_pattern"].get<std::string>());
+  if (cfg.contains("max_upload")) {
+    set_max_upload(cfg["max_upload"].get<long long>());
   }
-  if (j.contains("log_file")) {
-    set_log_file(j["log_file"].get<std::string>());
+  if (cfg.contains("http_proxy")) {
+    set_http_proxy(cfg["http_proxy"].get<std::string>());
   }
-  if (j.contains("log_limit")) {
-    set_log_limit(j["log_limit"].get<int>());
+  if (cfg.contains("https_proxy")) {
+    set_https_proxy(cfg["https_proxy"].get<std::string>());
   }
-  if (j.contains("log_rotate")) {
-    set_log_rotate(j["log_rotate"].get<int>());
+  if (cfg.contains("log_level")) {
+    set_log_level(cfg["log_level"].get<std::string>());
   }
-  if (j.contains("log_compress")) {
-    set_log_compress(j["log_compress"].get<bool>());
+  if (cfg.contains("log_pattern")) {
+    set_log_pattern(cfg["log_pattern"].get<std::string>());
   }
-  if (j.contains("log_sidecar")) {
-    set_log_sidecar(j["log_sidecar"].get<bool>());
+  if (cfg.contains("log_file")) {
+    set_log_file(cfg["log_file"].get<std::string>());
   }
-  if (j.contains("log_categories")) {
+  if (cfg.contains("log_limit")) {
+    set_log_limit(cfg["log_limit"].get<int>());
+  }
+  if (cfg.contains("log_rotate")) {
+    set_log_rotate(cfg["log_rotate"].get<int>());
+  }
+  if (cfg.contains("log_compress")) {
+    set_log_compress(cfg["log_compress"].get<bool>());
+  }
+  if (cfg.contains("log_sidecar")) {
+    set_log_sidecar(cfg["log_sidecar"].get<bool>());
+  }
+  if (cfg.contains("log_categories")) {
     std::unordered_map<std::string, std::string> categories;
-    const auto &value = j["log_categories"];
+    const auto &value = cfg["log_categories"];
     auto assign_category = [&categories](std::string name, std::string level) {
       if (name.empty()) {
         return;
@@ -256,62 +306,62 @@ void Config::load_json(const nlohmann::json &j) {
     }
     set_log_categories(std::move(categories));
   }
-  if (j.contains("include_repos")) {
-    set_include_repos(j["include_repos"].get<std::vector<std::string>>());
+  if (cfg.contains("include_repos")) {
+    set_include_repos(cfg["include_repos"].get<std::vector<std::string>>());
   }
-  if (j.contains("exclude_repos")) {
-    set_exclude_repos(j["exclude_repos"].get<std::vector<std::string>>());
+  if (cfg.contains("exclude_repos")) {
+    set_exclude_repos(cfg["exclude_repos"].get<std::vector<std::string>>());
   }
-  if (j.contains("protected_branches")) {
+  if (cfg.contains("protected_branches")) {
     set_protected_branches(
-        j["protected_branches"].get<std::vector<std::string>>());
+        cfg["protected_branches"].get<std::vector<std::string>>());
   }
-  if (j.contains("protected_branch_excludes")) {
+  if (cfg.contains("protected_branch_excludes")) {
     set_protected_branch_excludes(
-        j["protected_branch_excludes"].get<std::vector<std::string>>());
+        cfg["protected_branch_excludes"].get<std::vector<std::string>>());
   }
-  if (j.contains("include_merged")) {
-    set_include_merged(j["include_merged"].get<bool>());
+  if (cfg.contains("include_merged")) {
+    set_include_merged(cfg["include_merged"].get<bool>());
   }
-  if (j.contains("repo_discovery_mode")) {
+  if (cfg.contains("repo_discovery_mode")) {
     try {
       set_repo_discovery_mode(repo_discovery_mode_from_string(
-          j["repo_discovery_mode"].get<std::string>()));
+          cfg["repo_discovery_mode"].get<std::string>()));
     } catch (const std::exception &e) {
       config_log()->error("Invalid repo_discovery_mode: {}", e.what());
       throw;
     }
   }
-  if (j.contains("repo_discovery_roots")) {
+  if (cfg.contains("repo_discovery_roots")) {
     set_repo_discovery_roots(
-        j["repo_discovery_roots"].get<std::vector<std::string>>());
+        cfg["repo_discovery_roots"].get<std::vector<std::string>>());
   }
-  if (j.contains("repo_discovery_root")) {
-    add_repo_discovery_root(j["repo_discovery_root"].get<std::string>());
+  if (cfg.contains("repo_discovery_root")) {
+    add_repo_discovery_root(cfg["repo_discovery_root"].get<std::string>());
   }
-  if (j.contains("api_keys")) {
-    set_api_keys(j["api_keys"].get<std::vector<std::string>>());
+  if (cfg.contains("api_keys")) {
+    set_api_keys(cfg["api_keys"].get<std::vector<std::string>>());
   }
-  if (j.contains("api_key_from_stream")) {
-    set_api_key_from_stream(j["api_key_from_stream"].get<bool>());
+  if (cfg.contains("api_key_from_stream")) {
+    set_api_key_from_stream(cfg["api_key_from_stream"].get<bool>());
   }
-  if (j.contains("api_key_url")) {
-    set_api_key_url(j["api_key_url"].get<std::string>());
+  if (cfg.contains("api_key_url")) {
+    set_api_key_url(cfg["api_key_url"].get<std::string>());
   }
-  if (j.contains("api_key_url_user")) {
-    set_api_key_url_user(j["api_key_url_user"].get<std::string>());
+  if (cfg.contains("api_key_url_user")) {
+    set_api_key_url_user(cfg["api_key_url_user"].get<std::string>());
   }
-  if (j.contains("api_key_url_password")) {
-    set_api_key_url_password(j["api_key_url_password"].get<std::string>());
+  if (cfg.contains("api_key_url_password")) {
+    set_api_key_url_password(cfg["api_key_url_password"].get<std::string>());
   }
-  if (j.contains("api_key_files")) {
-    set_api_key_files(j["api_key_files"].get<std::vector<std::string>>());
+  if (cfg.contains("api_key_files")) {
+    set_api_key_files(cfg["api_key_files"].get<std::vector<std::string>>());
   }
-  if (j.contains("api_key_file")) {
-    add_api_key_file(j["api_key_file"].get<std::string>());
+  if (cfg.contains("api_key_file")) {
+    add_api_key_file(cfg["api_key_file"].get<std::string>());
   }
-  if (j.contains("history_db")) {
-    set_history_db(j["history_db"].get<std::string>());
+  if (cfg.contains("history_db")) {
+    set_history_db(cfg["history_db"].get<std::string>());
   }
   if (!api_key_files().empty()) {
     for (const auto &file : api_key_files()) {
@@ -325,69 +375,70 @@ void Config::load_json(const nlohmann::json &j) {
       }
     }
   }
-  if (j.contains("export_csv")) {
-    set_export_csv(j["export_csv"].get<std::string>());
+  if (cfg.contains("export_csv")) {
+    set_export_csv(cfg["export_csv"].get<std::string>());
   }
-  if (j.contains("export_json")) {
-    set_export_json(j["export_json"].get<std::string>());
+  if (cfg.contains("export_json")) {
+    set_export_json(cfg["export_json"].get<std::string>());
   }
-  if (j.contains("assume_yes")) {
-    set_assume_yes(j["assume_yes"].get<bool>());
+  if (cfg.contains("assume_yes")) {
+    set_assume_yes(cfg["assume_yes"].get<bool>());
   }
-  if (j.contains("dry_run")) {
-    set_dry_run(j["dry_run"].get<bool>());
+  if (cfg.contains("dry_run")) {
+    set_dry_run(cfg["dry_run"].get<bool>());
   }
-  if (j.contains("only_poll_prs")) {
-    set_only_poll_prs(j["only_poll_prs"].get<bool>());
+  if (cfg.contains("only_poll_prs")) {
+    set_only_poll_prs(cfg["only_poll_prs"].get<bool>());
   }
-  if (j.contains("only_poll_stray")) {
-    set_only_poll_stray(j["only_poll_stray"].get<bool>());
+  if (cfg.contains("only_poll_stray")) {
+    set_only_poll_stray(cfg["only_poll_stray"].get<bool>());
   }
-  if (j.contains("purge_only")) {
-    set_purge_only(j["purge_only"].get<bool>());
+  if (cfg.contains("purge_only")) {
+    set_purge_only(cfg["purge_only"].get<bool>());
   }
-  if (j.contains("reject_dirty")) {
-    set_reject_dirty(j["reject_dirty"].get<bool>());
+  if (cfg.contains("reject_dirty")) {
+    set_reject_dirty(cfg["reject_dirty"].get<bool>());
   }
-  if (j.contains("delete_stray")) {
-    set_delete_stray(j["delete_stray"].get<bool>());
+  if (cfg.contains("delete_stray")) {
+    set_delete_stray(cfg["delete_stray"].get<bool>());
   }
-  if (j.contains("auto_merge")) {
-    set_auto_merge(j["auto_merge"].get<bool>());
+  if (cfg.contains("auto_merge")) {
+    set_auto_merge(cfg["auto_merge"].get<bool>());
   }
-  if (j.contains("allow_delete_base_branch")) {
-    set_allow_delete_base_branch(j["allow_delete_base_branch"].get<bool>());
+  if (cfg.contains("allow_delete_base_branch")) {
+    set_allow_delete_base_branch(
+        cfg["allow_delete_base_branch"].get<bool>());
   }
   // Merge rule settings
-  if (j.contains("required_approvals")) {
-    set_required_approvals(j["required_approvals"].get<int>());
+  if (cfg.contains("required_approvals")) {
+    set_required_approvals(cfg["required_approvals"].get<int>());
   }
-  if (j.contains("require_status_success")) {
-    set_require_status_success(j["require_status_success"].get<bool>());
+  if (cfg.contains("require_status_success")) {
+    set_require_status_success(cfg["require_status_success"].get<bool>());
   }
-  if (j.contains("require_mergeable_state")) {
-    set_require_mergeable_state(j["require_mergeable_state"].get<bool>());
+  if (cfg.contains("require_mergeable_state")) {
+    set_require_mergeable_state(cfg["require_mergeable_state"].get<bool>());
   }
-  if (j.contains("purge_prefix")) {
-    set_purge_prefix(j["purge_prefix"].get<std::string>());
+  if (cfg.contains("purge_prefix")) {
+    set_purge_prefix(cfg["purge_prefix"].get<std::string>());
   }
-  if (j.contains("pr_limit")) {
-    set_pr_limit(j["pr_limit"].get<int>());
+  if (cfg.contains("pr_limit")) {
+    set_pr_limit(cfg["pr_limit"].get<int>());
   }
-  if (j.contains("pr_since")) {
-    set_pr_since(parse_duration(j["pr_since"].get<std::string>()));
+  if (cfg.contains("pr_since")) {
+    set_pr_since(parse_duration(cfg["pr_since"].get<std::string>()));
   }
-  if (j.contains("sort")) {
-    set_sort_mode(j["sort"].get<std::string>());
+  if (cfg.contains("sort")) {
+    set_sort_mode(cfg["sort"].get<std::string>());
   }
-  if (j.contains("use_graphql")) {
-    set_use_graphql(j["use_graphql"].get<bool>());
+  if (cfg.contains("use_graphql")) {
+    set_use_graphql(cfg["use_graphql"].get<bool>());
   }
-  if (j.contains("hotkeys_enabled")) {
-    set_hotkeys_enabled(j["hotkeys_enabled"].get<bool>());
+  if (cfg.contains("hotkeys_enabled")) {
+    set_hotkeys_enabled(cfg["hotkeys_enabled"].get<bool>());
   }
-  if (j.contains("hotkeys")) {
-    const auto &hot = j["hotkeys"];
+  if (cfg.contains("hotkeys")) {
+    const auto &hot = cfg["hotkeys"];
     if (hot.is_boolean()) {
       set_hotkeys_enabled(hot.get<bool>());
     } else if (hot.is_object()) {
@@ -419,20 +470,22 @@ void Config::load_json(const nlohmann::json &j) {
       }
     }
   }
-  if (j.contains("open_pat_page")) {
-    set_open_pat_page(j["open_pat_page"].get<bool>());
+  if (cfg.contains("open_pat_page")) {
+    set_open_pat_page(cfg["open_pat_page"].get<bool>());
   }
-  if (j.contains("pat_save_path")) {
-    set_pat_save_path(j["pat_save_path"].get<std::string>());
+  if (cfg.contains("pat_save_path")) {
+    set_pat_save_path(cfg["pat_save_path"].get<std::string>());
   }
-  if (j.contains("pat_value")) {
-    set_pat_value(j["pat_value"].get<std::string>());
+  if (cfg.contains("pat_value")) {
+    set_pat_value(cfg["pat_value"].get<std::string>());
   }
-  if (j.contains("single_open_prs_repo")) {
-    set_single_open_prs_repo(j["single_open_prs_repo"].get<std::string>());
+  if (cfg.contains("single_open_prs_repo")) {
+    set_single_open_prs_repo(
+        cfg["single_open_prs_repo"].get<std::string>());
   }
-  if (j.contains("single_branches_repo")) {
-    set_single_branches_repo(j["single_branches_repo"].get<std::string>());
+  if (cfg.contains("single_branches_repo")) {
+    set_single_branches_repo(
+        cfg["single_branches_repo"].get<std::string>());
   }
 
   // Warn on repositories appearing in both include and exclude lists.

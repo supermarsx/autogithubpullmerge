@@ -28,6 +28,7 @@ public:
    * @param interval_ms Base poll interval in milliseconds.
    * @param max_rate Maximum REST requests per minute permitted by the token
    *        bucket.
+   * @param hourly_request_limit Maximum REST requests per hour (0 = auto).
    * @param workers Number of worker threads used to fetch repositories in
    *        parallel.
    * @param only_poll_prs When true, skip branch polling entirely.
@@ -45,10 +46,18 @@ public:
    * @param graphql_client Optional GraphQL client used for pull request
    *        listing.
    * @param delete_stray Delete stray branches without requiring a prefix.
+   * @param rate_limit_margin Fraction of the detected hourly budget reserved
+   *        to avoid exhausting limits.
+   * @param rate_limit_refresh_interval Seconds between `/rate_limit` probes.
+   * @param retry_rate_limit_endpoint Toggle enabling retries after a
+   *        `/rate_limit` failure.
+   * @param rate_limit_retry_limit Maximum number of scheduled retries for the
+   *        rate limit endpoint when retries are enabled.
    */
   GitHubPoller(GitHubClient &client,
                std::vector<std::pair<std::string, std::string>> repos,
-               int interval_ms, int max_rate, int workers = 1,
+               int interval_ms, int max_rate, int hourly_request_limit,
+               int workers = 1,
                bool only_poll_prs = false, bool only_poll_stray = false,
                bool reject_dirty = false, std::string purge_prefix = "",
                bool auto_merge = false, bool purge_only = false,
@@ -59,7 +68,11 @@ public:
                bool dry_run = false,
                GitHubGraphQLClient *graphql_client = nullptr,
                bool delete_stray = false,
-               double rate_limit_margin = 0.7);
+               double rate_limit_margin = 0.7,
+               std::chrono::seconds rate_limit_refresh_interval =
+                   std::chrono::seconds(60),
+               bool retry_rate_limit_endpoint = false,
+               int rate_limit_retry_limit = 3);
 
   /// Start polling in a background thread.
   void start();
@@ -101,7 +114,24 @@ public:
 
 private:
   void poll();
+
+  /**
+   * Refresh rate limit information and tune scheduler parameters.
+   *
+   * Queries GitHub when available, computes a conservative request ceiling
+   * honouring the configured margin, and adjusts both the worker pool rate and
+   * poll interval to avoid exceeding the detected hourly budget.
+   */
   void adjust_rate_budget();
+
+  /**
+   * Emit a backlog warning describing current scheduler pressure.
+   *
+   * @param outstanding Number of outstanding jobs queued or executing.
+   * @param clearance_estimate Estimated time required to drain the backlog.
+   */
+  void handle_backlog(std::size_t outstanding,
+                      std::chrono::seconds clearance_estimate);
 
   GitHubClient &client_;
   std::vector<std::pair<std::string, std::string>> repos_;
@@ -112,6 +142,8 @@ private:
   std::atomic<bool> running_{false};
   int max_rate_;
   int base_max_rate_;
+  int hourly_request_limit_;
+  int fallback_hourly_limit_;
   bool only_poll_prs_;
   bool only_poll_stray_;
   bool reject_dirty_;
@@ -141,6 +173,12 @@ private:
   std::chrono::steady_clock::time_point last_budget_refresh_{};
   std::chrono::seconds budget_refresh_period_{std::chrono::seconds(60)};
   bool adaptive_rate_limit_{true};
+  bool retry_rate_limit_endpoint_{false};
+  int rate_limit_retry_limit_{3};
+  int consecutive_rate_limit_failures_{0};
+  bool rate_limit_monitor_enabled_{true};
+  int rate_limit_query_attempts_{1};
+  std::chrono::milliseconds min_request_delay_{0};
 };
 
 } // namespace agpm

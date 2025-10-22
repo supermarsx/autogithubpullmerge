@@ -2,7 +2,9 @@
 #include <atomic>
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
+#include <condition_variable>
 #include <future>
+#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -52,4 +54,28 @@ TEST_CASE("thread pool handles more tasks than workers") {
   p.stop();
   REQUIRE(count == 4);
   REQUIRE(elapsed < 360);
+}
+
+TEST_CASE("poller backlog callback triggers") {
+  Poller p(1, 60);
+  std::mutex mutex;
+  std::condition_variable cv;
+  bool triggered = false;
+  p.set_backlog_alert(1, std::chrono::seconds(0),
+                      [&](std::size_t outstanding, std::chrono::seconds) {
+                        std::lock_guard<std::mutex> lk(mutex);
+                        if (!triggered && outstanding >= 1) {
+                          triggered = true;
+                          cv.notify_one();
+                        }
+                      });
+  p.start();
+  auto fut = p.submit([] {});
+  {
+    std::unique_lock<std::mutex> lk(mutex);
+    cv.wait_for(lk, std::chrono::milliseconds(200), [&] { return triggered; });
+  }
+  fut.get();
+  p.stop();
+  REQUIRE(triggered);
 }
