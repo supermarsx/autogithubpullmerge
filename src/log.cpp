@@ -176,8 +176,8 @@ void init_logger(spdlog::level::level_enum level, const std::string &pattern,
             std::make_shared<spdlog::sinks::basic_file_sink_mt>(file, true));
       }
     }
-    auto *pool = spdlog::thread_pool();
-    if (pool == nullptr) {
+    auto pool = spdlog::thread_pool();
+    if (!pool) {
       ensure_thread_pool();
       pool = spdlog::thread_pool();
     }
@@ -233,8 +233,8 @@ std::shared_ptr<spdlog::logger> category_logger(const std::string &category) {
   } else {
     sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
   }
-  auto *pool = spdlog::thread_pool();
-  if (pool == nullptr) {
+  auto pool = spdlog::thread_pool();
+  if (!pool) {
     ensure_thread_pool();
     pool = spdlog::thread_pool();
   }

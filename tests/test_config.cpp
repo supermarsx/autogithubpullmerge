@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <fstream>
+#include <nlohmann/json.hpp>
 
 TEST_CASE("test config") {
   // YAML config with extended options

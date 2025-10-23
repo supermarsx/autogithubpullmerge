@@ -94,7 +94,7 @@ TEST_CASE("main poller runs", "[cli]") {
       repos.emplace_back(r.substr(0, pos), r.substr(pos + 1));
     }
   }
-  agpm::GitHubPoller poller(client, repos, 10, 60);
+  agpm::GitHubPoller poller(client, repos, 10, 60, 0, 1);
   poller.start();
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   poller.stop();

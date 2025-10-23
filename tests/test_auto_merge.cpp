@@ -42,8 +42,8 @@ TEST_CASE("test auto merge") {
   auto http = std::make_unique<MergeHttpClient>();
   MergeHttpClient *raw = http.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-  GitHubPoller poller(client, {{"me", "repo"}}, 50, 120, 1, false, false, false,
-                      "", true);
+  GitHubPoller poller(client, {{"me", "repo"}}, 50, 120, 0, 1, false, false,
+                      false, "", true);
   poller.start();
   std::this_thread::sleep_for(std::chrono::milliseconds(80));
   poller.stop();

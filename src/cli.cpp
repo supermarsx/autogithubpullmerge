@@ -363,7 +363,7 @@ discover_token_files(const std::filesystem::path &exe_path,
  */
 CliOptions parse_cli(int argc, char **argv) {
   CLI::App app{"autogithubpullmerge command line"};
-  app.get_formatter()->set_footer(log_category_help_text());
+  app.footer(log_category_help_text());
   CliOptions options;
   std::vector<std::string> raw_args;
   raw_args.reserve(static_cast<std::size_t>(argc));
@@ -656,13 +656,11 @@ CliOptions parse_cli(int argc, char **argv) {
          "Seconds between GitHub rate limit endpoint checks (default 60)")
       ->type_name("SECONDS")
       ->group("Polling");
-  app.add_flag("--retry-rate-limit-endpoint",
-               options.retry_rate_limit_endpoint,
-               "Continue querying the rate limit endpoint after failures")
-      ->group("Polling")
-      ->callback([&options]() {
-        options.retry_rate_limit_endpoint_explicit = true;
-      });
+  CLI::Option *retry_rate_limit_flag =
+      app.add_flag("--retry-rate-limit-endpoint",
+                   options.retry_rate_limit_endpoint,
+                   "Continue querying the rate limit endpoint after failures")
+          ->group("Polling");
   app.add_option_function<int>(
          "--rate-limit-retry-limit",
          [&options](int value) {
@@ -793,6 +791,10 @@ CliOptions parse_cli(int argc, char **argv) {
   } catch (const CLI::ParseError &e) {
     int exit_code = app.exit(e);
     throw CliParseExit(exit_code);
+  }
+  if (retry_rate_limit_flag != nullptr &&
+      retry_rate_limit_flag->count() > 0U) {
+    options.retry_rate_limit_endpoint_explicit = true;
   }
   std::unordered_set<std::string> canonical_token_files;
   canonical_token_files.reserve(options.api_key_files.size());

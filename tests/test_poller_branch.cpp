@@ -95,7 +95,7 @@ TEST_CASE("test poller branch") {
     auto http = std::make_unique<BranchListClient>();
     BranchListClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, 1, false, true);
+    GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, 0, 1, false, true);
     std::vector<std::string> logs;
     poller.set_log_callback([&](const std::string &m) {
       logs.push_back(m);
@@ -114,7 +114,7 @@ TEST_CASE("test poller branch") {
     auto http = std::make_unique<BranchCleanupClient>();
     BranchCleanupClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, 1, false, true,
+    GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, 0, 1, false, true,
                         true, "tmp/");
     poller.poll_now();
     REQUIRE(raw->deleted.count(raw->base + "/git/refs/heads/feature") == 1);

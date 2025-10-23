@@ -46,7 +46,7 @@ TEST_CASE("list repositories and poll when none included") {
       client.list_repositories();
   REQUIRE(repos ==
           std::vector<std::pair<std::string, std::string>>{{"me", "repo"}});
-  GitHubPoller poller(client, repos, 0, 60);
+  GitHubPoller poller(client, repos, 0, 60, 0, 1);
   poller.poll_now();
   REQUIRE(raw->repo_calls == 1);
   REQUIRE(raw->pr_calls == 1);

@@ -68,7 +68,7 @@ TEST_CASE("test tui log limit", "[tui]") {
   auto mock = std::make_unique<MockHttpClient>();
   mock->put_response = "{\"merged\":true}";
   GitHubClient client({"token"}, std::move(mock));
-  GitHubPoller poller(client, {{"o", "r"}}, 1000, 60);
+  GitHubPoller poller(client, {{"o", "r"}}, 1000, 60, 0, 1);
   Tui ui(client, poller, 100);
   ui.init();
   if (!ui.initialized()) {
