@@ -369,6 +369,12 @@ public:
   /// Set delete stray flag.
   void set_delete_stray(bool v) { delete_stray_ = v; }
 
+  /// Use heuristics to detect stray branches.
+  bool heuristic_stray_detection() const { return heuristic_stray_detection_; }
+
+  /// Set heuristic stray detection flag.
+  void set_heuristic_stray_detection(bool v) { heuristic_stray_detection_ = v; }
+
   /// Allow deleting base branches.
   bool allow_delete_base_branch() const { return allow_delete_base_branch_; }
 
@@ -406,7 +412,9 @@ public:
   void set_rate_limit_margin(double margin);
 
   /// Interval between rate limit endpoint checks in seconds.
-  int rate_limit_refresh_interval() const { return rate_limit_refresh_interval_; }
+  int rate_limit_refresh_interval() const {
+    return rate_limit_refresh_interval_;
+  }
 
   /// Set the interval between rate limit endpoint checks (seconds).
   void set_rate_limit_refresh_interval(int seconds) {
@@ -559,6 +567,7 @@ private:
   std::string http_proxy_;
   std::string https_proxy_;
   bool delete_stray_ = false;
+  bool heuristic_stray_detection_ = false;
   bool allow_delete_base_branch_ = false;
   bool open_pat_page_ = false;
   std::string pat_save_path_;

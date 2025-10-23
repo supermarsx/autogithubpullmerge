@@ -10,8 +10,8 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <sstream>
 #include <spdlog/spdlog.h>
+#include <sstream>
 
 namespace agpm {
 
@@ -36,6 +36,8 @@ std::shared_ptr<spdlog::logger> poller_log() {
  * @param workers Number of worker threads to use for concurrent operations.
  * @param only_poll_prs Skip branch polling when true.
  * @param only_poll_stray Restrict branch polling to stray detection.
+ * @param heuristic_stray_detection Enable heuristics when classifying stray
+ *        branches.
  * @param reject_dirty Close or delete dirty branches automatically.
  * @param purge_prefix Branch prefix qualifying for automated deletion.
  * @param auto_merge Automatically merge qualifying pull requests when true.
@@ -58,9 +60,9 @@ GitHubPoller::GitHubPoller(
     GitHubClient &client,
     std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
     int max_rate, int hourly_request_limit, int workers, bool only_poll_prs,
-    bool only_poll_stray,
-    bool reject_dirty, std::string purge_prefix, bool auto_merge,
-    bool purge_only, std::string sort_mode, PullRequestHistory *history,
+    bool only_poll_stray, bool heuristic_stray_detection, bool reject_dirty,
+    std::string purge_prefix, bool auto_merge, bool purge_only,
+    std::string sort_mode, PullRequestHistory *history,
     std::vector<std::string> protected_branches,
     std::vector<std::string> protected_branch_excludes, bool dry_run,
     GitHubGraphQLClient *graphql_client, bool delete_stray,
@@ -69,9 +71,11 @@ GitHubPoller::GitHubPoller(
     : client_(client), repos_(std::move(repos)), poller_(workers, max_rate),
       interval_ms_(interval_ms), base_interval_ms_(interval_ms),
       max_rate_(max_rate), base_max_rate_(max_rate),
-      hourly_request_limit_(hourly_request_limit > 0 ? hourly_request_limit : 0),
+      hourly_request_limit_(hourly_request_limit > 0 ? hourly_request_limit
+                                                     : 0),
       fallback_hourly_limit_(kFallbackHourlyLimit),
       only_poll_prs_(only_poll_prs), only_poll_stray_(only_poll_stray),
+      heuristic_stray_detection_(heuristic_stray_detection),
       reject_dirty_(reject_dirty), delete_stray_(delete_stray),
       purge_prefix_(std::move(purge_prefix)), auto_merge_(auto_merge),
       purge_only_(purge_only), sort_mode_(std::move(sort_mode)),
@@ -90,29 +94,27 @@ GitHubPoller::GitHubPoller(
     adaptive_rate_limit_ = true;
   }
   last_budget_refresh_ = std::chrono::steady_clock::time_point::min();
-  budget_refresh_period_ =
-      rate_limit_refresh_interval.count() > 0 ? rate_limit_refresh_interval
-                                              : std::chrono::seconds(60);
+  budget_refresh_period_ = rate_limit_refresh_interval.count() > 0
+                               ? rate_limit_refresh_interval
+                               : std::chrono::seconds(60);
   retry_rate_limit_endpoint_ = retry_rate_limit_endpoint;
   rate_limit_retry_limit_ = std::max(1, rate_limit_retry_limit);
   rate_limit_query_attempts_ = 1;
   if (!retry_rate_limit_endpoint_) {
     rate_limit_retry_limit_ = 1;
   }
-  min_request_delay_ =
-      std::chrono::milliseconds(max_rate_ > 0 ? std::max(1, 60000 / max_rate_)
-                                              : 0);
+  min_request_delay_ = std::chrono::milliseconds(
+      max_rate_ > 0 ? std::max(1, 60000 / max_rate_) : 0);
   auto backlog_jobs_threshold =
       static_cast<std::size_t>(std::max(workers * 2, 10));
-  auto clearance_threshold =
-      budget_refresh_period_ > std::chrono::seconds(0)
-          ? budget_refresh_period_
-          : std::chrono::seconds(60);
-  poller_.set_backlog_alert(backlog_jobs_threshold, clearance_threshold,
-                            [this](std::size_t outstanding,
-                                   std::chrono::seconds clearance) {
-                              handle_backlog(outstanding, clearance);
-                            });
+  auto clearance_threshold = budget_refresh_period_ > std::chrono::seconds(0)
+                                 ? budget_refresh_period_
+                                 : std::chrono::seconds(60);
+  poller_.set_backlog_alert(
+      backlog_jobs_threshold, clearance_threshold,
+      [this](std::size_t outstanding, std::chrono::seconds clearance) {
+        handle_backlog(outstanding, clearance);
+      });
   if (max_rate_ > 0) {
     auto interval =
         std::chrono::duration<double>(60.0 / static_cast<double>(max_rate_));
@@ -220,12 +222,12 @@ void GitHubPoller::poll() {
   std::vector<std::future<void>> futures;
   futures.reserve(repos_.size());
   for (const auto &repo : repos_) {
-    futures.emplace_back(poller_.submit(
-        [this, repo, skip_branch_ops, &all_prs, &pr_mutex, &log_mutex,
-         &total_pr_count, &total_branch_count] {
+    futures.emplace_back(poller_.submit([this, repo, skip_branch_ops, &all_prs,
+                                         &pr_mutex, &log_mutex, &total_pr_count,
+                                         &total_branch_count] {
       if (purge_only_) {
         poller_log()->debug("purge_only set - skipping repo {}/{}", repo.first,
-                      repo.second);
+                            repo.second);
         if (!purge_prefix_.empty()) {
           client_.cleanup_branches(repo.first, repo.second, purge_prefix_,
                                    protected_branches_,
@@ -240,8 +242,7 @@ void GitHubPoller::poll() {
       if (!only_poll_stray_) {
         const std::vector<PullRequest> prs = [this, &repo]() {
           if (graphql_client_) {
-            return graphql_client_->list_pull_requests(repo.first,
-                                                       repo.second);
+            return graphql_client_->list_pull_requests(repo.first, repo.second);
           }
           if (max_rate_ > 0 && max_rate_ <= 1) {
             // Tests require a single HTTP request when rate is extremely low
@@ -262,11 +263,11 @@ void GitHubPoller::poll() {
         total_pr_count.fetch_add(prs.size(), std::memory_order_relaxed);
         if (log_cb_) {
           std::lock_guard<std::mutex> lk(log_mutex);
-          log_cb_(repo.first + "/" + repo.second + " pull requests: " +
-                  std::to_string(prs.size()));
+          log_cb_(repo.first + "/" + repo.second +
+                  " pull requests: " + std::to_string(prs.size()));
         } else {
           poller_log()->info("Fetched {} pull requests for {}/{}", prs.size(),
-                       repo.first, repo.second);
+                             repo.first, repo.second);
         }
         if (auto_merge_) {
           for (const auto &pr : prs) {
@@ -302,31 +303,47 @@ void GitHubPoller::poll() {
         }
       }
       if (!skip_branch_ops) {
-        auto branches = client_.list_branches(repo.first, repo.second);
+        std::string default_branch;
+        auto branches =
+            client_.list_branches(repo.first, repo.second, &default_branch);
         total_branch_count.fetch_add(branches.size(),
                                      std::memory_order_relaxed);
         if (log_cb_) {
           std::lock_guard<std::mutex> lk(log_mutex);
-          log_cb_(repo.first + "/" + repo.second + " branches: " +
-                  std::to_string(branches.size()));
+          log_cb_(repo.first + "/" + repo.second +
+                  " branches: " + std::to_string(branches.size()));
         } else {
           poller_log()->info("Fetched {} branches for {}/{}", branches.size(),
-                       repo.first, repo.second);
+                             repo.first, repo.second);
         }
         std::vector<std::string> stray;
-        std::copy_if(branches.begin(), branches.end(),
-                     std::back_inserter(stray),
-                     [this](const std::string &branch) {
-                       return purge_prefix_.empty() ||
-                              branch.rfind(purge_prefix_, 0) != 0;
-                     });
+        if (heuristic_stray_detection_ && !default_branch.empty()) {
+          stray = client_.detect_stray_branches(
+              repo.first, repo.second, default_branch, branches,
+              protected_branches_, protected_branch_excludes_);
+          if (!purge_prefix_.empty()) {
+            stray.erase(std::remove_if(stray.begin(), stray.end(),
+                                       [this](const std::string &branch) {
+                                         return branch.rfind(purge_prefix_,
+                                                             0) == 0;
+                                       }),
+                        stray.end());
+          }
+        } else {
+          std::copy_if(branches.begin(), branches.end(),
+                       std::back_inserter(stray),
+                       [this](const std::string &branch) {
+                         return purge_prefix_.empty() ||
+                                branch.rfind(purge_prefix_, 0) != 0;
+                       });
+        }
         if (log_cb_) {
           std::lock_guard<std::mutex> lk(log_mutex);
           log_cb_(repo.first + "/" + repo.second +
                   " stray branches: " + std::to_string(stray.size()));
         } else {
-          poller_log()->info("{} / {} stray branches: {}", repo.first, repo.second,
-                       stray.size());
+          poller_log()->info("{} / {} stray branches: {}", repo.first,
+                             repo.second, stray.size());
         }
         if (delete_stray_) {
           for (const auto &b : stray) {
@@ -350,7 +367,7 @@ void GitHubPoller::poll() {
                                      protected_branches_,
                                      protected_branch_excludes_);
       }
-        }));
+    }));
   }
   for (auto &f : futures) {
     f.get();
@@ -420,9 +437,10 @@ void GitHubPoller::adjust_rate_budget() {
             "Disabling rate limit endpoint polling after {} failure(s)",
             consecutive_rate_limit_failures_);
       } else {
-        poller_log()->warn(
-            "Rate limit endpoint unavailable ({} consecutive failure(s)); will retry in {}s",
-            consecutive_rate_limit_failures_, budget_refresh_period_.count());
+        poller_log()->warn("Rate limit endpoint unavailable ({} consecutive "
+                           "failure(s)); will retry in {}s",
+                           consecutive_rate_limit_failures_,
+                           budget_refresh_period_.count());
       }
     } else {
       consecutive_rate_limit_failures_ = 0;
@@ -435,8 +453,7 @@ void GitHubPoller::adjust_rate_budget() {
   if (status_opt && status_opt->limit > 0) {
     limit = status_opt->limit;
     remaining = status_opt->remaining;
-    seconds_left =
-        std::max<double>(status_opt->reset_after.count(), 60.0);
+    seconds_left = std::max<double>(status_opt->reset_after.count(), 60.0);
     source_tag = "detected";
     if (hourly_request_limit_ > 0 && limit > hourly_request_limit_) {
       limit = hourly_request_limit_;
@@ -464,8 +481,8 @@ void GitHubPoller::adjust_rate_budget() {
   if (limit <= 0) {
     return;
   }
-  long reserve =
-      static_cast<long>(std::floor(static_cast<double>(limit) * rate_limit_margin_));
+  long reserve = static_cast<long>(
+      std::floor(static_cast<double>(limit) * rate_limit_margin_));
   if (reserve < 0)
     reserve = 0;
   if (reserve > limit)
@@ -511,9 +528,9 @@ void GitHubPoller::adjust_rate_budget() {
     desired_rate = base_max_rate_ > 0 ? base_max_rate_ : 1;
   }
   if (desired_rate != max_rate_) {
-    poller_log()->info(
-        "Adjusting request rate to {} rpm (limit {} remaining {} reserve {} source {})",
-        desired_rate, limit, remaining, reserve, source_tag);
+    poller_log()->info("Adjusting request rate to {} rpm (limit {} remaining "
+                       "{} reserve {} source {})",
+                       desired_rate, limit, remaining, reserve, source_tag);
     poller_.set_max_rate(desired_rate);
     max_rate_ = desired_rate;
   }
@@ -524,8 +541,8 @@ void GitHubPoller::adjust_rate_budget() {
   }
   int new_interval = base_interval_ms_;
   if (max_rate_ > 0) {
-    int per_minute_delay = static_cast<int>(
-        std::lround(60000.0 / static_cast<double>(max_rate_)));
+    int per_minute_delay =
+        static_cast<int>(std::lround(60000.0 / static_cast<double>(max_rate_)));
     per_minute_delay = std::max(per_minute_delay, 1);
     if (per_minute_delay < base_interval_ms_) {
       per_minute_delay = base_interval_ms_;
@@ -533,8 +550,8 @@ void GitHubPoller::adjust_rate_budget() {
     new_interval = std::max(base_interval_ms_, per_minute_delay);
     int smoothed_delay = per_minute_delay;
     if (observed_rpm > 0.0) {
-      int averaged_delay = static_cast<int>(
-          std::lround(60000.0 / std::max(observed_rpm, 1.0)));
+      int averaged_delay =
+          static_cast<int>(std::lround(60000.0 / std::max(observed_rpm, 1.0)));
       if (averaged_delay > smoothed_delay) {
         smoothed_delay = averaged_delay;
       }
@@ -574,8 +591,8 @@ void GitHubPoller::handle_backlog(std::size_t outstanding,
   std::ostringstream oss;
   oss << "Request scheduler backlog " << outstanding
       << " operations; estimated clearance " << clearance_estimate.count()
-      << "s with current rate limit margin "
-      << std::fixed << std::setprecision(2) << rate_limit_margin_;
+      << "s with current rate limit margin " << std::fixed
+      << std::setprecision(2) << rate_limit_margin_;
   const std::string message = oss.str();
   if (log_cb_) {
     log_cb_(message);

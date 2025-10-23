@@ -268,6 +268,7 @@ TEST_CASE("config overrides populate cli options", "[cli]") {
     cfg << "export_csv: config-export.csv\n";
     cfg << "export_json: config-export.json\n";
     cfg << "delete_stray: true\n";
+    cfg << "heuristic_stray_detection: true\n";
     cfg << "single_open_prs_repo: foo/bar\n";
     cfg << "single_branches_repo: foo/bar\n";
   }
@@ -290,6 +291,7 @@ TEST_CASE("config overrides populate cli options", "[cli]") {
   REQUIRE(app.options().export_csv == "config-export.csv");
   REQUIRE(app.options().export_json == "config-export.json");
   REQUIRE(app.options().delete_stray);
+  REQUIRE(app.options().heuristic_stray_detection);
   REQUIRE(app.options().single_open_prs_repo == "foo/bar");
   REQUIRE(app.options().single_branches_repo == "foo/bar");
   std::filesystem::remove(cfg_path);

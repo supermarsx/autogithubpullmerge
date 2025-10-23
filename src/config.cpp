@@ -157,12 +157,10 @@ nlohmann::json normalize_config_sections(const nlohmann::json &source) {
     }
   };
 
-  for (std::string_view section : {"core", "rate_limits", "logging",
-                                    "network", "repositories", "tokens",
-                                    "features", "integrations", "workflow",
-                                    "artifacts", "ui",
-                                    "personal_access_tokens", "pat",
-                                    "single_run"}) {
+  for (std::string_view section :
+       {"core", "rate_limits", "logging", "network", "repositories", "tokens",
+        "features", "integrations", "workflow", "artifacts", "ui",
+        "personal_access_tokens", "pat", "single_run"}) {
     merge_section(section);
   }
 
@@ -205,8 +203,7 @@ void Config::load_json(const nlohmann::json &j) {
         cfg["rate_limit_refresh_interval"].get<int>());
   }
   if (cfg.contains("retry_rate_limit_endpoint")) {
-    set_retry_rate_limit_endpoint(
-        cfg["retry_rate_limit_endpoint"].get<bool>());
+    set_retry_rate_limit_endpoint(cfg["retry_rate_limit_endpoint"].get<bool>());
   }
   if (cfg.contains("rate_limit_retry_limit")) {
     set_rate_limit_retry_limit(cfg["rate_limit_retry_limit"].get<int>());
@@ -281,9 +278,9 @@ void Config::load_json(const nlohmann::json &j) {
         } else if (v.is_null()) {
           assign_category(key, "debug");
         } else {
-          config_log()->warn(
-              "Unsupported value for log category '{}'; expected string or null",
-              key);
+          config_log()->warn("Unsupported value for log category '{}'; "
+                             "expected string or null",
+                             key);
         }
       }
     } else if (value.is_array()) {
@@ -402,12 +399,14 @@ void Config::load_json(const nlohmann::json &j) {
   if (cfg.contains("delete_stray")) {
     set_delete_stray(cfg["delete_stray"].get<bool>());
   }
+  if (cfg.contains("heuristic_stray_detection")) {
+    set_heuristic_stray_detection(cfg["heuristic_stray_detection"].get<bool>());
+  }
   if (cfg.contains("auto_merge")) {
     set_auto_merge(cfg["auto_merge"].get<bool>());
   }
   if (cfg.contains("allow_delete_base_branch")) {
-    set_allow_delete_base_branch(
-        cfg["allow_delete_base_branch"].get<bool>());
+    set_allow_delete_base_branch(cfg["allow_delete_base_branch"].get<bool>());
   }
   // Merge rule settings
   if (cfg.contains("required_approvals")) {
@@ -480,12 +479,10 @@ void Config::load_json(const nlohmann::json &j) {
     set_pat_value(cfg["pat_value"].get<std::string>());
   }
   if (cfg.contains("single_open_prs_repo")) {
-    set_single_open_prs_repo(
-        cfg["single_open_prs_repo"].get<std::string>());
+    set_single_open_prs_repo(cfg["single_open_prs_repo"].get<std::string>());
   }
   if (cfg.contains("single_branches_repo")) {
-    set_single_branches_repo(
-        cfg["single_branches_repo"].get<std::string>());
+    set_single_branches_repo(cfg["single_branches_repo"].get<std::string>());
   }
 
   // Warn on repositories appearing in both include and exclude lists.

@@ -2,9 +2,10 @@
 #include "curl/curl.h"
 #include "log.hpp"
 #include <algorithm>
-#include <cmath>
+#include <array>
 #include <cctype>
 #include <chrono>
+#include <cmath>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
@@ -100,8 +101,9 @@ std::string mixed_to_regex(const std::string &value) {
  */
 std::string to_lower_copy(const std::string &value) {
   std::string out = value;
-  std::transform(out.begin(), out.end(), out.begin(),
-                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  std::transform(out.begin(), out.end(), out.begin(), [](unsigned char c) {
+    return static_cast<char>(std::tolower(c));
+  });
   return out;
 }
 
@@ -143,65 +145,67 @@ std::string format_curl_error(const char *verb, const std::string &url,
  */
 bool matches_pattern(const std::string &name,
                      const std::vector<std::string> &patterns) {
-  return std::any_of(patterns.begin(), patterns.end(),
-                     [&name](const std::string &pattern) {
-                       const std::string raw = pattern;
-                       auto colon = raw.find(':');
-                       if (colon != std::string::npos) {
-                         std::string tag = to_lower_copy(raw.substr(0, colon));
-                         std::string value = raw.substr(colon + 1);
-                         if (tag == "prefix") {
-                           if (value.empty()) {
-                             return true;
-                           }
-                           return name.rfind(value, 0) == 0;
-                         }
-                         if (tag == "suffix") {
-                           if (value.empty()) {
-                             return true;
-                           }
-                           return name.size() >= value.size() &&
-                                  name.compare(name.size() - value.size(), value.size(), value) == 0;
-                         }
-                         if (tag == "contains") {
-                           return name.find(value) != std::string::npos;
-                         }
-                         if (tag == "literal") {
-                           return name == value;
-                         }
-                         if (tag == "glob" || tag == "wildcard") {
-                           try {
-                             return std::regex_match(name, glob_to_regex(value));
-                           } catch (const std::regex_error &) {
-                             return false;
-                           }
-                         }
-                         if (tag == "regex") {
-                           try {
-                             return std::regex_match(name, std::regex(value));
-                           } catch (const std::regex_error &) {
-                             return false;
-                           }
-                         }
-                         if (tag == "mixed") {
-                           try {
-                             std::regex re("^" + mixed_to_regex(value) + "$");
-                             return std::regex_match(name, re);
-                           } catch (const std::regex_error &) {
-                             return false;
-                           }
-                         }
-                         // Unknown tag: fall through to default handling using the raw pattern.
-                       }
-                       try {
-                         if (raw.find_first_of("*?") != std::string::npos) {
-                           return std::regex_match(name, glob_to_regex(raw));
-                         }
-                         return std::regex_match(name, std::regex(raw));
-                       } catch (const std::regex_error &) {
-                         return name == raw;
-                       }
-                     });
+  return std::any_of(
+      patterns.begin(), patterns.end(), [&name](const std::string &pattern) {
+        const std::string raw = pattern;
+        auto colon = raw.find(':');
+        if (colon != std::string::npos) {
+          std::string tag = to_lower_copy(raw.substr(0, colon));
+          std::string value = raw.substr(colon + 1);
+          if (tag == "prefix") {
+            if (value.empty()) {
+              return true;
+            }
+            return name.rfind(value, 0) == 0;
+          }
+          if (tag == "suffix") {
+            if (value.empty()) {
+              return true;
+            }
+            return name.size() >= value.size() &&
+                   name.compare(name.size() - value.size(), value.size(),
+                                value) == 0;
+          }
+          if (tag == "contains") {
+            return name.find(value) != std::string::npos;
+          }
+          if (tag == "literal") {
+            return name == value;
+          }
+          if (tag == "glob" || tag == "wildcard") {
+            try {
+              return std::regex_match(name, glob_to_regex(value));
+            } catch (const std::regex_error &) {
+              return false;
+            }
+          }
+          if (tag == "regex") {
+            try {
+              return std::regex_match(name, std::regex(value));
+            } catch (const std::regex_error &) {
+              return false;
+            }
+          }
+          if (tag == "mixed") {
+            try {
+              std::regex re("^" + mixed_to_regex(value) + "$");
+              return std::regex_match(name, re);
+            } catch (const std::regex_error &) {
+              return false;
+            }
+          }
+          // Unknown tag: fall through to default handling using the raw
+          // pattern.
+        }
+        try {
+          if (raw.find_first_of("*?") != std::string::npos) {
+            return std::regex_match(name, glob_to_regex(raw));
+          }
+          return std::regex_match(name, std::regex(raw));
+        } catch (const std::regex_error &) {
+          return name == raw;
+        }
+      });
 }
 
 /**
@@ -395,7 +399,8 @@ CurlHttpClient::get_with_headers(const std::string &url,
       // Let caller handle rate limiting
       return {response, resp_headers, http_code};
     }
-    github_client_log()->error("curl GET {} failed with HTTP code {}", url, http_code);
+    github_client_log()->error("curl GET {} failed with HTTP code {}", url,
+                               http_code);
     throw std::runtime_error("curl GET failed with HTTP code " +
                              std::to_string(http_code));
   }
@@ -464,7 +469,8 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
     throw std::runtime_error(msg);
   }
   if (http_code < 200 || http_code >= 300) {
-    github_client_log()->error("curl PUT {} failed with HTTP code {}", url, http_code);
+    github_client_log()->error("curl PUT {} failed with HTTP code {}", url,
+                               http_code);
     throw std::runtime_error("curl PUT failed with HTTP code " +
                              std::to_string(http_code));
   }
@@ -524,7 +530,8 @@ std::string CurlHttpClient::del(const std::string &url,
     throw std::runtime_error(msg);
   }
   if (http_code < 200 || http_code >= 300) {
-    github_client_log()->error("curl DELETE {} failed with HTTP code {}", url, http_code);
+    github_client_log()->error("curl DELETE {} failed with HTTP code {}", url,
+                               http_code);
     throw std::runtime_error("curl DELETE failed with HTTP code " +
                              std::to_string(http_code));
   }
@@ -657,9 +664,9 @@ GitHubClient::get_with_cache(const std::string &url,
     github_client_log()->debug("Cache hit for {}", url);
     return {it->second.body, it->second.headers, 200};
   }
-  const auto etag_it =
-      std::find_if(res.headers.begin(), res.headers.end(),
-                   [](const std::string &h) { return h.rfind("ETag:", 0) == 0; });
+  const auto etag_it = std::find_if(
+      res.headers.begin(), res.headers.end(),
+      [](const std::string &h) { return h.rfind("ETag:", 0) == 0; });
   if (etag_it != res.headers.end()) {
     std::string etag = etag_it->substr(5);
     if (!etag.empty() && etag[0] == ' ')
@@ -751,14 +758,15 @@ GitHubClient::list_repositories() {
       continue;
     if (res.status_code < 200 || res.status_code >= 300) {
       github_client_log()->error("HTTP GET {} failed with HTTP code {}", url,
-                    res.status_code);
+                                 res.status_code);
       break;
     }
     nlohmann::json j;
     try {
       j = nlohmann::json::parse(res.body);
     } catch (const std::exception &e) {
-      github_client_log()->error("Failed to parse repository list: {}", e.what());
+      github_client_log()->error("Failed to parse repository list: {}",
+                                 e.what());
       break;
     }
     for (const auto &item : j) {
@@ -837,14 +845,15 @@ GitHubClient::list_pull_requests(const std::string &owner,
       continue;
     if (res.status_code < 200 || res.status_code >= 300) {
       github_client_log()->error("HTTP GET {} failed with HTTP code {}", url,
-                    res.status_code);
+                                 res.status_code);
       break;
     }
     nlohmann::json j;
     try {
       j = nlohmann::json::parse(res.body);
     } catch (const std::exception &e) {
-      github_client_log()->error("Failed to parse pull request list: {}", e.what());
+      github_client_log()->error("Failed to parse pull request list: {}",
+                                 e.what());
       auto num_pos = res.body.find("\"number\"");
       auto title_pos = res.body.find("\"title\"");
       if (num_pos != std::string::npos && title_pos != std::string::npos) {
@@ -945,7 +954,8 @@ GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
     // Intentionally avoid caching/pagination: tests require a single call
     res = http_->get_with_headers(url, headers);
   } catch (const std::exception &e) {
-    github_client_log()->error("Failed to fetch open pull requests: {}", e.what());
+    github_client_log()->error("Failed to fetch open pull requests: {}",
+                               e.what());
     return prs;
   }
   try {
@@ -965,7 +975,8 @@ GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
       prs.push_back(std::move(pr));
     }
   } catch (const std::exception &e) {
-    github_client_log()->error("Failed to parse pull request list: {}", e.what());
+    github_client_log()->error("Failed to parse pull request list: {}",
+                               e.what());
   }
   return prs;
 }
@@ -974,10 +985,12 @@ GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
 bool GitHubClient::merge_pull_request(const std::string &owner,
                                       const std::string &repo, int pr_number) {
   if (!repo_allowed(owner, repo)) {
-    github_client_log()->debug("Skipping merge for disallowed repo {}/{}", owner, repo);
+    github_client_log()->debug("Skipping merge for disallowed repo {}/{}",
+                               owner, repo);
     return false;
   }
-  github_client_log()->info("Attempting to merge PR #{} in {}/{}", pr_number, owner, repo);
+  github_client_log()->info("Attempting to merge PR #{} in {}/{}", pr_number,
+                            owner, repo);
   std::vector<std::string> headers;
   if (!tokens_.empty())
     headers.push_back("Authorization: token " + tokens_[token_index_]);
@@ -991,7 +1004,8 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
     std::string pr_resp = get_with_cache(pr_url, headers).body;
     meta = nlohmann::json::parse(pr_resp);
   } catch (const std::exception &e) {
-    github_client_log()->error("Failed to fetch pull request metadata: {}", e.what());
+    github_client_log()->error("Failed to fetch pull request metadata: {}",
+                               e.what());
     return false;
   }
   if (!meta.is_object()) {
@@ -999,8 +1013,8 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   }
   int approvals = meta.value("approvals", 0);
   if (required_approvals_ > 0 && approvals < required_approvals_) {
-    github_client_log()->info("PR #{} requires {} approvals but has {}", pr_number,
-                 required_approvals_, approvals);
+    github_client_log()->info("PR #{} requires {} approvals but has {}",
+                              pr_number, required_approvals_, approvals);
     return false;
   }
   if (require_status_success_ && meta.value("mergeable_state", "") != "clean") {
@@ -1015,8 +1029,8 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   std::string url = api_base_ + "/repos/" + owner + "/" + repo + "/pulls/" +
                     std::to_string(pr_number) + "/merge";
   if (dry_run_) {
-    github_client_log()->info("[dry-run] Would merge PR #{} in {}/{}", pr_number, owner,
-                 repo);
+    github_client_log()->info("[dry-run] Would merge PR #{} in {}/{}",
+                              pr_number, owner, repo);
     return true;
   }
   try {
@@ -1024,9 +1038,11 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
     nlohmann::json j = nlohmann::json::parse(resp);
     bool merged = j.contains("merged") && j["merged"].get<bool>();
     if (merged) {
-      github_client_log()->info("Merged PR #{} in {}/{}", pr_number, owner, repo);
+      github_client_log()->info("Merged PR #{} in {}/{}", pr_number, owner,
+                                repo);
     } else {
-      github_client_log()->info("PR #{} in {}/{} was not merged", pr_number, owner, repo);
+      github_client_log()->info("PR #{} in {}/{} was not merged", pr_number,
+                                owner, repo);
     }
     return merged;
   } catch (const std::exception &e) {
@@ -1036,11 +1052,15 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
 }
 
 /// @copydoc GitHubClient::list_branches
-std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
-                                                     const std::string &repo) {
+std::vector<std::string>
+GitHubClient::list_branches(const std::string &owner, const std::string &repo,
+                            std::string *default_branch_out) {
   std::vector<std::string> branches;
   if (!repo_allowed(owner, repo)) {
     return branches;
+  }
+  if (default_branch_out) {
+    *default_branch_out = std::string{};
   }
   std::vector<std::string> headers;
   if (!tokens_.empty())
@@ -1117,7 +1137,140 @@ std::vector<std::string> GitHubClient::list_branches(const std::string &owner,
     }
     url = next_url;
   }
+  if (default_branch_out) {
+    *default_branch_out = default_branch;
+  }
   return branches;
+}
+
+std::vector<std::string> GitHubClient::detect_stray_branches(
+    const std::string &owner, const std::string &repo,
+    const std::string &default_branch, const std::vector<std::string> &branches,
+    const std::vector<std::string> &protected_branches,
+    const std::vector<std::string> &protected_branch_excludes) {
+  std::vector<std::string> stray;
+  if (!repo_allowed(owner, repo) || default_branch.empty()) {
+    return stray;
+  }
+  if (branches.empty()) {
+    return stray;
+  }
+  std::vector<std::string> headers;
+  if (!tokens_.empty()) {
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  }
+  headers.push_back("Accept: application/vnd.github+json");
+  const std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
+  const auto now = std::chrono::system_clock::now();
+  constexpr auto kStaleThreshold = std::chrono::hours(24 * 30);
+  const std::array<std::string, 5> ephemeral_tokens = {
+      "tmp", "wip", "experiment", "backup", "scratch"};
+  auto parse_timestamp = [](const std::string &iso)
+      -> std::optional<std::chrono::system_clock::time_point> {
+    if (iso.empty()) {
+      return std::nullopt;
+    }
+    std::tm tm{};
+    std::istringstream ss(iso);
+    ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%SZ");
+    if (ss.fail()) {
+      return std::nullopt;
+    }
+#ifdef _WIN32
+    std::time_t t = _mkgmtime(&tm);
+#else
+    std::time_t t = timegm(&tm);
+#endif
+    if (t == static_cast<std::time_t>(-1)) {
+      return std::nullopt;
+    }
+    return std::chrono::system_clock::from_time_t(t);
+  };
+  auto extract_commit_time = [&](const nlohmann::json &entry)
+      -> std::optional<std::chrono::system_clock::time_point> {
+    if (!entry.is_object()) {
+      return std::nullopt;
+    }
+    if (entry.contains("date") && entry["date"].is_string()) {
+      return parse_timestamp(entry["date"].get<std::string>());
+    }
+    return std::nullopt;
+  };
+  for (const auto &branch : branches) {
+    if (branch.empty() || branch == default_branch) {
+      continue;
+    }
+    if (!allow_delete_base_branch_ && is_base_branch_name(branch)) {
+      continue;
+    }
+    if (is_protected_branch(branch, protected_branches,
+                            protected_branch_excludes)) {
+      continue;
+    }
+    int ahead_by = 0;
+    int behind_by = 0;
+    std::string status;
+    try {
+      enforce_delay();
+      std::string compare_url =
+          repo_url + "/compare/" + default_branch + "..." + branch;
+      std::string compare_resp = http_->get(compare_url, headers);
+      nlohmann::json compare_json = nlohmann::json::parse(compare_resp);
+      if (compare_json.is_object()) {
+        ahead_by = compare_json.value("ahead_by", 0);
+        behind_by = compare_json.value("behind_by", 0);
+        status = compare_json.value("status", std::string{});
+      }
+    } catch (const std::exception &e) {
+      github_client_log()->debug("Failed to compare branch {}: {}", branch,
+                                 e.what());
+    }
+    bool identical = status == "identical";
+    bool behind_only =
+        ahead_by == 0 && (status == "behind" || status == "identical");
+    bool diverged_without_commits = (status == "diverged" && ahead_by == 0);
+    std::optional<std::chrono::system_clock::time_point> last_commit_time;
+    try {
+      enforce_delay();
+      std::string branch_url = repo_url + "/branches/" + branch;
+      HttpResponse branch_resp = get_with_cache(branch_url, headers);
+      nlohmann::json branch_json = nlohmann::json::parse(branch_resp.body);
+      if (branch_json.is_object() && branch_json.contains("commit") &&
+          branch_json["commit"].is_object()) {
+        const auto &commit_wrapper = branch_json["commit"];
+        if (commit_wrapper.contains("commit") &&
+            commit_wrapper["commit"].is_object()) {
+          const auto &commit_details = commit_wrapper["commit"];
+          if (commit_details.contains("committer")) {
+            last_commit_time = extract_commit_time(commit_details["committer"]);
+          }
+          if (!last_commit_time && commit_details.contains("author")) {
+            last_commit_time = extract_commit_time(commit_details["author"]);
+          }
+        }
+      }
+    } catch (const std::exception &e) {
+      github_client_log()->debug("Failed to fetch branch metadata for {}: {}",
+                                 branch, e.what());
+    }
+    bool stale = false;
+    if (last_commit_time && *last_commit_time < now) {
+      stale = now - *last_commit_time > kStaleThreshold;
+    }
+    bool ephemeral_name = false;
+    std::string lower = to_lower_copy(branch);
+    for (const auto &token : ephemeral_tokens) {
+      if (lower.find(token) != std::string::npos) {
+        ephemeral_name = true;
+        break;
+      }
+    }
+    bool stale_signal = stale && (ahead_by <= 5 || ephemeral_name);
+    if (identical || behind_only || diverged_without_commits || stale_signal) {
+      stray.push_back(branch);
+    }
+  }
+  return stray;
 }
 
 /// @copydoc GitHubClient::list_branches_single
@@ -1171,16 +1324,18 @@ void GitHubClient::cleanup_branches(
     const std::vector<std::string> &protected_branches,
     const std::vector<std::string> &protected_branch_excludes) {
   if (!repo_allowed(owner, repo) || prefix.empty()) {
-    github_client_log()->debug("Skipping branch cleanup for {}/{}", owner, repo);
+    github_client_log()->debug("Skipping branch cleanup for {}/{}", owner,
+                               repo);
     return;
   }
   if (!allow_delete_base_branch_ && is_base_branch_name(prefix)) {
-    github_client_log()->warn("Refusing to delete protected base branch {} in {}/{}", prefix,
-                 owner, repo);
+    github_client_log()->warn(
+        "Refusing to delete protected base branch {} in {}/{}", prefix, owner,
+        repo);
     return;
   }
-  github_client_log()->info("Cleaning up branches in {}/{} with prefix {}", owner, repo,
-               prefix);
+  github_client_log()->info("Cleaning up branches in {}/{} with prefix {}",
+                            owner, repo, prefix);
   std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
   std::string url = repo_url + "/pulls?state=closed";
   std::vector<std::string> headers;
@@ -1196,8 +1351,9 @@ void GitHubClient::cleanup_branches(
         default_branch = repo_json["default_branch"].get<std::string>();
       }
     } catch (const std::exception &e) {
-      github_client_log()->debug("Failed to retrieve default branch for {}/{}: {}", owner,
-                    repo, e.what());
+      github_client_log()->debug(
+          "Failed to retrieve default branch for {}/{}: {}", owner, repo,
+          e.what());
     }
   }
   while (true) {
@@ -1206,14 +1362,16 @@ void GitHubClient::cleanup_branches(
     try {
       res = get_with_cache(url, headers);
     } catch (const std::exception &e) {
-      github_client_log()->error("Failed to fetch pull requests for cleanup: {}", e.what());
+      github_client_log()->error(
+          "Failed to fetch pull requests for cleanup: {}", e.what());
       return;
     }
     nlohmann::json j;
     try {
       j = nlohmann::json::parse(res.body);
     } catch (const std::exception &e) {
-      github_client_log()->error("Failed to parse pull requests for cleanup: {}", e.what());
+      github_client_log()->error(
+          "Failed to parse pull requests for cleanup: {}", e.what());
       return;
     }
     if (!j.is_array()) {
@@ -1242,13 +1400,15 @@ void GitHubClient::cleanup_branches(
           std::string del_url = api_base_ + "/repos/" + owner + "/" + repo +
                                 "/git/refs/heads/" + branch;
           if (dry_run_) {
-            github_client_log()->info("[dry-run] Would delete branch {}", branch);
+            github_client_log()->info("[dry-run] Would delete branch {}",
+                                      branch);
           } else {
             try {
               (void)http_->del(del_url, headers);
               github_client_log()->info("Deleted branch {}", branch);
             } catch (const std::exception &e) {
-              github_client_log()->error("Failed to delete branch {}: {}", branch, e.what());
+              github_client_log()->error("Failed to delete branch {}: {}",
+                                         branch, e.what());
             }
           }
         }
@@ -1365,15 +1525,16 @@ void GitHubClient::close_dirty_branches(
         // some HttpClient test doubles only implement `get`.
         compare_resp = http_->get(compare_url, headers);
       } catch (const std::exception &e) {
-        github_client_log()->error("Failed to compare branch {}: {}", branch, e.what());
+        github_client_log()->error("Failed to compare branch {}: {}", branch,
+                                   e.what());
         continue;
       }
       nlohmann::json compare_json;
       try {
         compare_json = nlohmann::json::parse(compare_resp);
       } catch (const std::exception &e) {
-        github_client_log()->error("Failed to parse compare JSON for branch {}: {}", branch,
-                      e.what());
+        github_client_log()->error(
+            "Failed to parse compare JSON for branch {}: {}", branch, e.what());
         continue;
       }
       if (!compare_json.is_object()) {
@@ -1386,12 +1547,14 @@ void GitHubClient::close_dirty_branches(
         enforce_delay();
         std::string del_url = repo_url + "/git/refs/heads/" + branch;
         if (dry_run_) {
-          github_client_log()->info("[dry-run] Would delete dirty branch {}", branch);
+          github_client_log()->info("[dry-run] Would delete dirty branch {}",
+                                    branch);
         } else {
           try {
             (void)http_->del(del_url, headers);
           } catch (const std::exception &e) {
-            github_client_log()->error("Failed to delete branch {}: {}", branch, e.what());
+            github_client_log()->error("Failed to delete branch {}: {}", branch,
+                                       e.what());
           }
         }
       }
@@ -1441,7 +1604,8 @@ GitHubClient::rate_limit_status(int max_attempts) {
       continue;
     }
     if (res.status_code < 200 || res.status_code >= 300) {
-      github_client_log()->warn("Rate limit endpoint returned HTTP {}", res.status_code);
+      github_client_log()->warn("Rate limit endpoint returned HTTP {}",
+                                res.status_code);
       return std::nullopt;
     }
     try {
@@ -1467,8 +1631,8 @@ GitHubClient::rate_limit_status(int max_attempts) {
       long reset_epoch = core->value("reset", 0L);
       if (reset_epoch > 0) {
         auto now = std::chrono::system_clock::now();
-        auto reset_time =
-            std::chrono::system_clock::time_point(std::chrono::seconds(reset_epoch));
+        auto reset_time = std::chrono::system_clock::time_point(
+            std::chrono::seconds(reset_epoch));
         if (reset_time > now) {
           status.reset_after = std::chrono::duration_cast<std::chrono::seconds>(
               reset_time - now);
@@ -1478,7 +1642,8 @@ GitHubClient::rate_limit_status(int max_attempts) {
       }
       return status;
     } catch (const std::exception &e) {
-      github_client_log()->warn("Failed to parse rate limit response: {}", e.what());
+      github_client_log()->warn("Failed to parse rate limit response: {}",
+                                e.what());
       return std::nullopt;
     }
   }
@@ -1504,8 +1669,8 @@ bool GitHubClient::handle_rate_limit(const HttpResponse &resp) {
   if ((resp.status_code == 403 || resp.status_code == 429) &&
       tokens_.size() > 1) {
     token_index_ = (token_index_ + 1) % tokens_.size();
-    github_client_log()->warn("Rate limit hit, switching to next token (index {})",
-                 token_index_);
+    github_client_log()->warn(
+        "Rate limit hit, switching to next token (index {})", token_index_);
     last_request_ = std::chrono::steady_clock::now();
     return true;
   }
@@ -1590,7 +1755,8 @@ GitHubGraphQLClient::list_pull_requests(const std::string &owner,
   curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers.get());
   CURLcode res = curl_easy_perform(curl.get());
   if (res != CURLE_OK) {
-    github_client_log()->error("GraphQL query failed: {}", curl_easy_strerror(res));
+    github_client_log()->error("GraphQL query failed: {}",
+                               curl_easy_strerror(res));
     return prs;
   }
   try {
@@ -1606,7 +1772,8 @@ GitHubGraphQLClient::list_pull_requests(const std::string &owner,
       prs.push_back(std::move(pr));
     }
   } catch (const std::exception &e) {
-    github_client_log()->error("Failed to parse GraphQL response: {}", e.what());
+    github_client_log()->error("Failed to parse GraphQL response: {}",
+                               e.what());
   }
   return prs;
 }

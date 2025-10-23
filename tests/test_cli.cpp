@@ -283,6 +283,11 @@ TEST_CASE("test cli", "[cli]") {
   agpm::CliOptions opts15 = agpm::parse_cli(2, argv15);
   REQUIRE(opts15.only_poll_stray);
 
+  char heuristic_flag[] = "--heuristic-stray-detection";
+  char *argv_heuristic[] = {prog, heuristic_flag};
+  agpm::CliOptions opts_heuristic = agpm::parse_cli(2, argv_heuristic);
+  REQUIRE(opts_heuristic.heuristic_stray_detection);
+
   char yes_flag[] = "--yes";
   char reject_flag[] = "--reject-dirty";
   char *argv16b[] = {prog, yes_flag, reject_flag};

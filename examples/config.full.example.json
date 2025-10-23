@@ -41,5 +41,10 @@
   "features": {
     "_comment": "Feature toggles and optional integrations",
     "use_graphql": false
+  },
+
+  "workflow": {
+    "_comment": "Branch management and stray detection",
+    "heuristic_stray_detection": false
   }
 }

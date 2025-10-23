@@ -750,6 +750,10 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("-2,--only-poll-stray", options.only_poll_stray,
                "Only poll stray branches")
       ->group("Branch Management");
+  app.add_flag("-H,--heuristic-stray-detection",
+               options.heuristic_stray_detection,
+               "Enable heuristics-based stray branch detection")
+      ->group("Branch Management");
   app.add_flag("-3,--reject-dirty", options.reject_dirty,
                "Close dirty stray branches automatically")
       ->group("Branch Management");

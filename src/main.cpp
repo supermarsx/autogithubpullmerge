@@ -198,6 +198,8 @@ int main(int argc, char **argv) {
 
   bool only_poll_prs = opts.only_poll_prs || cfg.only_poll_prs();
   bool only_poll_stray = opts.only_poll_stray || cfg.only_poll_stray();
+  bool heuristic_stray_detection =
+      opts.heuristic_stray_detection || cfg.heuristic_stray_detection();
   bool reject_dirty = opts.reject_dirty || cfg.reject_dirty();
   std::string purge_prefix =
       !opts.purge_prefix.empty() ? opts.purge_prefix : cfg.purge_prefix();
@@ -310,9 +312,9 @@ int main(int argc, char **argv) {
 
   agpm::GitHubPoller poller(
       client, repos, interval_ms, max_rate, hourly_limit, workers,
-      only_poll_prs, only_poll_stray, reject_dirty, purge_prefix, auto_merge,
-      purge_only, sort_mode, &history, protected_branches,
-      protected_branch_excludes, opts.dry_run,
+      only_poll_prs, only_poll_stray, heuristic_stray_detection, reject_dirty,
+      purge_prefix, auto_merge, purge_only, sort_mode, &history,
+      protected_branches, protected_branch_excludes, opts.dry_run,
       (opts.use_graphql || cfg.use_graphql()) ? &graphql_client : nullptr,
       delete_stray, rate_limit_margin,
       std::chrono::seconds(rate_limit_refresh_interval),

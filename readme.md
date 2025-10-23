@@ -308,11 +308,16 @@ Branch Management
 - `--protect-branch, --protected-branch PATTERN` Protect matching branches (repeatable). Glob or regex.
 - `--protect-branch-exclude PATTERN` Remove protection for matching branches (repeatable).
 - `--only-poll-stray` Poll only stray branches.
+- `--heuristic-stray-detection` Enable heuristics-based stray detection (performs
+  additional GitHub API calls).
 - `--reject-dirty` Close dirty stray branches automatically (dangerous).
 - `--delete-stray` Delete stray branches without requiring a prefix (dangerous).
 - `--allow-delete-base-branch` Permit deleting base branches such as `main` or `master` (very dangerous).
 - `--purge-prefix PREFIX` Delete branches with this prefix after PR close/merge.
 - `--purge-only` Only purge branches; skip PR polling (dangerous).
+
+Set `heuristic_stray_detection: true` in the configuration (for example under a
+`workflow` section) to enable the heuristic stray analysis by default.
 
 Pull Request Management
 - `--include-merged` Include merged PRs when listing.

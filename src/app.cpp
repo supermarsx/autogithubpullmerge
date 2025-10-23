@@ -97,11 +97,9 @@ int App::run(int argc, char **argv) {
         options_.rate_limit_refresh_interval);
   }
   if (!options_.retry_rate_limit_endpoint_explicit) {
-    options_.retry_rate_limit_endpoint =
-        config_.retry_rate_limit_endpoint();
+    options_.retry_rate_limit_endpoint = config_.retry_rate_limit_endpoint();
   } else {
-    config_.set_retry_rate_limit_endpoint(
-        options_.retry_rate_limit_endpoint);
+    config_.set_retry_rate_limit_endpoint(options_.retry_rate_limit_endpoint);
   }
   if (!options_.rate_limit_retry_limit_explicit) {
     options_.rate_limit_retry_limit = config_.rate_limit_retry_limit();
@@ -115,6 +113,8 @@ int App::run(int argc, char **argv) {
   }
   options_.reject_dirty = options_.reject_dirty || config_.reject_dirty();
   options_.delete_stray = options_.delete_stray || config_.delete_stray();
+  options_.heuristic_stray_detection =
+      options_.heuristic_stray_detection || config_.heuristic_stray_detection();
   options_.allow_delete_base_branch =
       options_.allow_delete_base_branch || config_.allow_delete_base_branch();
   options_.auto_merge = options_.auto_merge || config_.auto_merge();

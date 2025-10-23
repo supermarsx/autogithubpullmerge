@@ -38,3 +38,7 @@ https_proxy = "http://secureproxy"   # Proxy URL for HTTPS requests
 # --- Integrations -----------------------------------------------------------
 [features]
 use_graphql = true                   # Prefer GraphQL API for pull request listing
+
+# --- Branch management ------------------------------------------------------
+[workflow]
+heuristic_stray_detection = false    # Enable heuristics for stray detection (defaults to false)

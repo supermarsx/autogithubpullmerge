@@ -249,9 +249,7 @@ public:
   void set_require_mergeable_state(bool v) { require_mergeable_state_ = v; }
 
   /// Set whether base branches such as main/master may be deleted.
-  void set_allow_delete_base_branch(bool v) {
-    allow_delete_base_branch_ = v;
-  }
+  void set_allow_delete_base_branch(bool v) { allow_delete_base_branch_ = v; }
 
   /**
    * List repositories accessible to the authenticated user.
@@ -309,7 +307,26 @@ public:
    * @return All non-default branch names that survive include/exclude filters.
    */
   std::vector<std::string> list_branches(const std::string &owner,
-                                         const std::string &repo);
+                                         const std::string &repo,
+                                         std::string *default_branch = nullptr);
+
+  /**
+   * Identify branches that appear stray based on heuristic signals.
+   *
+   * @param owner Repository owner.
+   * @param repo Repository name.
+   * @param default_branch Resolved default branch used as the comparison base.
+   * @param branches Candidate branch names to analyse.
+   * @param protected_branches Branch patterns excluded from consideration.
+   * @param protected_branch_excludes Patterns that lift protection.
+   * @return Branch names that are likely safe to prune.
+   */
+  std::vector<std::string> detect_stray_branches(
+      const std::string &owner, const std::string &repo,
+      const std::string &default_branch,
+      const std::vector<std::string> &branches,
+      const std::vector<std::string> &protected_branches = {},
+      const std::vector<std::string> &protected_branch_excludes = {});
 
   /**
    * Perform a single HTTP request to list branches for a repository. Intended
@@ -367,8 +384,8 @@ public:
    *
    * @param max_attempts Number of attempts to query `/rate_limit` before
    *        giving up (minimum of one).
-   * @return Populated status snapshot when the endpoint succeeds; `std::nullopt`
-   *         if the probe fails or returns malformed data.
+   * @return Populated status snapshot when the endpoint succeeds;
+   * `std::nullopt` if the probe fails or returns malformed data.
    */
   std::optional<RateLimitStatus> rate_limit_status(int max_attempts = 1);
 

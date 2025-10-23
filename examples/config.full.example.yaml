@@ -37,3 +37,7 @@ network:
 features:
   # --- Integrations -------------------------------------------------------
   use_graphql: true                  # Prefer GraphQL API for pull request listing
+
+workflow:
+  # --- Branch management --------------------------------------------------
+  heuristic_stray_detection: false   # Enable heuristics for stray detection (defaults to false)

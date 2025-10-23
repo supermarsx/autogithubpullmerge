@@ -63,8 +63,8 @@ struct CliOptions {
   std::unordered_map<std::string, std::string>
       log_categories; ///< Category -> level overrides requested via CLI/config
   bool log_categories_explicit{false}; ///< True if CLI specified categories
-  bool log_sidecar{false};              ///< Show logs in a sidecar window
-  bool log_sidecar_explicit{false};     ///< True if CLI toggled log sidecar
+  bool log_sidecar{false};             ///< Show logs in a sidecar window
+  bool log_sidecar_explicit{false};    ///< True if CLI toggled log sidecar
   bool assume_yes{false};              ///< Skip confirmation prompts
   bool dry_run{false};                 ///< Simulate operations without changes
   std::vector<std::string> include_repos; ///< Repositories to include
@@ -99,19 +99,21 @@ struct CliOptions {
   int max_request_rate = 60;             ///< Max requests per minute
   int max_hourly_requests = 0;           ///< Max requests per hour (0 = auto)
   bool max_hourly_requests_explicit{false}; ///< True if CLI set hourly limit
-  int workers = 0;                       ///< Number of worker threads
-  int http_timeout = 30;                 ///< HTTP timeout in seconds
-  int http_retries = 3;                  ///< Number of HTTP retries
-  long long download_limit = 0;          ///< Download rate limit (bytes/sec)
-  long long upload_limit = 0;            ///< Upload rate limit (bytes/sec)
-  long long max_download = 0;            ///< Max cumulative download bytes
-  long long max_upload = 0;              ///< Max cumulative upload bytes
-  std::string http_proxy;                ///< Proxy URL for HTTP requests
-  std::string https_proxy;               ///< Proxy URL for HTTPS requests
-  bool only_poll_prs = false;            ///< Only poll pull requests
-  bool only_poll_stray = false;          ///< Only poll stray branches
-  bool reject_dirty = false;             ///< Auto close dirty branches
-  bool delete_stray{false}; ///< Delete stray branches automatically
+  int workers = 0;                          ///< Number of worker threads
+  int http_timeout = 30;                    ///< HTTP timeout in seconds
+  int http_retries = 3;                     ///< Number of HTTP retries
+  long long download_limit = 0;             ///< Download rate limit (bytes/sec)
+  long long upload_limit = 0;               ///< Upload rate limit (bytes/sec)
+  long long max_download = 0;               ///< Max cumulative download bytes
+  long long max_upload = 0;                 ///< Max cumulative upload bytes
+  std::string http_proxy;                   ///< Proxy URL for HTTP requests
+  std::string https_proxy;                  ///< Proxy URL for HTTPS requests
+  bool only_poll_prs = false;               ///< Only poll pull requests
+  bool only_poll_stray = false;             ///< Only poll stray branches
+  bool heuristic_stray_detection{
+      false};                ///< Enable heuristics when flagging stray branches
+  bool reject_dirty = false; ///< Auto close dirty branches
+  bool delete_stray{false};  ///< Delete stray branches automatically
   bool allow_delete_base_branch{
       false};                ///< Permit deleting base branches (dangerous)
   bool auto_merge{false};    ///< Automatically merge pull requests

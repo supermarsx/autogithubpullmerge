@@ -29,6 +29,7 @@ TEST_CASE("test config from json") {
   workflow["assume_yes"] = true;
   workflow["dry_run"] = true;
   workflow["delete_stray"] = true;
+  workflow["heuristic_stray_detection"] = true;
   workflow["allow_delete_base_branch"] = true;
 
   auto &network = j["network"];
@@ -56,10 +57,10 @@ TEST_CASE("test config from json") {
 
   auto &ui = j["ui"];
   ui["hotkeys"] = {{"enabled", false},
-                    {"bindings",
-                     {{"refresh", nlohmann::json::array({"Ctrl+R", "r"})},
-                      {"merge", nullptr},
-                      {"details", "enter"}}}};
+                   {"bindings",
+                    {{"refresh", nlohmann::json::array({"Ctrl+R", "r"})},
+                     {"merge", nullptr},
+                     {"details", "enter"}}}};
 
   agpm::Config cfg = agpm::Config::from_json(j);
 
@@ -87,6 +88,7 @@ TEST_CASE("test config from json") {
   REQUIRE(cfg.assume_yes());
   REQUIRE(cfg.dry_run());
   REQUIRE(cfg.delete_stray());
+  REQUIRE(cfg.heuristic_stray_detection());
   REQUIRE(cfg.allow_delete_base_branch());
   REQUIRE(cfg.export_csv() == "cfg.csv");
   REQUIRE(cfg.export_json() == "cfg.json");

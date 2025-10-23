@@ -33,6 +33,8 @@ public:
    *        parallel.
    * @param only_poll_prs When true, skip branch polling entirely.
    * @param only_poll_stray When true, only poll branches for stray detection.
+   * @param heuristic_stray_detection Enable heuristics when classifying stray
+   *        branches.
    * @param reject_dirty Automatically close or delete dirty branches.
    * @param purge_prefix Delete merged branches starting with this prefix.
    * @param auto_merge Automatically merge qualifying pull requests.
@@ -54,25 +56,22 @@ public:
    * @param rate_limit_retry_limit Maximum number of scheduled retries for the
    *        rate limit endpoint when retries are enabled.
    */
-  GitHubPoller(GitHubClient &client,
-               std::vector<std::pair<std::string, std::string>> repos,
-               int interval_ms, int max_rate, int hourly_request_limit,
-               int workers = 1,
-               bool only_poll_prs = false, bool only_poll_stray = false,
-               bool reject_dirty = false, std::string purge_prefix = "",
-               bool auto_merge = false, bool purge_only = false,
-               std::string sort_mode = "",
-               PullRequestHistory *history = nullptr,
-               std::vector<std::string> protected_branches = {},
-               std::vector<std::string> protected_branch_excludes = {},
-               bool dry_run = false,
-               GitHubGraphQLClient *graphql_client = nullptr,
-               bool delete_stray = false,
-               double rate_limit_margin = 0.7,
-               std::chrono::seconds rate_limit_refresh_interval =
-                   std::chrono::seconds(60),
-               bool retry_rate_limit_endpoint = false,
-               int rate_limit_retry_limit = 3);
+  GitHubPoller(
+      GitHubClient &client,
+      std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
+      int max_rate, int hourly_request_limit, int workers = 1,
+      bool only_poll_prs = false, bool only_poll_stray = false,
+      bool heuristic_stray_detection = false, bool reject_dirty = false,
+      std::string purge_prefix = "", bool auto_merge = false,
+      bool purge_only = false, std::string sort_mode = "",
+      PullRequestHistory *history = nullptr,
+      std::vector<std::string> protected_branches = {},
+      std::vector<std::string> protected_branch_excludes = {},
+      bool dry_run = false, GitHubGraphQLClient *graphql_client = nullptr,
+      bool delete_stray = false, double rate_limit_margin = 0.7,
+      std::chrono::seconds rate_limit_refresh_interval =
+          std::chrono::seconds(60),
+      bool retry_rate_limit_endpoint = false, int rate_limit_retry_limit = 3);
 
   /// Start polling in a background thread.
   void start();
@@ -94,7 +93,7 @@ public:
   /**
    * Set a callback invoked for log messages produced during polling.
    *
-    * @param cb Function receiving log messages.
+   * @param cb Function receiving log messages.
    */
   void set_log_callback(std::function<void(const std::string &)> cb);
 
@@ -146,6 +145,7 @@ private:
   int fallback_hourly_limit_;
   bool only_poll_prs_;
   bool only_poll_stray_;
+  bool heuristic_stray_detection_;
   bool reject_dirty_;
   bool delete_stray_;
   std::string purge_prefix_;
