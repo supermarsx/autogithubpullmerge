@@ -16,18 +16,32 @@ TEST_CASE("repo discovery string conversion") {
           agpm::RepoDiscoveryMode::All);
   REQUIRE(agpm::repo_discovery_mode_from_string("filesystem") ==
           agpm::RepoDiscoveryMode::Filesystem);
+  REQUIRE(agpm::repo_discovery_mode_from_string("both") ==
+          agpm::RepoDiscoveryMode::Both);
+  REQUIRE(agpm::repo_discovery_mode_from_string("account") ==
+          agpm::RepoDiscoveryMode::All);
+  REQUIRE(agpm::repo_discovery_mode_from_string("token+filesystem") ==
+          agpm::RepoDiscoveryMode::Both);
 
   REQUIRE(agpm::to_string(agpm::RepoDiscoveryMode::Disabled) == "disabled");
   REQUIRE(agpm::to_string(agpm::RepoDiscoveryMode::All) == "all");
   REQUIRE(agpm::to_string(agpm::RepoDiscoveryMode::Filesystem) == "filesystem");
+  REQUIRE(agpm::to_string(agpm::RepoDiscoveryMode::Both) == "both");
 
-  REQUIRE_FALSE(agpm::repo_discovery_enabled(agpm::RepoDiscoveryMode::Disabled));
+  REQUIRE_FALSE(
+      agpm::repo_discovery_enabled(agpm::RepoDiscoveryMode::Disabled));
   REQUIRE(agpm::repo_discovery_enabled(agpm::RepoDiscoveryMode::All));
   REQUIRE(agpm::repo_discovery_enabled(agpm::RepoDiscoveryMode::Filesystem));
+  REQUIRE(agpm::repo_discovery_enabled(agpm::RepoDiscoveryMode::Both));
   REQUIRE(agpm::repo_discovery_uses_tokens(agpm::RepoDiscoveryMode::All));
-  REQUIRE_FALSE(agpm::repo_discovery_uses_tokens(agpm::RepoDiscoveryMode::Filesystem));
-  REQUIRE(agpm::repo_discovery_uses_filesystem(agpm::RepoDiscoveryMode::Filesystem));
-  REQUIRE_FALSE(agpm::repo_discovery_uses_filesystem(agpm::RepoDiscoveryMode::All));
+  REQUIRE(agpm::repo_discovery_uses_tokens(agpm::RepoDiscoveryMode::Both));
+  REQUIRE_FALSE(
+      agpm::repo_discovery_uses_tokens(agpm::RepoDiscoveryMode::Filesystem));
+  REQUIRE(agpm::repo_discovery_uses_filesystem(
+      agpm::RepoDiscoveryMode::Filesystem));
+  REQUIRE(agpm::repo_discovery_uses_filesystem(agpm::RepoDiscoveryMode::Both));
+  REQUIRE_FALSE(
+      agpm::repo_discovery_uses_filesystem(agpm::RepoDiscoveryMode::All));
 
   REQUIRE_THROWS_AS(agpm::repo_discovery_mode_from_string("unknown"),
                     std::invalid_argument);

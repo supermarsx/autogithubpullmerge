@@ -39,14 +39,14 @@ For example, `-C` maps to `--config` and `-1` toggles `--only-poll-prs`.
 ### Repository Filters
 
 - `--include`/`--exclude` - repeatable repository include/exclude filters (format `OWNER/REPO`).
-- `--repo-discovery MODE` - `disabled` (default) uses explicit include lists; `all` discovers every repo accessible to the token; `filesystem` scans local git directories for GitHub remotes. Include/exclude always act as allow/deny lists.
+- `--repo-discovery MODE` - `disabled` (default) uses explicit include lists; `all`/`account` discovers every repo accessible to the token; `filesystem` scans local git directories for GitHub remotes; `both` merges token and filesystem discovery. Include/exclude always act as allow/deny lists.
 - `--repo-discovery-root DIR` - repeatable directories scanned when using `filesystem` discovery.
 - `--include-merged` - show merged pull requests when listing (off by default).
 
 When discovery is disabled you must specify at least one repository with
 `--include` or the equivalent configuration entry.
 In configuration files, use the `repo_discovery_mode` key with values
-`disabled`, `all`, or `filesystem`, and list directories under
+`disabled`, `all`, `filesystem`, or `both`, and list directories under
 `repo_discovery_roots` (or the single `repo_discovery_root`).
 
 ### Authentication

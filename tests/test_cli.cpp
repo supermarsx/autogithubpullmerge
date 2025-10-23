@@ -152,6 +152,11 @@ TEST_CASE("test cli", "[cli]") {
   REQUIRE(opts_repo_fs.repo_discovery_mode ==
           agpm::RepoDiscoveryMode::Filesystem);
 
+  char repo_disc_mode_both[] = "both";
+  char *argv_repo_both[] = {prog, repo_disc_flag, repo_disc_mode_both};
+  agpm::CliOptions opts_repo_both = agpm::parse_cli(3, argv_repo_both);
+  REQUIRE(opts_repo_both.repo_discovery_mode == agpm::RepoDiscoveryMode::Both);
+
   char repo_disc_bad[] = "invalid";
   char *argv_repo_bad[] = {prog, repo_disc_flag, repo_disc_bad};
   REQUIRE_THROWS_AS(agpm::parse_cli(3, argv_repo_bad), agpm::CliParseExit);

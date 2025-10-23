@@ -204,10 +204,10 @@ TEST_CASE("test config") {
     single["single_branches_repo"] = "single/repo";
 
     auto &ui = doc["ui"];
-    ui["hotkeys"] = {{"enabled", true},
-                      {"bindings",
-                       {{"open", "o"},
-                        {"quit", nlohmann::json::array({"Ctrl+Q", "q"})}}}};
+    ui["hotkeys"] = {
+        {"enabled", true},
+        {"bindings",
+         {{"open", "o"}, {"quit", nlohmann::json::array({"Ctrl+Q", "q"})}}}};
 
     std::ofstream f("cfg.json");
     f << doc.dump();
@@ -371,5 +371,16 @@ TEST_CASE("test config") {
             agpm::RepoDiscoveryMode::Filesystem);
     REQUIRE(cfg_root.repo_discovery_roots().size() == 1);
     REQUIRE(cfg_root.repo_discovery_roots()[0] == "/var/repos");
+  }
+
+  {
+    std::ofstream cfg("cfg_both.json");
+    cfg << R"({"repositories":{"repo_discovery_mode":"both","repo_discovery_roots":["/var/repos","/srv/repos"]}})";
+    cfg.close();
+    agpm::Config cfg_both = agpm::Config::from_file("cfg_both.json");
+    REQUIRE(cfg_both.repo_discovery_mode() == agpm::RepoDiscoveryMode::Both);
+    REQUIRE(cfg_both.repo_discovery_roots().size() == 2);
+    REQUIRE(cfg_both.repo_discovery_roots()[0] == "/var/repos");
+    REQUIRE(cfg_both.repo_discovery_roots()[1] == "/srv/repos");
   }
 }

@@ -11,7 +11,8 @@ namespace agpm {
 enum class RepoDiscoveryMode {
   Disabled,   ///< Use only explicitly specified repositories
   All,        ///< Discover all repositories accessible to the token(s)
-  Filesystem  ///< Discover repositories by scanning local git directories
+  Filesystem, ///< Discover repositories by scanning local git directories
+  Both        ///< Combine token-based and filesystem discovery
 };
 
 /// Convert repo discovery mode to lowercase string.

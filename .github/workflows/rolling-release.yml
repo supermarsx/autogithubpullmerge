@@ -180,7 +180,7 @@ jobs:
       matrix:
         include:
           - label: macOS x64
-            os: macos-13
+            os: macos-14
             triplet: x64-osx
             binary: autogithubpullmerge
             asset: autogithubpullmerge-macos-x64.tar.gz
@@ -244,11 +244,21 @@ jobs:
       - name: Configure
         shell: bash
         run: |
+          set -euo pipefail
+
+          extra_flags=()
+          if [[ "${{ matrix.triplet }}" == "x64-osx" ]]; then
+            extra_flags+=(-DCMAKE_OSX_ARCHITECTURES=x86_64)
+          elif [[ "${{ matrix.triplet }}" == "arm64-osx" ]]; then
+            extra_flags+=(-DCMAKE_OSX_ARCHITECTURES=arm64)
+          fi
+
           cmake -S . -B build -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
             -DCMAKE_CXX_STANDARD=23 \
             -DCMAKE_BUILD_TYPE=Release \
-            -DVCPKG_TARGET_TRIPLET="${{ matrix.triplet }}"
+            -DVCPKG_TARGET_TRIPLET="${{ matrix.triplet }}" \
+            "${extra_flags[@]}"
 
       - name: Build
         shell: bash

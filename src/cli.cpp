@@ -16,8 +16,8 @@
 #include <iterator>
 #include <memory>
 #include <sstream>
-#include <string_view>
 #include <stdexcept>
+#include <string_view>
 #include <system_error>
 #include <unordered_set>
 
@@ -36,9 +36,9 @@ std::shared_ptr<spdlog::logger> cli_log() {
 
 std::string log_category_help_text() {
   static const std::array<std::string_view, 12> categories = {
-      "app",          "cli",          "config",       "demo_tui",
-      "github.client", "github.poller", "history",      "logging",
-      "main",         "pat",          "repo.discovery", "tui"};
+      "app",           "cli",           "config",         "demo_tui",
+      "github.client", "github.poller", "history",        "logging",
+      "main",          "pat",           "repo.discovery", "tui"};
   std::ostringstream oss;
   oss << "Logging categories: ";
   for (std::size_t i = 0; i < categories.size(); ++i) {
@@ -47,7 +47,8 @@ std::string log_category_help_text() {
     }
     oss << categories[i];
   }
-  oss << "\nUse --log-category NAME=LEVEL to override (e.g., repo.discovery=debug).";
+  oss << "\nUse --log-category NAME=LEVEL to override (e.g., "
+         "repo.discovery=debug).";
   oss << " Configuration files accept the same mapping under 'log_categories'.";
   return oss.str();
 }
@@ -451,7 +452,8 @@ CliOptions parse_cli(int argc, char **argv) {
            options.log_categories[name] = level;
            options.log_categories_explicit = true;
          },
-         "Enable a logging category (NAME or NAME=LEVEL). See help footer for available categories.")
+         "Enable a logging category (NAME or NAME=LEVEL). See help footer for "
+         "available categories.")
       ->type_name("NAME[=LEVEL]")
       ->group("Logging");
   app.add_option_function<int>(
@@ -497,8 +499,8 @@ CliOptions parse_cli(int argc, char **argv) {
              throw CLI::ValidationError(
                  std::string("--hotkeys: expected 'on' or 'off', got '") +
                  value + "'");
-         }
-        },
+           }
+         },
          "Explicitly enable or disable interactive hotkeys (on/off)")
       ->type_name("on|off")
       ->group("General");
@@ -519,8 +521,8 @@ CliOptions parse_cli(int argc, char **argv) {
                                         e.what());
            }
          },
-         "Control repository discovery (disabled/all/filesystem)")
-      ->type_name("disabled|all|filesystem")
+         "Control repository discovery (disabled/all/filesystem/both)")
+      ->type_name("disabled|all|filesystem|both")
       ->group("Repositories");
   app.add_option("--repo-discovery-root", options.repo_discovery_roots,
                  "Directory to scan for git repositories; repeatable")
@@ -666,7 +668,7 @@ CliOptions parse_cli(int argc, char **argv) {
          [&options](int value) {
            if (value <= 0) {
              throw CLI::ValidationError("--rate-limit-retry-limit",
-                                       "retry limit must be positive");
+                                        "retry limit must be positive");
            }
            options.rate_limit_retry_limit = value;
            options.rate_limit_retry_limit_explicit = true;
@@ -792,8 +794,7 @@ CliOptions parse_cli(int argc, char **argv) {
     int exit_code = app.exit(e);
     throw CliParseExit(exit_code);
   }
-  if (retry_rate_limit_flag != nullptr &&
-      retry_rate_limit_flag->count() > 0U) {
+  if (retry_rate_limit_flag != nullptr && retry_rate_limit_flag->count() > 0U) {
     options.retry_rate_limit_endpoint_explicit = true;
   }
   std::unordered_set<std::string> canonical_token_files;

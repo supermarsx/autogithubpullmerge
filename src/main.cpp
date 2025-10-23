@@ -3,8 +3,8 @@
 #include "github_client.hpp"
 #include "github_poller.hpp"
 #include "history.hpp"
-#include "repo_discovery.hpp"
 #include "log.hpp"
+#include "repo_discovery.hpp"
 #include "tui.hpp"
 
 #include <algorithm>
@@ -73,27 +73,28 @@ int main(int argc, char **argv) {
   auto repo_to_string = [](const std::pair<std::string, std::string> &repo) {
     return repo.first + "/" + repo.second;
   };
-  auto build_filter = [&](const std::vector<std::string> &list, const char *label,
+  auto build_filter = [&](const std::vector<std::string> &list,
+                          const char *label,
                           std::unordered_set<std::string> &out) -> bool {
     out.clear();
     out.reserve(list.size());
     for (const auto &entry : list) {
       std::pair<std::string, std::string> parsed;
       if (!parse_repo(entry, parsed)) {
-        main_log()->error("Invalid repository identifier '{}' in {} list", entry, label);
+        main_log()->error("Invalid repository identifier '{}' in {} list",
+                          entry, label);
         return false;
       }
       out.insert(repo_to_string(parsed));
     }
     return true;
   };
-  std::vector<std::string> protected_branches =
-      !opts.protected_branches.empty() ? opts.protected_branches
-                                       : cfg.protected_branches();
+  std::vector<std::string> protected_branches = !opts.protected_branches.empty()
+                                                    ? opts.protected_branches
+                                                    : cfg.protected_branches();
   std::vector<std::string> protected_branch_excludes =
-      !opts.protected_branch_excludes.empty()
-          ? opts.protected_branch_excludes
-          : cfg.protected_branch_excludes();
+      !opts.protected_branch_excludes.empty() ? opts.protected_branch_excludes
+                                              : cfg.protected_branch_excludes();
   std::unordered_set<std::string> include_set;
   if (!build_filter(include, "include", include_set)) {
     return 1;
@@ -107,9 +108,8 @@ int main(int argc, char **argv) {
                                              : cfg.max_request_rate();
   if (max_rate <= 0)
     max_rate = 60;
-  int hourly_limit = opts.max_hourly_requests != 0
-                         ? opts.max_hourly_requests
-                         : cfg.max_hourly_requests();
+  int hourly_limit = opts.max_hourly_requests != 0 ? opts.max_hourly_requests
+                                                   : cfg.max_hourly_requests();
   if (hourly_limit < 0)
     hourly_limit = 0;
   int delay_ms = max_rate > 0 ? 60000 / max_rate : 0;
@@ -121,9 +121,8 @@ int main(int argc, char **argv) {
   std::string api_base =
       !opts.api_base.empty() ? opts.api_base : cfg.api_base();
   curl_off_t download_limit =
-      opts.download_limit != 0
-          ? static_cast<curl_off_t>(opts.download_limit)
-          : static_cast<curl_off_t>(cfg.download_limit());
+      opts.download_limit != 0 ? static_cast<curl_off_t>(opts.download_limit)
+                               : static_cast<curl_off_t>(cfg.download_limit());
   curl_off_t upload_limit = opts.upload_limit != 0
                                 ? static_cast<curl_off_t>(opts.upload_limit)
                                 : static_cast<curl_off_t>(cfg.upload_limit());
@@ -158,7 +157,8 @@ int main(int argc, char **argv) {
       std::cout << pr.owner << "/" << pr.repo << " #" << pr.number << ": "
                 << pr.title << "\n";
     }
-    std::cout << opts.single_open_prs_repo << " pull requests: " << count << "\n";
+    std::cout << opts.single_open_prs_repo << " pull requests: " << count
+              << "\n";
     return 0;
   }
 
@@ -216,15 +216,16 @@ int main(int argc, char **argv) {
   std::vector<std::pair<std::string, std::string>> repos;
   if (opts.repo_discovery_mode == agpm::RepoDiscoveryMode::Disabled) {
     if (include.empty()) {
-      main_log()->error(
-          "Repository discovery disabled but no repositories specified via --include or config");
+      main_log()->error("Repository discovery disabled but no repositories "
+                        "specified via --include or config");
       return 1;
     }
     repos.reserve(include.size());
     for (const auto &r : include) {
       std::pair<std::string, std::string> parsed;
       if (!parse_repo(r, parsed)) {
-        main_log()->error("Invalid repository identifier '{}'; expected OWNER/REPO", r);
+        main_log()->error(
+            "Invalid repository identifier '{}'; expected OWNER/REPO", r);
         return 1;
       }
       if (!exclude_set.empty() &&
@@ -234,64 +235,73 @@ int main(int argc, char **argv) {
       repos.push_back(std::move(parsed));
     }
     if (repos.empty()) {
-      main_log()->error(
-          "No repositories remain after applying include/exclude filters with discovery disabled");
+      main_log()->error("No repositories remain after applying include/exclude "
+                        "filters with discovery disabled");
       return 1;
-    }
-  } else if (agpm::repo_discovery_uses_tokens(opts.repo_discovery_mode)) {
-    repos = client.list_repositories();
-    if (!include_set.empty()) {
-      std::vector<std::pair<std::string, std::string>> filtered;
-      filtered.reserve(repos.size());
-      for (const auto &repo : repos) {
-        if (include_set.find(repo_to_string(repo)) != include_set.end()) {
-          filtered.push_back(repo);
-        }
-      }
-      repos.swap(filtered);
-    }
-    if (!exclude_set.empty() && !repos.empty()) {
-      repos.erase(std::remove_if(repos.begin(), repos.end(),
-                                 [&](const auto &repo) {
-                                   return exclude_set.find(repo_to_string(repo)) !=
-                                          exclude_set.end();
-                                 }),
-                  repos.end());
-    }
-    if (repos.empty()) {
-      main_log()->warn("Repository discovery returned no repositories after filters");
-    }
-  } else if (agpm::repo_discovery_uses_filesystem(opts.repo_discovery_mode)) {
-    if (discovery_roots.empty()) {
-      main_log()->error(
-          "Filesystem discovery requires at least one --repo-discovery-root or config entry");
-      return 1;
-    }
-    repos = agpm::discover_repositories_from_filesystem(discovery_roots);
-    if (!include_set.empty() && !repos.empty()) {
-      std::vector<std::pair<std::string, std::string>> filtered;
-      filtered.reserve(repos.size());
-      for (const auto &repo : repos) {
-        if (include_set.find(repo_to_string(repo)) != include_set.end()) {
-          filtered.push_back(repo);
-        }
-      }
-      repos.swap(filtered);
-    }
-    if (!exclude_set.empty() && !repos.empty()) {
-      repos.erase(std::remove_if(repos.begin(), repos.end(),
-                                 [&](const auto &repo) {
-                                   return exclude_set.find(repo_to_string(repo)) !=
-                                          exclude_set.end();
-                                 }),
-                  repos.end());
-    }
-    if (repos.empty()) {
-      main_log()->warn("Filesystem discovery located no repositories after filters");
     }
   } else {
-    main_log()->error("Unsupported repository discovery mode");
-    return 1;
+    const bool uses_tokens =
+        agpm::repo_discovery_uses_tokens(opts.repo_discovery_mode);
+    const bool uses_filesystem =
+        agpm::repo_discovery_uses_filesystem(opts.repo_discovery_mode);
+
+    if (uses_filesystem && discovery_roots.empty()) {
+      main_log()->error("Filesystem discovery requires at least one "
+                        "--repo-discovery-root or config entry");
+      return 1;
+    }
+
+    std::unordered_set<std::string> seen_repos;
+    auto append_unique =
+        [&](const std::vector<std::pair<std::string, std::string>> &source) {
+          for (const auto &repo : source) {
+            auto key = repo_to_string(repo);
+            if (seen_repos.insert(key).second) {
+              repos.push_back(repo);
+            }
+          }
+        };
+
+    if (uses_tokens) {
+      append_unique(client.list_repositories());
+    }
+    if (uses_filesystem) {
+      append_unique(
+          agpm::discover_repositories_from_filesystem(discovery_roots));
+    }
+
+    if (!include_set.empty() && !repos.empty()) {
+      repos.erase(std::remove_if(repos.begin(), repos.end(),
+                                 [&](const auto &repo) {
+                                   return include_set.find(repo_to_string(
+                                              repo)) == include_set.end();
+                                 }),
+                  repos.end());
+    }
+
+    if (!exclude_set.empty() && !repos.empty()) {
+      repos.erase(std::remove_if(repos.begin(), repos.end(),
+                                 [&](const auto &repo) {
+                                   return exclude_set.find(repo_to_string(
+                                              repo)) != exclude_set.end();
+                                 }),
+                  repos.end());
+    }
+
+    if (repos.empty()) {
+      if (uses_tokens && uses_filesystem) {
+        main_log()->warn("Combined repository discovery returned no "
+                         "repositories after filters");
+      } else if (uses_tokens) {
+        main_log()->warn(
+            "Repository discovery returned no repositories after filters");
+      } else if (uses_filesystem) {
+        main_log()->warn(
+            "Filesystem discovery located no repositories after filters");
+      } else {
+        main_log()->warn("Repository discovery returned no repositories");
+      }
+    }
   }
 
   std::string history_db =
@@ -299,10 +309,10 @@ int main(int argc, char **argv) {
   agpm::PullRequestHistory history(history_db);
 
   agpm::GitHubPoller poller(
-      client, repos, interval_ms, max_rate, hourly_limit, workers, only_poll_prs,
-      only_poll_stray, reject_dirty, purge_prefix, auto_merge, purge_only,
-      sort_mode, &history, protected_branches, protected_branch_excludes,
-      opts.dry_run,
+      client, repos, interval_ms, max_rate, hourly_limit, workers,
+      only_poll_prs, only_poll_stray, reject_dirty, purge_prefix, auto_merge,
+      purge_only, sort_mode, &history, protected_branches,
+      protected_branch_excludes, opts.dry_run,
       (opts.use_graphql || cfg.use_graphql()) ? &graphql_client : nullptr,
       delete_stray, rate_limit_margin,
       std::chrono::seconds(rate_limit_refresh_interval),

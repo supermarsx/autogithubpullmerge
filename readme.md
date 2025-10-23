@@ -32,9 +32,11 @@ A cross‑platform tool that both automates safe pull request merging and manage
   repeatable `--api-key-file` for JSON/YAML/TOML token files, and
   `--auto-detect-token-files` to locate tokens near the executable,
   repository roots, or common user directories)
-- Repository discovery modes: manual OWNER/REPO lists by default, token-wide
-  discovery via `--repo-discovery all`, or filesystem scanning with
-  `--repo-discovery filesystem` and repeatable `--repo-discovery-root`
+- Repository discovery modes: manual OWNER/REPO lists by default, account or
+  token discovery via `--repo-discovery all` (also accepts `account`/`token`),
+  filesystem scanning with `--repo-discovery filesystem` and repeatable
+  `--repo-discovery-root`, or combining both approaches via
+  `--repo-discovery both`
 - Supports YAML, TOML, and JSON configuration files
 - Adaptive rate limiting with a configurable margin to protect GitHub API usage
 - Branch protection patterns to guard important branches
@@ -285,8 +287,9 @@ Repositories
 - `--include REPO` Repository to include (repeatable). Format `OWNER/REPO`.
 - `--exclude REPO` Repository to exclude (repeatable). Format `OWNER/REPO`.
 - `--repo-discovery MODE` Control repository discovery; `disabled` (default)
-  honors only includes, `all` pulls every repository visible to the token, and
-  `filesystem` scans local git directories for GitHub remotes.
+  honors only includes, `all`/`account` pulls every repository visible to the
+  token, `filesystem` scans local git directories for GitHub remotes, and
+  `both` merges token and filesystem discovery.
 - `--repo-discovery-root DIR` Directory to scan for git repositories (repeatable,
   used with the `filesystem` discovery mode).
 
@@ -296,9 +299,10 @@ enumerates every accessible repository for the configured tokens and then uses
 `include`/`exclude` lists to filter the results.
 With discovery `filesystem`, the tool walks the provided directories looking for
 git repositories whose origin remote points at GitHub and uses `include`/
-`exclude` as allow/deny lists.
+`exclude` as allow/deny lists. `both` collects repositories from both token and
+filesystem discovery before applying filters.
 Configuration files control this behaviour with the `repo_discovery_mode`
-setting (`disabled`, `all`, or `filesystem`) and `repo_discovery_roots`.
+setting (`disabled`, `all`, `filesystem`, or `both`) and `repo_discovery_roots`.
 
 Branch Management
 - `--protect-branch, --protected-branch PATTERN` Protect matching branches (repeatable). Glob or regex.

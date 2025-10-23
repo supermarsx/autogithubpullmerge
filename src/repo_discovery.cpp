@@ -35,9 +35,9 @@ std::shared_ptr<spdlog::logger> discovery_log() {
  * @return Lowercase version of the input string.
  */
 std::string normalize(std::string value) {
-  std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
-    return static_cast<char>(std::tolower(c));
-  });
+  std::transform(
+      value.begin(), value.end(), value.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return value;
 }
 
@@ -48,13 +48,13 @@ std::string normalize(std::string value) {
  * @return View of the string without surrounding whitespace.
  */
 std::string trim(const std::string &s) {
-  auto first = std::find_if_not(s.begin(), s.end(),
-                                [](unsigned char c) { return std::isspace(c); });
+  auto first = std::find_if_not(
+      s.begin(), s.end(), [](unsigned char c) { return std::isspace(c); });
   if (first == s.end())
     return {};
   auto last = std::find_if_not(s.rbegin(), s.rend(), [](unsigned char c) {
-    return std::isspace(c);
-  }).base();
+                return std::isspace(c);
+              }).base();
   return last <= first ? std::string{} : std::string(first, last);
 }
 
@@ -85,7 +85,8 @@ parse_github_repo_from_url(const std::string &url_in) {
   std::string owner;
   std::string repo;
   if (url.rfind("git@github.com:", 0) == 0) {
-    std::string remainder = strip_suffix(url.substr(std::string("git@github.com:").size()));
+    std::string remainder =
+        strip_suffix(url.substr(std::string("git@github.com:").size()));
     auto slash = remainder.find('/');
     if (slash == std::string::npos)
       return std::nullopt;
@@ -173,13 +174,16 @@ void try_add_repo(const std::filesystem::path &config_path,
                   std::vector<std::pair<std::string, std::string>> &out) {
   auto parsed = parse_origin_from_config(config_path);
   if (!parsed) {
-    discovery_log()->warn("Skipping repository at '{}' (missing GitHub remote origin)", root.string());
+    discovery_log()->warn(
+        "Skipping repository at '{}' (missing GitHub remote origin)",
+        root.string());
     return;
   }
   std::string key = parsed->first + "/" + parsed->second;
   if (seen.insert(key).second) {
     out.push_back(*parsed);
-    discovery_log()->info("Discovered repository {} from {}", key, root.string());
+    discovery_log()->info("Discovered repository {} from {}", key,
+                          root.string());
   }
 }
 
@@ -216,8 +220,8 @@ void inspect_candidate(const std::filesystem::path &candidate,
       if (line.size() > key.size() &&
           normalize(line.substr(0, key.size())) == key) {
         std::string path = trim(line.substr(key.size()));
-        std::filesystem::path resolved = std::filesystem::weakly_canonical(
-            candidate / path, ec);
+        std::filesystem::path resolved =
+            std::filesystem::weakly_canonical(candidate / path, ec);
         if (!resolved.empty()) {
           auto config_path = resolved / "config";
           if (std::filesystem::is_regular_file(config_path, ec)) {
@@ -253,6 +257,8 @@ std::string to_string(RepoDiscoveryMode mode) {
     return "all";
   case RepoDiscoveryMode::Filesystem:
     return "filesystem";
+  case RepoDiscoveryMode::Both:
+    return "both";
   }
   return "disabled";
 }
@@ -271,13 +277,21 @@ RepoDiscoveryMode repo_discovery_mode_from_string(const std::string &value) {
       {"manual", RepoDiscoveryMode::Disabled},
       {"none", RepoDiscoveryMode::Disabled},
       {"all", RepoDiscoveryMode::All},
+      {"account", RepoDiscoveryMode::All},
+      {"accounts", RepoDiscoveryMode::All},
       {"token", RepoDiscoveryMode::All},
+      {"tokens", RepoDiscoveryMode::All},
       {"enabled", RepoDiscoveryMode::All},
       {"auto", RepoDiscoveryMode::All},
       {"filesystem", RepoDiscoveryMode::Filesystem},
       {"fs", RepoDiscoveryMode::Filesystem},
       {"local", RepoDiscoveryMode::Filesystem},
-      {"directory", RepoDiscoveryMode::Filesystem}};
+      {"directory", RepoDiscoveryMode::Filesystem},
+      {"both", RepoDiscoveryMode::Both},
+      {"combined", RepoDiscoveryMode::Both},
+      {"hybrid", RepoDiscoveryMode::Both},
+      {"all+filesystem", RepoDiscoveryMode::Both},
+      {"token+filesystem", RepoDiscoveryMode::Both}};
 
   auto key = normalize(value);
   auto it = lookup.find(key);
@@ -304,7 +318,7 @@ bool repo_discovery_enabled(RepoDiscoveryMode mode) {
  * @return `true` when token-based repository listing is required.
  */
 bool repo_discovery_uses_tokens(RepoDiscoveryMode mode) {
-  return mode == RepoDiscoveryMode::All;
+  return mode == RepoDiscoveryMode::All || mode == RepoDiscoveryMode::Both;
 }
 
 /**
@@ -314,7 +328,8 @@ bool repo_discovery_uses_tokens(RepoDiscoveryMode mode) {
  * @return `true` when local filesystem scanning is required.
  */
 bool repo_discovery_uses_filesystem(RepoDiscoveryMode mode) {
-  return mode == RepoDiscoveryMode::Filesystem;
+  return mode == RepoDiscoveryMode::Filesystem ||
+         mode == RepoDiscoveryMode::Both;
 }
 
 /**
@@ -334,7 +349,8 @@ discover_repositories_from_filesystem(const std::vector<std::string> &roots) {
       continue;
     std::filesystem::path root(root_str);
     if (!std::filesystem::exists(root, ec)) {
-      discovery_log()->warn("Repository discovery root '{}' does not exist", root_str);
+      discovery_log()->warn("Repository discovery root '{}' does not exist",
+                            root_str);
       continue;
     }
     inspect_candidate(root, seen, repos);
