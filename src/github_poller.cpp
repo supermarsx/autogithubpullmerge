@@ -211,6 +211,28 @@ void GitHubPoller::set_branch_rule_action(const std::string &state,
 }
 
 /**
+ * Attach an asynchronous hook dispatcher for poller events.
+ */
+void GitHubPoller::set_hook_dispatcher(
+    std::shared_ptr<HookDispatcher> dispatcher) {
+  hook_ = std::move(dispatcher);
+}
+
+/**
+ * Configure thresholds that emit aggregate hook events.
+ */
+void GitHubPoller::set_hook_thresholds(int pull_threshold, int branch_threshold) {
+  hook_pull_threshold_ = pull_threshold < 0 ? 0 : pull_threshold;
+  hook_branch_threshold_ = branch_threshold < 0 ? 0 : branch_threshold;
+  if (hook_pull_threshold_ == 0) {
+    hook_pull_threshold_triggered_ = false;
+  }
+  if (hook_branch_threshold_ == 0) {
+    hook_branch_threshold_triggered_ = false;
+  }
+}
+
+/**
  * Register a callback that performs export tasks after each poll.
  *
  * @param cb Callback invoked after each polling cycle completes.
@@ -263,9 +285,19 @@ void GitHubPoller::poll() {
         poller_log()->debug("purge_only set - skipping repo {}/{}", repo.first,
                             repo.second);
         if (!purge_prefix_.empty()) {
-          client_.cleanup_branches(repo.first, repo.second, purge_prefix_,
-                                   protected_branches_,
-                                   protected_branch_excludes_);
+          auto removed = client_.cleanup_branches(
+              repo.first, repo.second, purge_prefix_, protected_branches_,
+              protected_branch_excludes_);
+          if (hook_ && !removed.empty()) {
+            for (const auto &branch_name : removed) {
+              HookEvent evt{"branch.deleted"};
+              evt.data["owner"] = repo.first;
+              evt.data["repo"] = repo.second;
+              evt.data["branch"] = branch_name;
+              evt.data["reason"] = "purge_only";
+              hook_->enqueue(std::move(evt));
+            }
+          }
           if (notifier_) {
             notifier_->notify("Purged branches in " + repo.first + "/" +
                               repo.second);
@@ -360,11 +392,35 @@ void GitHubPoller::poll() {
                   notifier_->notify("Merged PR #" + std::to_string(pr.number) +
                                     " in " + pr.owner + "/" + pr.repo);
                 }
+                if (hook_) {
+                  HookEvent evt{"pull_request.merged"};
+                  evt.data["number"] = pr.number;
+                  evt.data["owner"] = pr.owner;
+                  evt.data["repo"] = pr.repo;
+                  evt.data["title"] = pr.title;
+                  evt.data["mergeable_state"] = metadata->mergeable_state;
+                  evt.data["mergeable"] = metadata->mergeable;
+                  evt.data["draft"] = metadata->draft;
+                  hook_->enqueue(std::move(evt));
+                }
                 remove_pr(pr);
-              } else if (log_cb_) {
-                std::lock_guard<std::mutex> lk(log_mutex);
-                log_cb_("PR #" + std::to_string(pr.number) +
-                        " did not meet merge requirements");
+              } else {
+                if (hook_) {
+                  HookEvent evt{"pull_request.merge_failed"};
+                  evt.data["number"] = pr.number;
+                  evt.data["owner"] = pr.owner;
+                  evt.data["repo"] = pr.repo;
+                  evt.data["title"] = pr.title;
+                  evt.data["mergeable_state"] = metadata->mergeable_state;
+                  evt.data["mergeable"] = metadata->mergeable;
+                  evt.data["draft"] = metadata->draft;
+                  hook_->enqueue(std::move(evt));
+                }
+                if (log_cb_) {
+                  std::lock_guard<std::mutex> lk(log_mutex);
+                  log_cb_("PR #" + std::to_string(pr.number) +
+                          " did not meet merge requirements");
+                }
               }
             } else if (action == PullRequestAction::kClose) {
               bool closed =
@@ -378,11 +434,29 @@ void GitHubPoller::poll() {
                   notifier_->notify("Closed PR #" + std::to_string(pr.number) +
                                     " in " + pr.owner + "/" + pr.repo);
                 }
+                if (hook_) {
+                  HookEvent evt{"pull_request.closed"};
+                  evt.data["number"] = pr.number;
+                  evt.data["owner"] = pr.owner;
+                  evt.data["repo"] = pr.repo;
+                  evt.data["title"] = pr.title;
+                  hook_->enqueue(std::move(evt));
+                }
                 remove_pr(pr);
-              } else if (log_cb_) {
-                std::lock_guard<std::mutex> lk(log_mutex);
-                log_cb_("PR #" + std::to_string(pr.number) +
-                        " could not be closed");
+              } else {
+                if (hook_) {
+                  HookEvent evt{"pull_request.close_failed"};
+                  evt.data["number"] = pr.number;
+                  evt.data["owner"] = pr.owner;
+                  evt.data["repo"] = pr.repo;
+                  evt.data["title"] = pr.title;
+                  hook_->enqueue(std::move(evt));
+                }
+                if (log_cb_) {
+                  std::lock_guard<std::mutex> lk(log_mutex);
+                  log_cb_("PR #" + std::to_string(pr.number) +
+                          " could not be closed");
+                }
               }
             }
           }
@@ -474,6 +548,16 @@ void GitHubPoller::poll() {
                                    });
                 all_stray.erase(new_end, all_stray.end());
               }
+              if (hook_) {
+                for (const auto &name : removed) {
+                  HookEvent evt{"branch.deleted"};
+                  evt.data["owner"] = repo.first;
+                  evt.data["repo"] = repo.second;
+                  evt.data["branch"] = name;
+                  evt.data["reason"] = "stray";
+                  hook_->enqueue(std::move(evt));
+                }
+              }
             }
           } else if (action == BranchAction::kIgnore) {
             std::lock_guard<std::mutex> lk(stray_mutex);
@@ -494,9 +578,19 @@ void GitHubPoller::poll() {
                                   true};
           BranchAction action = branch_rule_engine_.decide(metadata);
           if (action == BranchAction::kDelete) {
-            client_.cleanup_branches(repo.first, repo.second, branch,
-                                     protected_branches_,
-                                     protected_branch_excludes_);
+            auto removed = client_.cleanup_branches(repo.first, repo.second,
+                                                    branch, protected_branches_,
+                                                    protected_branch_excludes_);
+            if (hook_ && !removed.empty()) {
+              for (const auto &name : removed) {
+                HookEvent evt{"branch.deleted"};
+                evt.data["owner"] = repo.first;
+                evt.data["repo"] = repo.second;
+                evt.data["branch"] = name;
+                evt.data["reason"] = "new";
+                hook_->enqueue(std::move(evt));
+              }
+            }
           }
         }
       }
@@ -518,6 +612,16 @@ void GitHubPoller::poll() {
                                           entry.name == name;
                                  });
               all_stray.erase(new_end, all_stray.end());
+            }
+            if (hook_) {
+              for (const auto &name : removed) {
+                HookEvent evt{"branch.deleted"};
+                evt.data["owner"] = repo.first;
+                evt.data["repo"] = repo.second;
+                evt.data["branch"] = name;
+                evt.data["reason"] = "purge";
+                hook_->enqueue(std::move(evt));
+              }
             }
           }
           if (notifier_) {
@@ -548,6 +652,19 @@ void GitHubPoller::poll() {
   } else {
     poller_log()->info("Total pull requests fetched: {}", total_prs);
   }
+  if (hook_ && hook_pull_threshold_ > 0) {
+    bool exceeded =
+        total_prs > static_cast<std::size_t>(hook_pull_threshold_);
+    if (exceeded && !hook_pull_threshold_triggered_) {
+      HookEvent evt{"poll.pull_threshold"};
+      evt.data["total_pull_requests"] = total_prs;
+      evt.data["threshold"] = hook_pull_threshold_;
+      hook_->enqueue(std::move(evt));
+      hook_pull_threshold_triggered_ = true;
+    } else if (!exceeded) {
+      hook_pull_threshold_triggered_ = false;
+    }
+  }
   sort_pull_requests(all_prs, sort_mode_);
   if (pr_cb_) {
     pr_cb_(all_prs);
@@ -564,6 +681,21 @@ void GitHubPoller::poll() {
     } else {
       poller_log()->info("Total branches fetched: {}", total_branches);
     }
+    if (hook_ && hook_branch_threshold_ > 0) {
+      bool exceeded =
+          total_branches > static_cast<std::size_t>(hook_branch_threshold_);
+      if (exceeded && !hook_branch_threshold_triggered_) {
+        HookEvent evt{"poll.branch_threshold"};
+        evt.data["total_branches"] = total_branches;
+        evt.data["threshold"] = hook_branch_threshold_;
+        hook_->enqueue(std::move(evt));
+        hook_branch_threshold_triggered_ = true;
+      } else if (!exceeded) {
+        hook_branch_threshold_triggered_ = false;
+      }
+    }
+  } else if (hook_) {
+    hook_branch_threshold_triggered_ = false;
   }
   if (export_cb_) {
     poller_log()->info("Running export callback");

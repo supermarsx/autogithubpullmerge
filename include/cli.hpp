@@ -145,6 +145,22 @@ struct CliOptions {
 
   bool demo_tui{false}; ///< Launch mock TUI demo mode
 
+  bool hooks_enabled{false};        ///< Enable hook dispatching
+  bool hooks_explicit{false};       ///< True if CLI toggled hooks
+  std::string hook_command;         ///< Command executed for hook events
+  bool hook_command_explicit{false};
+  std::string hook_endpoint;        ///< Endpoint invoked for hook events
+  bool hook_endpoint_explicit{false};
+  std::string hook_method{"POST"}; ///< HTTP method for hook requests
+  bool hook_method_explicit{false};
+  std::unordered_map<std::string, std::string>
+      hook_headers; ///< Extra headers for hook requests
+  bool hook_headers_explicit{false};
+  int hook_pull_threshold{0};
+  bool hook_pull_threshold_explicit{false};
+  int hook_branch_threshold{0};
+  bool hook_branch_threshold_explicit{false};
+
   // Testing utilities
   std::string single_open_prs_repo; ///< OWNER/REPO for single open-PR poll
   std::string single_branches_repo; ///< OWNER/REPO for single-branch poll

@@ -63,6 +63,15 @@ TEST_CASE("test config from json") {
                      {"merge", nullptr},
                      {"details", "enter"}}}};
 
+  auto &hooks = j["hooks"];
+  hooks["enabled"] = true;
+  hooks["command"] = "hook_cmd";
+  hooks["endpoint"] = "https://hooks.example/json";
+  hooks["method"] = "PATCH";
+  hooks["headers"] = {{"X-Test", "alpha"}};
+  hooks["pull_threshold"] = 12;
+  hooks["branch_threshold"] = 3;
+
   agpm::Config cfg = agpm::Config::from_json(j);
 
   REQUIRE(cfg.verbose());
@@ -103,4 +112,11 @@ TEST_CASE("test config from json") {
   REQUIRE(cfg.hotkey_bindings().at("refresh") == "Ctrl+R,r");
   REQUIRE(cfg.hotkey_bindings().at("merge").empty());
   REQUIRE(cfg.hotkey_bindings().at("details") == "enter");
+  REQUIRE(cfg.hooks_enabled());
+  REQUIRE(cfg.hook_command() == "hook_cmd");
+  REQUIRE(cfg.hook_endpoint() == "https://hooks.example/json");
+  REQUIRE(cfg.hook_method() == "PATCH");
+  REQUIRE(cfg.hook_headers().at("X-Test") == "alpha");
+  REQUIRE(cfg.hook_pull_threshold() == 12);
+  REQUIRE(cfg.hook_branch_threshold() == 3);
 }

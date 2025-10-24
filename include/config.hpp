@@ -513,6 +513,64 @@ public:
   /// Set PAT value provided by configuration.
   void set_pat_value(const std::string &value) { pat_value_ = value; }
 
+  /// Determine whether hooks are enabled.
+  bool hooks_enabled() const { return hooks_enabled_; }
+
+  /// Enable or disable the hook dispatcher.
+  void set_hooks_enabled(bool enabled) { hooks_enabled_ = enabled; }
+
+  /// Command executed for hook events.
+  const std::string &hook_command() const { return hook_command_; }
+
+  /// Configure the hook command.
+  void set_hook_command(const std::string &command) { hook_command_ = command; }
+
+  /// Endpoint invoked for hook events.
+  const std::string &hook_endpoint() const { return hook_endpoint_; }
+
+  /// Configure the hook endpoint.
+  void set_hook_endpoint(const std::string &endpoint) {
+    hook_endpoint_ = endpoint;
+  }
+
+  /// HTTP method used for hook endpoint requests.
+  const std::string &hook_method() const { return hook_method_; }
+
+  /// Configure the HTTP method for hook requests.
+  void set_hook_method(const std::string &method) { hook_method_ = method; }
+
+  /// Additional headers supplied with hook HTTP requests.
+  const std::unordered_map<std::string, std::string> &hook_headers() const {
+    return hook_headers_;
+  }
+
+  /// Replace the configured hook HTTP headers.
+  void set_hook_headers(
+      std::unordered_map<std::string, std::string> headers) {
+    hook_headers_ = std::move(headers);
+  }
+
+  /// Set or update a single hook HTTP header.
+  void set_hook_header(const std::string &name, const std::string &value) {
+    hook_headers_[name] = value;
+  }
+
+  /// Threshold for triggering hook events when pull requests exceed a limit.
+  int hook_pull_threshold() const { return hook_pull_threshold_; }
+
+  /// Configure the pull request threshold for hook triggers.
+  void set_hook_pull_threshold(int threshold) {
+    hook_pull_threshold_ = threshold < 0 ? 0 : threshold;
+  }
+
+  /// Threshold for triggering hook events when branches exceed a limit.
+  int hook_branch_threshold() const { return hook_branch_threshold_; }
+
+  /// Configure the branch threshold for hook triggers.
+  void set_hook_branch_threshold(int threshold) {
+    hook_branch_threshold_ = threshold < 0 ? 0 : threshold;
+  }
+
   /// Load configuration from the file at `path`.
   static Config from_file(const std::string &path);
 
@@ -590,6 +648,13 @@ private:
   std::string pat_value_;
   std::string single_open_prs_repo_;
   std::string single_branches_repo_;
+  bool hooks_enabled_{false};
+  std::string hook_command_;
+  std::string hook_endpoint_;
+  std::string hook_method_{"POST"};
+  std::unordered_map<std::string, std::string> hook_headers_;
+  int hook_pull_threshold_{0};
+  int hook_branch_threshold_{0};
 };
 
 } // namespace agpm

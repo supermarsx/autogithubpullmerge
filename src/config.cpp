@@ -505,6 +505,64 @@ void Config::load_json(const nlohmann::json &j) {
   if (cfg.contains("single_branches_repo")) {
     set_single_branches_repo(cfg["single_branches_repo"].get<std::string>());
   }
+  if (cfg.contains("hooks") && cfg["hooks"].is_object()) {
+    const auto &hooks = cfg["hooks"];
+    if (hooks.contains("enabled") && hooks["enabled"].is_boolean()) {
+      set_hooks_enabled(hooks["enabled"].get<bool>());
+    }
+    if (hooks.contains("command") && hooks["command"].is_string()) {
+      set_hook_command(hooks["command"].get<std::string>());
+    }
+    if (hooks.contains("endpoint") && hooks["endpoint"].is_string()) {
+      set_hook_endpoint(hooks["endpoint"].get<std::string>());
+    }
+    if (hooks.contains("method") && hooks["method"].is_string()) {
+      set_hook_method(hooks["method"].get<std::string>());
+    }
+    if (hooks.contains("headers") && hooks["headers"].is_object()) {
+      std::unordered_map<std::string, std::string> headers;
+      for (const auto &[key, value] : hooks["headers"].items()) {
+        if (value.is_string()) {
+          headers[key] = value.get<std::string>();
+        }
+      }
+      set_hook_headers(std::move(headers));
+    }
+    if (hooks.contains("pull_threshold") && hooks["pull_threshold"].is_number()) {
+      set_hook_pull_threshold(hooks["pull_threshold"].get<int>());
+    }
+    if (hooks.contains("branch_threshold") &&
+        hooks["branch_threshold"].is_number()) {
+      set_hook_branch_threshold(hooks["branch_threshold"].get<int>());
+    }
+  }
+  if (cfg.contains("hooks_enabled")) {
+    set_hooks_enabled(cfg["hooks_enabled"].get<bool>());
+  }
+  if (cfg.contains("hooks_command")) {
+    set_hook_command(cfg["hooks_command"].get<std::string>());
+  }
+  if (cfg.contains("hooks_endpoint")) {
+    set_hook_endpoint(cfg["hooks_endpoint"].get<std::string>());
+  }
+  if (cfg.contains("hooks_method")) {
+    set_hook_method(cfg["hooks_method"].get<std::string>());
+  }
+  if (cfg.contains("hooks_headers") && cfg["hooks_headers"].is_object()) {
+    std::unordered_map<std::string, std::string> headers;
+    for (const auto &[key, value] : cfg["hooks_headers"].items()) {
+      if (value.is_string()) {
+        headers[key] = value.get<std::string>();
+      }
+    }
+    set_hook_headers(std::move(headers));
+  }
+  if (cfg.contains("hooks_pull_threshold")) {
+    set_hook_pull_threshold(cfg["hooks_pull_threshold"].get<int>());
+  }
+  if (cfg.contains("hooks_branch_threshold")) {
+    set_hook_branch_threshold(cfg["hooks_branch_threshold"].get<int>());
+  }
 
   // Warn on repositories appearing in both include and exclude lists.
   if (!include_repos_.empty() && !exclude_repos_.empty()) {

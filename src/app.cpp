@@ -133,6 +133,45 @@ int App::run(int argc, char **argv) {
   if (options_.pat_value.empty()) {
     options_.pat_value = config_.pat_value();
   }
+  if (!options_.hooks_explicit) {
+    options_.hooks_enabled = config_.hooks_enabled();
+  } else {
+    config_.set_hooks_enabled(options_.hooks_enabled);
+  }
+  if (!options_.hook_command_explicit) {
+    if (options_.hook_command.empty()) {
+      options_.hook_command = config_.hook_command();
+    }
+  } else {
+    config_.set_hook_command(options_.hook_command);
+  }
+  if (!options_.hook_endpoint_explicit) {
+    if (options_.hook_endpoint.empty()) {
+      options_.hook_endpoint = config_.hook_endpoint();
+    }
+  } else {
+    config_.set_hook_endpoint(options_.hook_endpoint);
+  }
+  if (!options_.hook_method_explicit) {
+    options_.hook_method = config_.hook_method();
+  } else {
+    config_.set_hook_method(options_.hook_method);
+  }
+  if (!options_.hook_headers_explicit) {
+    options_.hook_headers = config_.hook_headers();
+  } else {
+    config_.set_hook_headers(options_.hook_headers);
+  }
+  if (!options_.hook_pull_threshold_explicit) {
+    options_.hook_pull_threshold = config_.hook_pull_threshold();
+  } else {
+    config_.set_hook_pull_threshold(options_.hook_pull_threshold);
+  }
+  if (!options_.hook_branch_threshold_explicit) {
+    options_.hook_branch_threshold = config_.hook_branch_threshold();
+  } else {
+    config_.set_hook_branch_threshold(options_.hook_branch_threshold);
+  }
   if (options_.export_csv.empty()) {
     options_.export_csv = config_.export_csv();
   }

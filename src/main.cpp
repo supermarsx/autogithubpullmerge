@@ -2,6 +2,7 @@
 #include "demo_tui.hpp"
 #include "github_client.hpp"
 #include "github_poller.hpp"
+#include "hook.hpp"
 #include "history.hpp"
 #include "log.hpp"
 #include "repo_discovery.hpp"
@@ -147,6 +148,32 @@ int main(int argc, char **argv) {
   client.set_allow_delete_base_branch(allow_delete_base_branch);
   agpm::GitHubGraphQLClient graphql_client(tokens, http_timeout * 1000,
                                            api_base);
+
+  agpm::HookSettings hook_settings;
+  std::shared_ptr<agpm::HookDispatcher> hook_dispatcher;
+  if (opts.hooks_enabled) {
+    hook_settings.enabled = true;
+    hook_settings.pull_threshold = opts.hook_pull_threshold;
+    hook_settings.branch_threshold = opts.hook_branch_threshold;
+    if (!opts.hook_command.empty()) {
+      agpm::HookAction cmd_action;
+      cmd_action.type = agpm::HookActionType::Command;
+      cmd_action.command = opts.hook_command;
+      hook_settings.default_actions.push_back(cmd_action);
+    }
+    if (!opts.hook_endpoint.empty()) {
+      agpm::HookAction http_action;
+      http_action.type = agpm::HookActionType::Http;
+      http_action.endpoint = opts.hook_endpoint;
+      http_action.method = opts.hook_method.empty() ? std::string{"POST"}
+                                                   : opts.hook_method;
+      for (const auto &header : opts.hook_headers) {
+        http_action.headers.emplace_back(header.first, header.second);
+      }
+      hook_settings.default_actions.push_back(std::move(http_action));
+    }
+    hook_dispatcher = std::make_shared<agpm::HookDispatcher>(hook_settings);
+  }
 
   // Testing-only: perform a single HTTP request for open PRs and exit
   if (!opts.single_open_prs_repo.empty()) {
@@ -322,6 +349,12 @@ int main(int argc, char **argv) {
       delete_stray, rate_limit_margin,
       std::chrono::seconds(rate_limit_refresh_interval),
       retry_rate_limit_endpoint, rate_limit_retry_limit);
+
+  if (hook_dispatcher) {
+    poller.set_hook_dispatcher(hook_dispatcher);
+    poller.set_hook_thresholds(hook_settings.pull_threshold,
+                               hook_settings.branch_threshold);
+  }
 
   if (!opts.export_csv.empty() || !opts.export_json.empty()) {
     poller.set_export_callback([&history, &opts]() {

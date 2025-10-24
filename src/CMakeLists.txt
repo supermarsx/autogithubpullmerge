@@ -22,6 +22,7 @@ add_library(
   demo_tui.cpp
   github_client.cpp
   history.cpp
+  hook.cpp
   log.cpp
   rule_engine.cpp
   tui.cpp

@@ -59,6 +59,15 @@ TEST_CASE("test config") {
     f << "  pr_limit: 25\n";
     f << "  pr_since: 2h\n";
     f << "  sort: reverse\n";
+    f << "hooks:\n";
+    f << "  enabled: true\n";
+    f << "  command: notify.sh\n";
+    f << "  endpoint: https://hooks.example/notify\n";
+    f << "  method: POST\n";
+    f << "  headers:\n";
+    f << "    X-Token: secret\n";
+    f << "  pull_threshold: 25\n";
+    f << "  branch_threshold: 10\n";
     f << "network:\n";
     f << "  download_limit: 1000\n";
     f << "  upload_limit: 2000\n";
@@ -126,6 +135,13 @@ TEST_CASE("test config") {
   REQUIRE(yaml_cfg.pr_limit() == 25);
   REQUIRE(yaml_cfg.pr_since() == std::chrono::hours(2));
   REQUIRE(yaml_cfg.sort_mode() == "reverse");
+  REQUIRE(yaml_cfg.hooks_enabled());
+  REQUIRE(yaml_cfg.hook_command() == "notify.sh");
+  REQUIRE(yaml_cfg.hook_endpoint() == "https://hooks.example/notify");
+  REQUIRE(yaml_cfg.hook_method() == "POST");
+  REQUIRE(yaml_cfg.hook_headers().at("X-Token") == "secret");
+  REQUIRE(yaml_cfg.hook_pull_threshold() == 25);
+  REQUIRE(yaml_cfg.hook_branch_threshold() == 10);
   REQUIRE(yaml_cfg.download_limit() == 1000);
   REQUIRE(yaml_cfg.upload_limit() == 2000);
   REQUIRE(yaml_cfg.max_download() == 3000);
@@ -215,6 +231,15 @@ TEST_CASE("test config") {
         {"bindings",
          {{"open", "o"}, {"quit", nlohmann::json::array({"Ctrl+Q", "q"})}}}};
 
+    auto &hooks = doc["hooks"];
+    hooks["enabled"] = true;
+    hooks["command"] = "json_cmd";
+    hooks["endpoint"] = "https://json.example/hook";
+    hooks["method"] = "PUT";
+    hooks["headers"] = {{"Authorization", "Bearer abc"}};
+    hooks["pull_threshold"] = 15;
+    hooks["branch_threshold"] = 7;
+
     std::ofstream f("cfg.json");
     f << doc.dump();
   }
@@ -271,6 +296,13 @@ TEST_CASE("test config") {
   REQUIRE(json_cfg.hotkeys_enabled());
   REQUIRE(json_cfg.hotkey_bindings().at("open") == "o");
   REQUIRE(json_cfg.hotkey_bindings().at("quit") == "Ctrl+Q,q");
+  REQUIRE(json_cfg.hooks_enabled());
+  REQUIRE(json_cfg.hook_command() == "json_cmd");
+  REQUIRE(json_cfg.hook_endpoint() == "https://json.example/hook");
+  REQUIRE(json_cfg.hook_method() == "PUT");
+  REQUIRE(json_cfg.hook_headers().at("Authorization") == "Bearer abc");
+  REQUIRE(json_cfg.hook_pull_threshold() == 15);
+  REQUIRE(json_cfg.hook_branch_threshold() == 7);
 
   // TOML config with extended options
   {

@@ -37,6 +37,22 @@ For example, `-C` maps to `--config` and `-1` toggles `--only-poll-prs`.
 - `--log-category NAME[=LEVEL]` - enable a logging category with an optional level override (defaults to `debug`). Repeat to
   enable multiple categories.
 
+### Hooks
+
+- `--enable-hooks` / `--disable-hooks` - toggle the asynchronous hook
+  dispatcher.
+- `--hook-command COMMAND` - execute `COMMAND` with hook metadata exposed via
+  environment variables.
+- `--hook-endpoint URL` - send hook events to `URL` with a JSON payload.
+- `--hook-method METHOD` - override the HTTP verb used when calling the
+  configured endpoint (defaults to `POST`).
+- `--hook-header NAME=VALUE` - add HTTP headers to outgoing hook requests;
+  repeatable.
+- `--hook-pull-threshold N` - emit a hook event when the aggregated pull request
+  count exceeds `N`.
+- `--hook-branch-threshold N` - emit a hook event when the aggregated branch
+  count exceeds `N`.
+
 ### Repository Filters
 
 - `--include`/`--exclude` - repeatable repository include/exclude filters (format `OWNER/REPO`).

@@ -489,6 +489,91 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("--demo-tui", options.demo_tui,
                "Launch interactive demo TUI with mock data")
       ->group("General");
+  app.add_flag_function(
+         "--enable-hooks",
+         [&options](std::size_t) {
+           options.hooks_enabled = true;
+           options.hooks_explicit = true;
+         },
+         "Enable hook dispatcher")
+      ->group("Hooks");
+  app.add_flag_function(
+         "--disable-hooks",
+         [&options](std::size_t) {
+           options.hooks_enabled = false;
+           options.hooks_explicit = true;
+         },
+         "Disable hook dispatcher")
+      ->group("Hooks");
+  app.add_option_function<std::string>(
+         "--hook-command",
+         [&options](const std::string &value) {
+           options.hook_command = value;
+           options.hook_command_explicit = true;
+         },
+         "Execute COMMAND when hook events fire")
+      ->type_name("COMMAND")
+      ->group("Hooks");
+  app.add_option_function<std::string>(
+         "--hook-endpoint",
+         [&options](const std::string &value) {
+           options.hook_endpoint = value;
+           options.hook_endpoint_explicit = true;
+         },
+         "Send hook events to ENDPOINT")
+      ->type_name("URL")
+      ->group("Hooks");
+  app.add_option_function<std::string>(
+         "--hook-method",
+         [&options](const std::string &value) {
+           options.hook_method = value;
+           options.hook_method_explicit = true;
+         },
+         "HTTP METHOD used for hook endpoint requests")
+      ->type_name("METHOD")
+      ->group("Hooks");
+  app.add_option_function<std::string>(
+         "--hook-header",
+         [&options](const std::string &value) {
+           auto pos = value.find('=');
+           if (pos == std::string::npos || pos == 0 || pos + 1 >= value.size()) {
+             throw CLI::ValidationError("--hook-header",
+                                        "expected NAME=VALUE format");
+           }
+           std::string name = value.substr(0, pos);
+           std::string header_value = value.substr(pos + 1);
+           options.hook_headers[name] = header_value;
+           options.hook_headers_explicit = true;
+         },
+         "Add HTTP header NAME=VALUE to hook requests")
+      ->type_name("NAME=VALUE")
+      ->group("Hooks");
+  app.add_option_function<int>(
+         "--hook-pull-threshold",
+         [&options](int value) {
+           if (value < 0) {
+             throw CLI::ValidationError("--hook-pull-threshold",
+                                        "threshold must be non-negative");
+           }
+           options.hook_pull_threshold = value;
+           options.hook_pull_threshold_explicit = true;
+         },
+         "Trigger hooks when total pull requests exceed N")
+      ->type_name("N")
+      ->group("Hooks");
+  app.add_option_function<int>(
+         "--hook-branch-threshold",
+         [&options](int value) {
+           if (value < 0) {
+             throw CLI::ValidationError("--hook-branch-threshold",
+                                        "threshold must be non-negative");
+           }
+           options.hook_branch_threshold = value;
+           options.hook_branch_threshold_explicit = true;
+         },
+         "Trigger hooks when total branches exceed N")
+      ->type_name("N")
+      ->group("Hooks");
   app.add_option_function<std::string>(
          "--hotkeys",
          [&options](const std::string &value) {

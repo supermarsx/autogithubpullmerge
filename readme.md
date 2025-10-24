@@ -24,6 +24,8 @@ A cross‑platform tool that both automates safe pull request merging and manage
   (`--export-csv`) or JSON (`--export-json`) export after each polling cycle
 - Configurable logging with `--log-level` and optional `--log-file`
 - Uses spdlog for colored console and rotating file logging
+- Asynchronous hook dispatcher that forwards merge and branch events to custom
+  commands or HTTP endpoints
 - Cross-platform compile scripts (MSVC on Windows, g++ on Linux/macOS) with
   C++23 support
 - Dependencies verified to build with C++23 via vcpkg
@@ -71,6 +73,16 @@ omitted.
 branches are purged. A basic `NotifySendNotifier` uses the `notify-send`
 command on Linux desktops. Implementations derive from `agpm::Notifier` to
 integrate with other systems. See `docs/notifications.md` for details.
+
+## Hooks
+
+Enable hooks with `--enable-hooks` (or `hooks.enabled: true` in configuration)
+to forward structured event payloads to shell commands or remote HTTP
+endpoints. Use `--hook-command` to launch local automation, `--hook-endpoint`
+to send JSON webhooks, and the `--hook-*-threshold` flags to trigger alerts when
+repositories accumulate excessive pull requests or branches. The dispatcher runs
+on a dedicated thread so hooks do not block polling. See the Hooks section in
+`docs/notifications.md` for the full payload format and available events.
 
 ## API Key Options
 

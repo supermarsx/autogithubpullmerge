@@ -3,6 +3,7 @@
 
 #include "github_client.hpp"
 #include "history.hpp"
+#include "hook.hpp"
 #include "notification.hpp"
 #include "poller.hpp"
 #include "rule_engine.hpp"
@@ -10,6 +11,7 @@
 #include <atomic>
 #include <chrono>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -127,6 +129,12 @@ public:
   /// Override the configured action for a branch state.
   void set_branch_rule_action(const std::string &state, BranchAction action);
 
+  /// Attach a hook dispatcher for external event handling.
+  void set_hook_dispatcher(std::shared_ptr<HookDispatcher> dispatcher);
+
+  /// Configure thresholds for aggregate hook events.
+  void set_hook_thresholds(int pull_threshold, int branch_threshold);
+
 private:
   void poll();
 
@@ -184,6 +192,11 @@ private:
   std::function<void(const std::string &)> log_cb_;
   std::function<void(const std::vector<StrayBranch> &)> stray_cb_;
   NotifierPtr notifier_;
+  std::shared_ptr<HookDispatcher> hook_;
+  int hook_pull_threshold_{0};
+  int hook_branch_threshold_{0};
+  bool hook_pull_threshold_triggered_{false};
+  bool hook_branch_threshold_triggered_{false};
 
   std::chrono::steady_clock::duration min_poll_interval_{};
   std::chrono::steady_clock::time_point next_allowed_poll_{};

@@ -71,6 +71,43 @@ TEST_CASE("test cli", "[cli]") {
   agpm::CliOptions opts4c = agpm::parse_cli(3, argv4c);
   REQUIRE(opts4c.log_limit == 123);
 
+  char enable_hooks[] = "--enable-hooks";
+  char hook_command_flag[] = "--hook-command";
+  char hook_command_val[] = "/bin/echo";
+  char hook_endpoint_flag[] = "--hook-endpoint";
+  char hook_endpoint_val[] = "https://hooks.local/event";
+  char hook_method_flag[] = "--hook-method";
+  char hook_method_val[] = "PUT";
+  char hook_header_flag[] = "--hook-header";
+  char hook_header_val[] = "X-Test=42";
+  char hook_pull_threshold_flag[] = "--hook-pull-threshold";
+  char hook_pull_threshold_val[] = "10";
+  char hook_branch_threshold_flag[] = "--hook-branch-threshold";
+  char hook_branch_threshold_val[] = "5";
+  char *argv_hooks[] = {
+      prog,                        enable_hooks,          hook_command_flag,
+      hook_command_val,            hook_endpoint_flag,    hook_endpoint_val,
+      hook_method_flag,            hook_method_val,       hook_header_flag,
+      hook_header_val,             hook_pull_threshold_flag,
+      hook_pull_threshold_val,     hook_branch_threshold_flag,
+      hook_branch_threshold_val};
+  agpm::CliOptions opts_hooks = agpm::parse_cli(14, argv_hooks);
+  REQUIRE(opts_hooks.hooks_enabled);
+  REQUIRE(opts_hooks.hooks_explicit);
+  REQUIRE(opts_hooks.hook_command == "/bin/echo");
+  REQUIRE(opts_hooks.hook_endpoint == "https://hooks.local/event");
+  REQUIRE(opts_hooks.hook_method == "PUT");
+  REQUIRE(opts_hooks.hook_headers_explicit);
+  REQUIRE(opts_hooks.hook_headers.at("X-Test") == "42");
+  REQUIRE(opts_hooks.hook_pull_threshold == 10);
+  REQUIRE(opts_hooks.hook_branch_threshold == 5);
+
+  char disable_hooks[] = "--disable-hooks";
+  char *argv_disable_hooks[] = {prog, disable_hooks};
+  agpm::CliOptions opts_disable_hooks = agpm::parse_cli(2, argv_disable_hooks);
+  REQUIRE_FALSE(opts_disable_hooks.hooks_enabled);
+  REQUIRE(opts_disable_hooks.hooks_explicit);
+
   char log_rotate_flag[] = "--log-rotate";
   char log_rotate_val[] = "5";
   char *argv_log_rotate[] = {prog, log_rotate_flag, log_rotate_val};
