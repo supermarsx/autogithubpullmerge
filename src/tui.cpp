@@ -725,6 +725,14 @@ void Tui::handle_key(int ch) {
       tui_log()->info("Merge requested for PR #{}", pr.number);
       if (client_.merge_pull_request(pr.owner, pr.repo, pr.number)) {
         log("Merged PR #" + std::to_string(pr.number));
+        prs_.erase(prs_.begin() + selected_);
+        if (selected_ >= static_cast<int>(prs_.size())) {
+          selected_ = prs_.empty() ? 0 : static_cast<int>(prs_.size()) - 1;
+        }
+        if (detail_visible_) {
+          detail_visible_ = false;
+          detail_text_.clear();
+        }
       }
     }
   } else if (action == "open") {

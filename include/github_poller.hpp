@@ -113,6 +113,14 @@ public:
    */
   void set_notifier(NotifierPtr notifier);
 
+  /**
+   * Set a callback invoked with the latest stray branch list after polling.
+   *
+   * @param cb Function receiving detected stray branches for display.
+   */
+  void set_stray_callback(
+      std::function<void(const std::vector<StrayBranch> &)> cb);
+
 private:
   void poll();
 
@@ -166,6 +174,7 @@ private:
 
   std::function<void(const std::vector<PullRequest> &)> pr_cb_;
   std::function<void(const std::string &)> log_cb_;
+  std::function<void(const std::vector<StrayBranch> &)> stray_cb_;
   NotifierPtr notifier_;
 
   std::chrono::steady_clock::duration min_poll_interval_{};

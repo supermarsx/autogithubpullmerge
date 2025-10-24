@@ -85,6 +85,7 @@ TEST_CASE("test tui merge", "[tui]") {
   REQUIRE(raw->last_url.find("/repos/o/r/pulls/1/merge") != std::string::npos);
   REQUIRE(!ui.logs().empty());
   REQUIRE(ui.logs().back().find("Merged PR #1") != std::string::npos);
+  REQUIRE(ui.pr_count() == 0);
 
   ui.cleanup();
 }

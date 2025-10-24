@@ -44,10 +44,15 @@ TEST_CASE("test auto merge") {
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   GitHubPoller poller(client, {{"me", "repo"}}, 50, 120, 0, 1, false, false,
                       false, "", true);
+  std::vector<std::vector<PullRequest>> snapshots;
+  poller.set_pr_callback(
+      [&](const std::vector<PullRequest> &prs) { snapshots.push_back(prs); });
   poller.start();
   std::this_thread::sleep_for(std::chrono::milliseconds(80));
   poller.stop();
   REQUIRE(raw->merge_calls > 0);
   REQUIRE(raw->last_url.find("/repos/me/repo/pulls/1/merge") !=
           std::string::npos);
+  REQUIRE_FALSE(snapshots.empty());
+  REQUIRE(snapshots.back().empty());
 }
