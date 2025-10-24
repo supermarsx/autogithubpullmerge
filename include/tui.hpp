@@ -74,6 +74,9 @@ public:
   /// Access collected log messages.
   const std::vector<std::string> &logs() const { return logs_; }
 
+  /// Number of pull requests currently tracked by the UI (primarily for tests).
+  std::size_t pr_count() const { return prs_.size(); }
+
   /**
    * Check whether the TUI has been successfully initialized.
    *

@@ -1318,21 +1318,22 @@ GitHubClient::list_branches_single(const std::string &owner_repo,
 }
 
 /// @copydoc GitHubClient::cleanup_branches
-void GitHubClient::cleanup_branches(
+std::vector<std::string> GitHubClient::cleanup_branches(
     const std::string &owner, const std::string &repo,
     const std::string &prefix,
     const std::vector<std::string> &protected_branches,
     const std::vector<std::string> &protected_branch_excludes) {
+  std::vector<std::string> deleted;
   if (!repo_allowed(owner, repo) || prefix.empty()) {
     github_client_log()->debug("Skipping branch cleanup for {}/{}", owner,
                                repo);
-    return;
+    return deleted;
   }
   if (!allow_delete_base_branch_ && is_base_branch_name(prefix)) {
     github_client_log()->warn(
         "Refusing to delete protected base branch {} in {}/{}", prefix, owner,
         repo);
-    return;
+    return deleted;
   }
   github_client_log()->info("Cleaning up branches in {}/{} with prefix {}",
                             owner, repo, prefix);
@@ -1364,7 +1365,7 @@ void GitHubClient::cleanup_branches(
     } catch (const std::exception &e) {
       github_client_log()->error(
           "Failed to fetch pull requests for cleanup: {}", e.what());
-      return;
+      return deleted;
     }
     nlohmann::json j;
     try {
@@ -1372,10 +1373,10 @@ void GitHubClient::cleanup_branches(
     } catch (const std::exception &e) {
       github_client_log()->error(
           "Failed to parse pull requests for cleanup: {}", e.what());
-      return;
+      return deleted;
     }
     if (!j.is_array()) {
-      return;
+      return deleted;
     }
     for (const auto &item : j) {
       if (item.contains("head") && item["head"].contains("ref")) {
@@ -1406,6 +1407,7 @@ void GitHubClient::cleanup_branches(
             try {
               (void)http_->del(del_url, headers);
               github_client_log()->info("Deleted branch {}", branch);
+              deleted.push_back(branch);
             } catch (const std::exception &e) {
               github_client_log()->error("Failed to delete branch {}: {}",
                                          branch, e.what());
@@ -1435,6 +1437,7 @@ void GitHubClient::cleanup_branches(
       break;
     url = next_url;
   }
+  return deleted;
 }
 
 /// @copydoc GitHubClient::close_dirty_branches

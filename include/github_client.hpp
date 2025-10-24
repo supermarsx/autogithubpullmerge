@@ -197,6 +197,13 @@ struct PullRequest {
   std::string repo{};  ///< Repository name
 };
 
+/// Representation of a stray branch detected during polling.
+struct StrayBranch {
+  std::string owner; ///< Repository owner
+  std::string repo;  ///< Repository name
+  std::string name;  ///< Branch name
+};
+
 /**
  * Simple GitHub REST API client that encapsulates authentication, retries, and
  * repository filtering.
@@ -349,12 +356,13 @@ public:
    * @param protected_branches Glob patterns for branches that must not be
    *        deleted.
    * @param protected_branch_excludes Patterns that override protections.
+   * @return Branch names successfully deleted from the repository.
    */
-  void cleanup_branches(
-      const std::string &owner, const std::string &repo,
-      const std::string &prefix,
-      const std::vector<std::string> &protected_branches = {},
-      const std::vector<std::string> &protected_branch_excludes = {});
+  std::vector<std::string>
+  cleanup_branches(const std::string &owner, const std::string &repo,
+                   const std::string &prefix,
+                   const std::vector<std::string> &protected_branches = {},
+                   const std::vector<std::string> &protected_branch_excludes = {});
 
   /**
    * Close or delete branches that have diverged from the repository's default

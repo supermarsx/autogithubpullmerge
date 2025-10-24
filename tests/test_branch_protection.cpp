@@ -63,7 +63,8 @@ TEST_CASE("branch protection excludes override patterns") {
                    "{\"head\":{\"ref\":\"tmp/remove\"}}]";
   const ProtectCleanupHttpClient *raw = http.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-  client.cleanup_branches("me", "repo", "tmp/", {"tmp/.*"}, {"tmp/remove"});
+  (void)client.cleanup_branches("me", "repo", "tmp/", {"tmp/.*"},
+                                {"tmp/remove"});
   REQUIRE(raw->last_deleted ==
           "https://api.github.com/repos/me/repo/git/refs/heads/tmp/remove");
 }

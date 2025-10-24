@@ -163,6 +163,10 @@ TEST_CASE("test poller branch") {
     BranchListClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, 0, 1, false, true);
+    std::vector<std::vector<StrayBranch>> stray_snapshots;
+    poller.set_stray_callback([&](const std::vector<StrayBranch> &branches) {
+      stray_snapshots.push_back(branches);
+    });
     std::vector<std::string> logs;
     poller.set_log_callback([&](const std::string &m) { logs.push_back(m); });
     poller.poll_now();
@@ -173,6 +177,26 @@ TEST_CASE("test poller branch") {
         });
     REQUIRE(stray_reported);
     REQUIRE(raw->last_deleted.empty());
+    REQUIRE_FALSE(stray_snapshots.empty());
+    REQUIRE(stray_snapshots.back().size() == 1);
+  }
+
+  // Detect stray branches and delete them automatically
+  {
+    auto http = std::make_unique<BranchListClient>();
+    BranchListClient *raw = http.get();
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+    GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, 0, 1, false, true,
+                        agpm::StrayDetectionMode::RuleBased, false, "", false,
+                        false, "", nullptr, {}, {}, false, nullptr, true);
+    std::vector<std::vector<StrayBranch>> stray_snapshots;
+    poller.set_stray_callback([&](const std::vector<StrayBranch> &branches) {
+      stray_snapshots.push_back(branches);
+    });
+    poller.poll_now();
+    REQUIRE(raw->branch_get_count == 1);
+    REQUIRE_FALSE(stray_snapshots.empty());
+    REQUIRE(stray_snapshots.back().empty());
   }
 
   // Cleanup branches and close dirty ones

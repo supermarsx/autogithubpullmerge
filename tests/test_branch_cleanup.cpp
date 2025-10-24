@@ -143,7 +143,7 @@ TEST_CASE("test branch cleanup") {
         "[{\"head\":{\"ref\":\"tmp/feature\"}},{\"head\":{\"ref\":\"keep\"}}]";
     CleanupHttpClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    client.cleanup_branches("me", "repo", "tmp/");
+    (void)client.cleanup_branches("me", "repo", "tmp/");
     REQUIRE(raw->last_url.find("state=closed") != std::string::npos);
     REQUIRE(raw->last_deleted ==
             "https://api.github.com/repos/me/repo/git/refs/heads/tmp/feature");
@@ -155,7 +155,7 @@ TEST_CASE("test branch cleanup") {
     http->response = "[{\"head\":{\"ref\":\"main\"}}]";
     CleanupHttpClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    client.cleanup_branches("me", "repo", "main");
+    (void)client.cleanup_branches("me", "repo", "main");
     REQUIRE(raw->last_deleted.empty());
   }
 
@@ -166,7 +166,7 @@ TEST_CASE("test branch cleanup") {
     CleanupHttpClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     client.set_allow_delete_base_branch(true);
-    client.cleanup_branches("me", "repo", "main");
+    (void)client.cleanup_branches("me", "repo", "main");
     REQUIRE(raw->last_deleted ==
             "https://api.github.com/repos/me/repo/git/refs/heads/main");
   }
@@ -177,7 +177,7 @@ TEST_CASE("test branch cleanup") {
     http->response = "[{\"head\":{\"ref\":\"tmp/protected\"}}]";
     CleanupHttpClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    client.cleanup_branches("me", "repo", "tmp/", {"tmp/*"});
+    (void)client.cleanup_branches("me", "repo", "tmp/", {"tmp/*"});
     REQUIRE(raw->last_deleted.empty());
   }
 
@@ -232,7 +232,7 @@ TEST_CASE("test branch cleanup") {
     http->response = "[{\"head\":{\"ref\":\"release/v1\"}}]";
     CleanupHttpClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    client.cleanup_branches("me", "repo", "release/", {"prefix:release/"});
+    (void)client.cleanup_branches("me", "repo", "release/", {"prefix:release/"});
     REQUIRE(raw->last_deleted.empty());
   }
 
@@ -242,7 +242,7 @@ TEST_CASE("test branch cleanup") {
     http->response = "[{\"head\":{\"ref\":\"feature-hotfix\"}}]";
     CleanupHttpClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    client.cleanup_branches("me", "repo", "feature", {"suffix:-hotfix"});
+    (void)client.cleanup_branches("me", "repo", "feature", {"suffix:-hotfix"});
     REQUIRE(raw->last_deleted.empty());
   }
 
@@ -266,7 +266,7 @@ TEST_CASE("test branch cleanup") {
     auto http = std::make_unique<PagingCleanupHttpClient>();
     const PagingCleanupHttpClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    client.cleanup_branches("me", "repo", "tmp/");
+    (void)client.cleanup_branches("me", "repo", "tmp/");
     REQUIRE(raw->last_deleted ==
             "https://api.github.com/repos/me/repo/git/refs/heads/tmp/paged");
   }
