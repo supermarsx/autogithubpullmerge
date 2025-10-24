@@ -117,6 +117,8 @@ TEST_CASE("test config") {
   REQUIRE(yaml_cfg.reject_dirty());
   REQUIRE(yaml_cfg.delete_stray());
   REQUIRE(yaml_cfg.heuristic_stray_detection());
+  REQUIRE(yaml_cfg.stray_detection_mode() ==
+          agpm::StrayDetectionMode::Combined);
   REQUIRE(yaml_cfg.auto_merge());
   REQUIRE(yaml_cfg.allow_delete_base_branch());
   REQUIRE(yaml_cfg.purge_only());
@@ -187,6 +189,7 @@ TEST_CASE("test config") {
     workflow["sort"] = "alphanum";
     workflow["delete_stray"] = false;
     workflow["heuristic_stray_detection"] = true;
+    workflow["stray_detection_engine"] = "heuristic";
     workflow["allow_delete_base_branch"] = false;
 
     auto &network = doc["network"];
@@ -245,6 +248,8 @@ TEST_CASE("test config") {
   REQUIRE_FALSE(json_cfg.assume_yes());
   REQUIRE(json_cfg.only_poll_stray());
   REQUIRE(json_cfg.heuristic_stray_detection());
+  REQUIRE(json_cfg.stray_detection_mode() ==
+          agpm::StrayDetectionMode::Heuristic);
   REQUIRE(json_cfg.purge_only());
   REQUIRE(json_cfg.purge_prefix() == "test/");
   REQUIRE(json_cfg.pr_limit() == 30);
@@ -301,7 +306,8 @@ TEST_CASE("test config") {
 
     f << "[workflow]\n";
     f << "only_poll_stray = true\n";
-    f << "heuristic_stray_detection = true\n";
+    f << "heuristic_stray_detection = false\n";
+    f << "stray_detection_engine = \"rule\"\n";
     f << "purge_only = false\n";
     f << "purge_prefix = \"hotfix/\"\n";
     f << "pr_limit = 15\n";
@@ -335,7 +341,9 @@ TEST_CASE("test config") {
   REQUIRE(toml_cfg.api_keys().size() == 2);
   REQUIRE(toml_cfg.history_db() == "history_toml.db");
   REQUIRE(toml_cfg.only_poll_stray());
-  REQUIRE(toml_cfg.heuristic_stray_detection());
+  REQUIRE_FALSE(toml_cfg.heuristic_stray_detection());
+  REQUIRE(toml_cfg.stray_detection_mode() ==
+          agpm::StrayDetectionMode::RuleBased);
   REQUIRE(!toml_cfg.purge_only());
   REQUIRE(toml_cfg.purge_prefix() == "hotfix/");
   REQUIRE(toml_cfg.pr_limit() == 15);

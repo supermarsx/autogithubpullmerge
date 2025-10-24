@@ -30,6 +30,7 @@ TEST_CASE("test config from json") {
   workflow["dry_run"] = true;
   workflow["delete_stray"] = true;
   workflow["heuristic_stray_detection"] = true;
+  workflow["stray_detection_engine"] = "both";
   workflow["allow_delete_base_branch"] = true;
 
   auto &network = j["network"];
@@ -89,6 +90,7 @@ TEST_CASE("test config from json") {
   REQUIRE(cfg.dry_run());
   REQUIRE(cfg.delete_stray());
   REQUIRE(cfg.heuristic_stray_detection());
+  REQUIRE(cfg.stray_detection_mode() == agpm::StrayDetectionMode::Combined);
   REQUIRE(cfg.allow_delete_base_branch());
   REQUIRE(cfg.export_csv() == "cfg.csv");
   REQUIRE(cfg.export_json() == "cfg.json");

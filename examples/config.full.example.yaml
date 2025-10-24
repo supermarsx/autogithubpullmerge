@@ -40,4 +40,4 @@ features:
 
 workflow:
   # --- Branch management --------------------------------------------------
-  heuristic_stray_detection: false   # Enable heuristics for stray detection (defaults to false)
+  stray_detection_engine: rule       # Choose rule, heuristic, or both (defaults to rule)

@@ -79,3 +79,36 @@ TEST_CASE("poller backlog callback triggers") {
   p.stop();
   REQUIRE(triggered);
 }
+
+TEST_CASE("request queue balancer preserves cadence with margin") {
+  Poller p(1, 600);
+  p.start();
+  std::mutex mutex;
+  std::vector<std::chrono::steady_clock::time_point> starts;
+
+  auto record_job = [&](int sleep_ms) {
+    return p.submit([&] {
+      auto now = std::chrono::steady_clock::now();
+      {
+        std::lock_guard<std::mutex> lk(mutex);
+        starts.push_back(now);
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
+    });
+  };
+
+  record_job(10).get();
+  std::this_thread::sleep_for(std::chrono::milliseconds(350));
+  auto f2 = record_job(10);
+  auto f3 = record_job(10);
+  f2.get();
+  f3.get();
+  p.stop();
+
+  REQUIRE(starts.size() == 3);
+  auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(starts[2] -
+                                                                    starts[1])
+                  .count();
+  REQUIRE(diff >= 70);
+  REQUIRE(diff <= 95);
+}

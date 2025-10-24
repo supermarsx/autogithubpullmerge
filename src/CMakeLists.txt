@@ -33,6 +33,7 @@ add_library(
 
 target_include_directories(
   autogithubpullmerge_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include
+                                 ${CMAKE_BINARY_DIR}/generated
                                  ${CURSES_INCLUDE_DIR})
 
 target_link_libraries(
@@ -52,6 +53,9 @@ if(WIN32)
                              PRIVATE YAML_CPP_STATIC_DEFINE)
 endif()
 add_executable(autogithubpullmerge main.cpp)
+# Ensure the executable can include generated headers directly if needed.
+target_include_directories(autogithubpullmerge PRIVATE
+                           ${CMAKE_BINARY_DIR}/generated)
 #
 # Explicitly link external libraries on the final executable.  While
 # autogithubpullmerge_lib already links against yaml-cpp and libcurl, transitive

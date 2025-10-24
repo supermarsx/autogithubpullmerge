@@ -20,6 +20,7 @@ For example, `-C` maps to `--config` and `-1` toggles `--only-poll-prs`.
 - `-v, --verbose` - enable verbose output.
 - `--config` - path to a YAML, TOML, or JSON configuration file.
 - `--history-db` - path to the SQLite history database.
+- `--version` - print the current build's commit hash and date, then exit.
 - `--yes` - assume "yes" to confirmation prompts.
 - `--demo-tui` - launch an interactive demo TUI with mock pull requests and
   branches.
@@ -84,8 +85,10 @@ In configuration files, use the `repo_discovery_mode` key with values
   (e.g. `30m`, `2h`, `1d`).
 - `--only-poll-prs` - only poll pull requests.
 - `--only-poll-stray` - only poll stray branches.
-- `--heuristic-stray-detection` - enable heuristics-based stray branch
-  analysis (performs extra API calls).
+- `--stray-detection-engine` - select `rule`, `heuristic`, or `both` for stray
+  branch analysis (defaults to `rule`).
+- `--heuristic-stray-detection` - shorthand to enable heuristics in addition to
+  the default rule-based analysis (performs extra API calls).
 
 ### Networking
 
@@ -123,14 +126,19 @@ pull request has been merged or closed. The cleanup is integrated into the
 normal pull request workflow so branches disappear once they are no longer
 needed.
 
-### Heuristic Stray Detection
+### Stray Detection Engines
 
-When `--heuristic-stray-detection` (or the `heuristic_stray_detection`
-configuration key) is enabled the poller compares each branch against the
-repository's default branch and inspects recent commit activity. Branches that
-are fully merged, fall behind without unique commits, or have gone stale are
-flagged as stray in the summary output. The additional context requires a
-handful of extra API calls per branch scan.
+The poller always runs a deterministic rule-based engine to flag likely stray
+branches. Supply `--stray-detection-engine` (or set
+`stray_detection_engine: rule|heuristic|both` in the configuration) to switch to
+heuristics-only analysis or to combine both engines. The
+`--heuristic-stray-detection` flag is preserved for convenience and simply
+enables the heuristic engine alongside the rule-based checks. When heuristics
+are active the poller compares each branch against the repository's default
+branch and inspects recent commit activity. Branches that are fully merged, fall
+behind without unique commits, or have gone stale are flagged as stray in the
+summary output. The additional context requires a handful of extra API calls per
+branch scan.
 
 ### Purge-Only Mode
 

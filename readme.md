@@ -268,6 +268,7 @@ for `--download-limit`.
 General
 - `-v, --verbose` Enable verbose output (implies debug level unless overridden).
 - `--config FILE` Path to configuration file (YAML, TOML, or JSON).
+- `--version` Show the current build's commit hash and date, then exit.
 - `-y, --yes` Assume yes to confirmation prompts.
 - `--dry-run` Perform a trial run with no changes.
 - `--hotkeys on|off` Explicitly enable or disable interactive hotkeys.
@@ -308,16 +309,18 @@ Branch Management
 - `--protect-branch, --protected-branch PATTERN` Protect matching branches (repeatable). Glob or regex.
 - `--protect-branch-exclude PATTERN` Remove protection for matching branches (repeatable).
 - `--only-poll-stray` Poll only stray branches.
-- `--heuristic-stray-detection` Enable heuristics-based stray detection (performs
-  additional GitHub API calls).
+- `--stray-detection-engine MODE` Choose `rule`, `heuristic`, or `both` when
+  analysing branches (defaults to `rule`).
+- `--heuristic-stray-detection` Enable heuristics in addition to the default
+  rule-based detection (performs additional GitHub API calls).
 - `--reject-dirty` Close dirty stray branches automatically (dangerous).
 - `--delete-stray` Delete stray branches without requiring a prefix (dangerous).
 - `--allow-delete-base-branch` Permit deleting base branches such as `main` or `master` (very dangerous).
 - `--purge-prefix PREFIX` Delete branches with this prefix after PR close/merge.
 - `--purge-only` Only purge branches; skip PR polling (dangerous).
 
-Set `heuristic_stray_detection: true` in the configuration (for example under a
-`workflow` section) to enable the heuristic stray analysis by default.
+Set `stray_detection_engine: heuristic` or `both` in the configuration (for
+example under a `workflow` section) to enable the heuristic engine by default.
 
 Pull Request Management
 - `--include-merged` Include merged PRs when listing.

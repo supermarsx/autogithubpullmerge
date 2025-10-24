@@ -181,7 +181,7 @@ TEST_CASE("test poller branch") {
     BranchCleanupClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, 0, 1, false, true,
-                        true, "tmp/");
+                        agpm::StrayDetectionMode::Combined, false, "tmp/");
     poller.poll_now();
     REQUIRE(raw->deleted.count(raw->base + "/git/refs/heads/feature") == 1);
     REQUIRE(raw->deleted.count(raw->base + "/git/refs/heads/tmp/purge") == 1);
@@ -193,7 +193,7 @@ TEST_CASE("test poller branch") {
     HeuristicBranchClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, 0, 1, false, false,
-                        true);
+                        agpm::StrayDetectionMode::Heuristic);
     std::vector<std::string> logs;
     poller.set_log_callback([&](const std::string &m) { logs.push_back(m); });
     poller.poll_now();

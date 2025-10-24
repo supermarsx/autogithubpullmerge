@@ -5,6 +5,7 @@
 #include "history.hpp"
 #include "notification.hpp"
 #include "poller.hpp"
+#include "stray_detection_mode.hpp"
 #include <atomic>
 #include <chrono>
 #include <functional>
@@ -33,8 +34,8 @@ public:
    *        parallel.
    * @param only_poll_prs When true, skip branch polling entirely.
    * @param only_poll_stray When true, only poll branches for stray detection.
-   * @param heuristic_stray_detection Enable heuristics when classifying stray
-   *        branches.
+   * @param stray_detection_mode Selects rule-based, heuristic, or combined
+   *        stray branch detection.
    * @param reject_dirty Automatically close or delete dirty branches.
    * @param purge_prefix Delete merged branches starting with this prefix.
    * @param auto_merge Automatically merge qualifying pull requests.
@@ -61,7 +62,8 @@ public:
       std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
       int max_rate, int hourly_request_limit, int workers = 1,
       bool only_poll_prs = false, bool only_poll_stray = false,
-      bool heuristic_stray_detection = false, bool reject_dirty = false,
+      StrayDetectionMode stray_detection_mode = StrayDetectionMode::RuleBased,
+      bool reject_dirty = false,
       std::string purge_prefix = "", bool auto_merge = false,
       bool purge_only = false, std::string sort_mode = "",
       PullRequestHistory *history = nullptr,
@@ -145,7 +147,7 @@ private:
   int fallback_hourly_limit_;
   bool only_poll_prs_;
   bool only_poll_stray_;
-  bool heuristic_stray_detection_;
+  StrayDetectionMode stray_detection_mode_;
   bool reject_dirty_;
   bool delete_stray_;
   std::string purge_prefix_;

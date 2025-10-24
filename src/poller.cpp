@@ -30,6 +30,7 @@ Poller::Poller(int workers, int max_rate, double smoothing_factor)
       min_interval_ = std::chrono::nanoseconds(1);
     }
   }
+  update_queue_margin();
   next_allowed_ = std::chrono::steady_clock::now();
   queued_.store(0, std::memory_order_relaxed);
   in_flight_.store(0, std::memory_order_relaxed);
@@ -118,6 +119,7 @@ void Poller::set_max_rate(int max_rate) {
   } else {
     min_interval_ = std::chrono::steady_clock::duration::zero();
   }
+  update_queue_margin();
   next_allowed_ = std::chrono::steady_clock::now();
 }
 
@@ -197,7 +199,24 @@ bool Poller::acquire_token() {
   while (running_) {
     auto now = std::chrono::steady_clock::now();
     if (now >= next_allowed_) {
-      next_allowed_ = now + min_interval_;
+      if (min_interval_ <= std::chrono::steady_clock::duration::zero()) {
+        next_allowed_ = now;
+        return true;
+      }
+      auto scheduled_next = next_allowed_ + min_interval_;
+      auto margin = queue_margin_;
+      if (margin > min_interval_) {
+        margin = min_interval_;
+      }
+      auto earliest_next = now + min_interval_ - margin;
+      if (earliest_next < now) {
+        earliest_next = now;
+      }
+      if (scheduled_next < earliest_next) {
+        next_allowed_ = earliest_next;
+      } else {
+        next_allowed_ = scheduled_next;
+      }
       return true;
     }
     lock.unlock();
@@ -209,6 +228,32 @@ bool Poller::acquire_token() {
     lock.lock();
   }
   return false;
+}
+
+void Poller::update_queue_margin() {
+  if (min_interval_ <= std::chrono::steady_clock::duration::zero()) {
+    queue_margin_ = std::chrono::steady_clock::duration::zero();
+    return;
+  }
+  auto min_ns =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(min_interval_);
+  long double scaled = static_cast<long double>(min_ns.count()) *
+                       static_cast<long double>(queue_balance_slack_);
+  auto margin_ns = static_cast<long long>(std::llround(scaled));
+  if (margin_ns <= 0) {
+    queue_margin_ = std::chrono::steady_clock::duration::zero();
+    return;
+  }
+  auto margin = std::chrono::nanoseconds(margin_ns);
+  if (margin >= min_ns) {
+    if (min_ns.count() <= 1) {
+      queue_margin_ = std::chrono::steady_clock::duration::zero();
+      return;
+    }
+    margin = min_ns - std::chrono::nanoseconds(1);
+  }
+  queue_margin_ =
+      std::chrono::duration_cast<std::chrono::steady_clock::duration>(margin);
 }
 
 /**
@@ -273,8 +318,7 @@ Poller::estimate_clearance_time_unlocked(std::size_t outstanding) const {
     rpm = static_cast<double>(max_rate_);
   }
   double minutes = static_cast<double>(outstanding) / rpm;
-  auto seconds =
-      static_cast<long>(std::ceil(std::max(0.0, minutes) * 60.0));
+  auto seconds = static_cast<long>(std::ceil(std::max(0.0, minutes) * 60.0));
   if (seconds < 0)
     seconds = 0;
   return std::chrono::seconds(seconds);

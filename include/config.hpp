@@ -2,6 +2,7 @@
 #define AUTOGITHUBPULLMERGE_CONFIG_HPP
 
 #include "repo_discovery.hpp"
+#include "stray_detection_mode.hpp"
 #include <chrono>
 #include <nlohmann/json_fwd.hpp>
 #include <string>
@@ -369,11 +370,26 @@ public:
   /// Set delete stray flag.
   void set_delete_stray(bool v) { delete_stray_ = v; }
 
-  /// Use heuristics to detect stray branches.
-  bool heuristic_stray_detection() const { return heuristic_stray_detection_; }
+  /// Stray branch detection engine selection.
+  StrayDetectionMode stray_detection_mode() const {
+    return stray_detection_mode_;
+  }
 
-  /// Set heuristic stray detection flag.
-  void set_heuristic_stray_detection(bool v) { heuristic_stray_detection_ = v; }
+  /// Enable or disable the heuristic engine while keeping the rule engine.
+  bool heuristic_stray_detection() const {
+    return uses_heuristic(stray_detection_mode_);
+  }
+
+  /// Set heuristic stray detection flag (legacy helper).
+  void set_heuristic_stray_detection(bool v) {
+    stray_detection_mode_ =
+        v ? StrayDetectionMode::Combined : StrayDetectionMode::RuleBased;
+  }
+
+  /// Configure stray branch detection engines explicitly.
+  void set_stray_detection_mode(StrayDetectionMode mode) {
+    stray_detection_mode_ = mode;
+  }
 
   /// Allow deleting base branches.
   bool allow_delete_base_branch() const { return allow_delete_base_branch_; }
@@ -567,7 +583,7 @@ private:
   std::string http_proxy_;
   std::string https_proxy_;
   bool delete_stray_ = false;
-  bool heuristic_stray_detection_ = false;
+  StrayDetectionMode stray_detection_mode_ = StrayDetectionMode::RuleBased;
   bool allow_delete_base_branch_ = false;
   bool open_pat_page_ = false;
   std::string pat_save_path_;

@@ -95,9 +95,10 @@ public:
    * @param cb Callback receiving the current backlog size and clearance
    *        estimate when thresholds are met.
    */
-  void set_backlog_alert(std::size_t job_threshold,
-                         std::chrono::seconds clearance_threshold,
-                         std::function<void(std::size_t, std::chrono::seconds)> cb);
+  void
+  set_backlog_alert(std::size_t job_threshold,
+                    std::chrono::seconds clearance_threshold,
+                    std::function<void(std::size_t, std::chrono::seconds)> cb);
 
 private:
   void worker();
@@ -106,6 +107,7 @@ private:
   void check_backlog();
   std::optional<std::chrono::seconds>
   estimate_clearance_time_unlocked(std::size_t outstanding) const;
+  void update_queue_margin();
 
   int workers_;
   int max_rate_;
@@ -119,6 +121,8 @@ private:
   std::mutex rate_mutex_;
   std::chrono::steady_clock::duration min_interval_{};
   std::chrono::steady_clock::time_point next_allowed_{};
+  std::chrono::steady_clock::duration queue_margin_{};
+  double queue_balance_slack_{0.1};
 
   // Scheduler statistics
   double smoothing_factor_;

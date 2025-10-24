@@ -12,6 +12,7 @@
 #include <optional>
 #include <spdlog/spdlog.h>
 #include <sstream>
+#include <unordered_set>
 
 namespace agpm {
 
@@ -36,8 +37,8 @@ std::shared_ptr<spdlog::logger> poller_log() {
  * @param workers Number of worker threads to use for concurrent operations.
  * @param only_poll_prs Skip branch polling when true.
  * @param only_poll_stray Restrict branch polling to stray detection.
- * @param heuristic_stray_detection Enable heuristics when classifying stray
- *        branches.
+ * @param stray_detection_mode Selects rule-based, heuristic, or combined stray
+ *        detection.
  * @param reject_dirty Close or delete dirty branches automatically.
  * @param purge_prefix Branch prefix qualifying for automated deletion.
  * @param auto_merge Automatically merge qualifying pull requests when true.
@@ -60,7 +61,8 @@ GitHubPoller::GitHubPoller(
     GitHubClient &client,
     std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
     int max_rate, int hourly_request_limit, int workers, bool only_poll_prs,
-    bool only_poll_stray, bool heuristic_stray_detection, bool reject_dirty,
+    bool only_poll_stray, StrayDetectionMode stray_detection_mode,
+    bool reject_dirty,
     std::string purge_prefix, bool auto_merge, bool purge_only,
     std::string sort_mode, PullRequestHistory *history,
     std::vector<std::string> protected_branches,
@@ -75,7 +77,7 @@ GitHubPoller::GitHubPoller(
                                                      : 0),
       fallback_hourly_limit_(kFallbackHourlyLimit),
       only_poll_prs_(only_poll_prs), only_poll_stray_(only_poll_stray),
-      heuristic_stray_detection_(heuristic_stray_detection),
+      stray_detection_mode_(stray_detection_mode),
       reject_dirty_(reject_dirty), delete_stray_(delete_stray),
       purge_prefix_(std::move(purge_prefix)), auto_merge_(auto_merge),
       purge_only_(purge_only), sort_mode_(std::move(sort_mode)),
@@ -317,25 +319,32 @@ void GitHubPoller::poll() {
                              repo.first, repo.second);
         }
         std::vector<std::string> stray;
-        if (heuristic_stray_detection_ && !default_branch.empty()) {
-          stray = client_.detect_stray_branches(
+        std::unordered_set<std::string> seen_branches;
+        auto record_branch = [&](const std::string &branch) {
+          if (seen_branches.insert(branch).second) {
+            stray.push_back(branch);
+          }
+        };
+        if (uses_rule_based(stray_detection_mode_)) {
+          for (const auto &branch : branches) {
+            if (!purge_prefix_.empty() &&
+                branch.rfind(purge_prefix_, 0) == 0) {
+              continue;
+            }
+            record_branch(branch);
+          }
+        }
+        if (uses_heuristic(stray_detection_mode_) && !default_branch.empty()) {
+          auto heuristic_branches = client_.detect_stray_branches(
               repo.first, repo.second, default_branch, branches,
               protected_branches_, protected_branch_excludes_);
-          if (!purge_prefix_.empty()) {
-            stray.erase(std::remove_if(stray.begin(), stray.end(),
-                                       [this](const std::string &branch) {
-                                         return branch.rfind(purge_prefix_,
-                                                             0) == 0;
-                                       }),
-                        stray.end());
+          for (const auto &branch : heuristic_branches) {
+            if (!purge_prefix_.empty() &&
+                branch.rfind(purge_prefix_, 0) == 0) {
+              continue;
+            }
+            record_branch(branch);
           }
-        } else {
-          std::copy_if(branches.begin(), branches.end(),
-                       std::back_inserter(stray),
-                       [this](const std::string &branch) {
-                         return purge_prefix_.empty() ||
-                                branch.rfind(purge_prefix_, 0) != 0;
-                       });
         }
         if (log_cb_) {
           std::lock_guard<std::mutex> lk(log_mutex);

@@ -3,9 +3,11 @@
 #include "log.hpp"
 #include "token_loader.hpp"
 #include "util/duration.hpp"
+#include "version.hpp"
 #include <CLI/CLI.hpp>
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cctype>
 #include <chrono>
 #include <cstdlib>
@@ -13,6 +15,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <sstream>
@@ -415,6 +418,14 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Path to configuration file")
       ->type_name("FILE")
       ->group("General");
+  app.add_flag_function(
+         "--version",
+         [](std::size_t) {
+           std::cout << "autogithubpullmerge " << kVersionString << std::endl;
+           throw CliParseExit(0);
+         },
+         "Show version information and exit")
+      ->group("General");
   app.add_option(
          "-G,--log-level", options.log_level,
          "Set logging level (trace, debug, info, warn, error, critical, off)")
@@ -750,9 +761,29 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("-2,--only-poll-stray", options.only_poll_stray,
                "Only poll stray branches")
       ->group("Branch Management");
-  app.add_flag("-H,--heuristic-stray-detection",
-               options.heuristic_stray_detection,
-               "Enable heuristics-based stray branch detection")
+  app
+      .add_option_function<std::string>(
+          "--stray-detection-engine",
+          [&options](const std::string &value) {
+            auto mode = stray_detection_mode_from_string(value);
+            if (!mode) {
+              throw CLI::ValidationError(
+                  "--stray-detection-engine",
+                  "must be one of: rule, heuristic, both");
+            }
+            options.stray_detection_mode = *mode;
+            options.stray_detection_mode_explicit = true;
+          },
+          "Select stray branch detection engine (rule, heuristic, both)")
+      ->type_name("MODE")
+      ->group("Branch Management");
+  app.add_flag_function(
+         "-H,--heuristic-stray-detection",
+         [&options](std::int64_t) {
+           options.stray_detection_mode = StrayDetectionMode::Combined;
+           options.stray_detection_mode_explicit = true;
+         },
+         "Enable heuristics-based stray branch detection")
       ->group("Branch Management");
   app.add_flag("-3,--reject-dirty", options.reject_dirty,
                "Close dirty stray branches automatically")

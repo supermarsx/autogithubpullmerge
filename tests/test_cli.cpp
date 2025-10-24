@@ -1,4 +1,5 @@
 #include "cli.hpp"
+#include "version.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <cstdlib>
@@ -6,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 TEST_CASE("test cli", "[cli]") {
   char prog[] = "prog";
@@ -13,6 +15,33 @@ TEST_CASE("test cli", "[cli]") {
   char *argv1[] = {prog, verbose};
   agpm::CliOptions opts = agpm::parse_cli(2, argv1);
   REQUIRE(opts.verbose);
+
+  {
+    char version_flag[] = "--version";
+    char *argv_version[] = {prog, version_flag};
+    std::ostringstream capture;
+    auto *old_buf = std::cout.rdbuf(capture.rdbuf());
+    struct CoutRestorer {
+      std::streambuf *buf;
+      ~CoutRestorer() { std::cout.rdbuf(buf); }
+    } restorer{old_buf};
+    try {
+      agpm::parse_cli(2, argv_version);
+      FAIL("--version should trigger an early exit");
+    } catch (const agpm::CliParseExit &exit) {
+      REQUIRE(exit.exit_code() == 0);
+    }
+    auto output = capture.str();
+    REQUIRE_FALSE(output.empty());
+    if (!output.empty() && (output.back() == '\n' || output.back() == '\r')) {
+      output.pop_back();
+    }
+    if (!output.empty() && output.back() == '\r') {
+      output.pop_back();
+    }
+    REQUIRE(output == std::string("autogithubpullmerge ") +
+                          std::string(agpm::kVersionString));
+  }
 
   char *argv2[] = {prog};
   agpm::CliOptions opts2 = agpm::parse_cli(1, argv2);
@@ -286,7 +315,32 @@ TEST_CASE("test cli", "[cli]") {
   char heuristic_flag[] = "--heuristic-stray-detection";
   char *argv_heuristic[] = {prog, heuristic_flag};
   agpm::CliOptions opts_heuristic = agpm::parse_cli(2, argv_heuristic);
-  REQUIRE(opts_heuristic.heuristic_stray_detection);
+  REQUIRE(opts_heuristic.stray_detection_mode ==
+          agpm::StrayDetectionMode::Combined);
+  REQUIRE(opts_heuristic.stray_detection_mode_explicit);
+
+  char engine_flag[] = "--stray-detection-engine";
+  char engine_rule_val[] = "rule";
+  char *argv_engine_rule[] = {prog, engine_flag, engine_rule_val};
+  agpm::CliOptions opts_engine_rule = agpm::parse_cli(3, argv_engine_rule);
+  REQUIRE(opts_engine_rule.stray_detection_mode ==
+          agpm::StrayDetectionMode::RuleBased);
+  REQUIRE(opts_engine_rule.stray_detection_mode_explicit);
+
+  char engine_heuristic_val[] = "heuristic";
+  char *argv_engine_heuristic[] = {prog, engine_flag, engine_heuristic_val};
+  agpm::CliOptions opts_engine_heuristic =
+      agpm::parse_cli(3, argv_engine_heuristic);
+  REQUIRE(opts_engine_heuristic.stray_detection_mode ==
+          agpm::StrayDetectionMode::Heuristic);
+  REQUIRE(opts_engine_heuristic.stray_detection_mode_explicit);
+
+  char engine_both_val[] = "both";
+  char *argv_engine_both[] = {prog, engine_flag, engine_both_val};
+  agpm::CliOptions opts_engine_both = agpm::parse_cli(3, argv_engine_both);
+  REQUIRE(opts_engine_both.stray_detection_mode ==
+          agpm::StrayDetectionMode::Combined);
+  REQUIRE(opts_engine_both.stray_detection_mode_explicit);
 
   char yes_flag[] = "--yes";
   char reject_flag[] = "--reject-dirty";

@@ -31,6 +31,57 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+find_package(Git QUIET)
+
+set(AGPM_VERSION_COMMIT "unknown")
+set(AGPM_VERSION_DATE "unknown")
+
+if(GIT_FOUND)
+  execute_process(
+    COMMAND "${GIT_EXECUTABLE}" rev-parse --short HEAD
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE _AGPM_GIT_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _AGPM_GIT_COMMIT_RESULT
+  )
+  if(_AGPM_GIT_COMMIT_RESULT EQUAL 0 AND NOT _AGPM_GIT_COMMIT STREQUAL "")
+    set(AGPM_VERSION_COMMIT "${_AGPM_GIT_COMMIT}")
+  endif()
+
+  execute_process(
+    COMMAND "${GIT_EXECUTABLE}" log -1 --date=short --format=%cd
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE _AGPM_GIT_DATE
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _AGPM_GIT_DATE_RESULT
+  )
+  if(_AGPM_GIT_DATE_RESULT EQUAL 0 AND NOT _AGPM_GIT_DATE STREQUAL "")
+    set(AGPM_VERSION_DATE "${_AGPM_GIT_DATE}")
+  endif()
+endif()
+
+if(AGPM_VERSION_DATE STREQUAL "unknown" OR AGPM_VERSION_DATE STREQUAL "")
+  string(TIMESTAMP AGPM_VERSION_DATE "%Y-%m-%d")
+endif()
+
+set(_AGPM_DATE_LABEL "${AGPM_VERSION_DATE}")
+if(_AGPM_DATE_LABEL STREQUAL "")
+  set(_AGPM_DATE_LABEL "unknown-date")
+endif()
+
+set(_AGPM_COMMIT_LABEL "${AGPM_VERSION_COMMIT}")
+if(_AGPM_COMMIT_LABEL STREQUAL "")
+  set(_AGPM_COMMIT_LABEL "unknown")
+endif()
+
+set(AGPM_VERSION_STRING "${_AGPM_DATE_LABEL} (commit ${_AGPM_COMMIT_LABEL})")
+
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/version.hpp.in"
+  "${CMAKE_BINARY_DIR}/generated/version.hpp"
+  @ONLY
+)
+
 # Optionally fetch/refresh dependencies via vcpkg manifest during configure.
 # This runs `vcpkg install` if enabled and vcpkg is available.
 option(AGPM_FETCH_DEPS "Run vcpkg install to fetch dependencies" OFF)

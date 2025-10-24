@@ -113,8 +113,11 @@ int App::run(int argc, char **argv) {
   }
   options_.reject_dirty = options_.reject_dirty || config_.reject_dirty();
   options_.delete_stray = options_.delete_stray || config_.delete_stray();
-  options_.heuristic_stray_detection =
-      options_.heuristic_stray_detection || config_.heuristic_stray_detection();
+  if (!options_.stray_detection_mode_explicit) {
+    options_.stray_detection_mode = config_.stray_detection_mode();
+  } else {
+    config_.set_stray_detection_mode(options_.stray_detection_mode);
+  }
   options_.allow_delete_base_branch =
       options_.allow_delete_base_branch || config_.allow_delete_base_branch();
   options_.auto_merge = options_.auto_merge || config_.auto_merge();

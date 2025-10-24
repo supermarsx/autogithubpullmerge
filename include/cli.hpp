@@ -2,6 +2,7 @@
 #define AUTOGITHUBPULLMERGE_CLI_HPP
 
 #include "repo_discovery.hpp"
+#include "stray_detection_mode.hpp"
 #include <chrono>
 #include <exception>
 #include <string>
@@ -110,8 +111,10 @@ struct CliOptions {
   std::string https_proxy;                  ///< Proxy URL for HTTPS requests
   bool only_poll_prs = false;               ///< Only poll pull requests
   bool only_poll_stray = false;             ///< Only poll stray branches
-  bool heuristic_stray_detection{
-      false};                ///< Enable heuristics when flagging stray branches
+  StrayDetectionMode stray_detection_mode{
+      StrayDetectionMode::RuleBased}; ///< Selected stray detection engines
+  bool stray_detection_mode_explicit{
+      false}; ///< True if CLI explicitly set detection engines
   bool reject_dirty = false; ///< Auto close dirty branches
   bool delete_stray{false};  ///< Delete stray branches automatically
   bool allow_delete_base_branch{

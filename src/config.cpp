@@ -402,6 +402,27 @@ void Config::load_json(const nlohmann::json &j) {
   if (cfg.contains("heuristic_stray_detection")) {
     set_heuristic_stray_detection(cfg["heuristic_stray_detection"].get<bool>());
   }
+  if (cfg.contains("stray_detection_engine")) {
+    const auto &engine = cfg["stray_detection_engine"];
+    if (!engine.is_string()) {
+      config_log()->error(
+          "Expected stray_detection_engine to be a string but received {}",
+          engine.type_name());
+      throw std::runtime_error(
+          "Invalid stray_detection_engine value in configuration");
+    }
+    auto mode =
+        stray_detection_mode_from_string(engine.get<std::string>());
+    if (!mode) {
+      config_log()->error(
+          "Unrecognised stray_detection_engine value '{}'. Valid options are "
+          "rule, heuristic, both",
+          engine.get<std::string>());
+      throw std::runtime_error(
+          "Invalid stray_detection_engine value in configuration");
+    }
+    set_stray_detection_mode(*mode);
+  }
   if (cfg.contains("auto_merge")) {
     set_auto_merge(cfg["auto_merge"].get<bool>());
   }
