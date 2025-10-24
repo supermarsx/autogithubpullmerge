@@ -5,12 +5,16 @@
 #include "history.hpp"
 #include "notification.hpp"
 #include "poller.hpp"
+#include "rule_engine.hpp"
 #include "stray_detection_mode.hpp"
 #include <atomic>
 #include <chrono>
 #include <functional>
+#include <mutex>
 #include <string>
 #include <thread>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -63,10 +67,9 @@ public:
       int max_rate, int hourly_request_limit, int workers = 1,
       bool only_poll_prs = false, bool only_poll_stray = false,
       StrayDetectionMode stray_detection_mode = StrayDetectionMode::RuleBased,
-      bool reject_dirty = false,
-      std::string purge_prefix = "", bool auto_merge = false,
-      bool purge_only = false, std::string sort_mode = "",
-      PullRequestHistory *history = nullptr,
+      bool reject_dirty = false, std::string purge_prefix = "",
+      bool auto_merge = false, bool purge_only = false,
+      std::string sort_mode = "", PullRequestHistory *history = nullptr,
       std::vector<std::string> protected_branches = {},
       std::vector<std::string> protected_branch_excludes = {},
       bool dry_run = false, GitHubGraphQLClient *graphql_client = nullptr,
@@ -118,8 +121,11 @@ public:
    *
    * @param cb Function receiving detected stray branches for display.
    */
-  void set_stray_callback(
-      std::function<void(const std::vector<StrayBranch> &)> cb);
+  void
+  set_stray_callback(std::function<void(const std::vector<StrayBranch> &)> cb);
+
+  /// Override the configured action for a branch state.
+  void set_branch_rule_action(const std::string &state, BranchAction action);
 
 private:
   void poll();
@@ -164,6 +170,8 @@ private:
   std::string sort_mode_;
   bool dry_run_;
   GitHubGraphQLClient *graphql_client_;
+  PullRequestRuleEngine rule_engine_;
+  BranchRuleEngine branch_rule_engine_;
 
   std::vector<std::string> protected_branches_;
   std::vector<std::string> protected_branch_excludes_;
@@ -190,6 +198,10 @@ private:
   bool rate_limit_monitor_enabled_{true};
   int rate_limit_query_attempts_{1};
   std::chrono::milliseconds min_request_delay_{0};
+
+  std::unordered_map<std::string, std::unordered_set<std::string>>
+      known_branches_;
+  std::mutex known_branches_mutex_;
 };
 
 } // namespace agpm

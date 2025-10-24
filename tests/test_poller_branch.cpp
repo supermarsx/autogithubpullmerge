@@ -206,6 +206,8 @@ TEST_CASE("test poller branch") {
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     GitHubPoller poller(client, {{"me", "repo"}}, 1000, 60, 0, 1, false, true,
                         agpm::StrayDetectionMode::Combined, false, "tmp/");
+    poller.set_branch_rule_action("stray", BranchAction::kDelete);
+    poller.set_branch_rule_action("dirty", BranchAction::kDelete);
     poller.poll_now();
     REQUIRE(raw->deleted.count(raw->base + "/git/refs/heads/feature") == 1);
     REQUIRE(raw->deleted.count(raw->base + "/git/refs/heads/tmp/purge") == 1);

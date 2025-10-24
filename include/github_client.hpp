@@ -7,6 +7,7 @@
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -67,6 +68,21 @@ public:
    */
   virtual std::string put(const std::string &url, const std::string &data,
                           const std::vector<std::string> &headers) = 0;
+
+  /**
+   * Perform a HTTP PATCH request.
+   *
+   * Subclasses overriding this method should issue a PATCH call with the
+   * provided payload. The base implementation throws to signal unsupported
+   * transports.
+   */
+  virtual std::string patch(const std::string &url, const std::string &data,
+                            const std::vector<std::string> &headers) {
+    (void)url;
+    (void)data;
+    (void)headers;
+    throw std::runtime_error("PATCH not implemented");
+  }
 
   /**
    * Perform a HTTP DELETE request.
@@ -146,6 +162,10 @@ public:
   std::string put(const std::string &url, const std::string &data,
                   const std::vector<std::string> &headers) override;
 
+  /// @copydoc HttpClient::patch()
+  std::string patch(const std::string &url, const std::string &data,
+                    const std::vector<std::string> &headers) override;
+
   /// @copydoc HttpClient::del()
   std::string del(const std::string &url,
                   const std::vector<std::string> &headers) override;
@@ -195,6 +215,24 @@ struct PullRequest {
   bool merged{};       ///< Whether the PR has been merged
   std::string owner{}; ///< Repository owner
   std::string repo{};  ///< Repository name
+};
+
+/// Enumeration describing the CI check result for a pull request.
+enum class PullRequestCheckState {
+  Unknown, ///< No information about checks is available.
+  Passed,  ///< All required or configured checks completed successfully.
+  Rejected ///< One or more checks failed.
+};
+
+/// Lightweight metadata describing the state of a pull request.
+struct PullRequestMetadata {
+  int approvals{0};                 ///< Recorded approval count.
+  bool mergeable{false};            ///< Mergeability flag reported by GitHub.
+  std::string mergeable_state{};    ///< Detailed mergeability state string.
+  std::string state{};              ///< PR state ("open", "closed", ...).
+  bool draft{false};                ///< Indicates the PR is a draft.
+  PullRequestCheckState check_state{///< Summary of CI check outcomes.
+                                    PullRequestCheckState::Unknown};
 };
 
 /// Representation of a stray branch detected during polling.
@@ -306,6 +344,19 @@ public:
   bool merge_pull_request(const std::string &owner, const std::string &repo,
                           int pr_number);
 
+  /// Merge a pull request using previously fetched metadata.
+  bool merge_pull_request(const std::string &owner, const std::string &repo,
+                          int pr_number, const PullRequestMetadata &metadata);
+
+  /// Close a pull request without merging.
+  bool close_pull_request(const std::string &owner, const std::string &repo,
+                          int pr_number);
+
+  /// Fetch metadata describing a pull request's current state.
+  std::optional<PullRequestMetadata>
+  pull_request_metadata(const std::string &owner, const std::string &repo,
+                        int pr_number);
+
   /**
    * List branch names for a repository excluding the default branch.
    *
@@ -358,11 +409,11 @@ public:
    * @param protected_branch_excludes Patterns that override protections.
    * @return Branch names successfully deleted from the repository.
    */
-  std::vector<std::string>
-  cleanup_branches(const std::string &owner, const std::string &repo,
-                   const std::string &prefix,
-                   const std::vector<std::string> &protected_branches = {},
-                   const std::vector<std::string> &protected_branch_excludes = {});
+  std::vector<std::string> cleanup_branches(
+      const std::string &owner, const std::string &repo,
+      const std::string &prefix,
+      const std::vector<std::string> &protected_branches = {},
+      const std::vector<std::string> &protected_branch_excludes = {});
 
   /**
    * Close or delete branches that have diverged from the repository's default
@@ -429,6 +480,9 @@ private:
                               const std::vector<std::string> &headers);
   void load_cache();
   void save_cache();
+  bool merge_pull_request_internal(const std::string &owner,
+                                   const std::string &repo, int pr_number,
+                                   const PullRequestMetadata *metadata);
 };
 
 /** Minimal GitHub GraphQL API client used for querying pull requests. */

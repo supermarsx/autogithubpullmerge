@@ -23,6 +23,7 @@ add_library(
   github_client.cpp
   history.cpp
   log.cpp
+  rule_engine.cpp
   tui.cpp
   poller.cpp
   github_poller.cpp

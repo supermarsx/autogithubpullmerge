@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <regex>
 #include <spdlog/spdlog.h>
 #include <sstream>
@@ -27,6 +28,29 @@ std::shared_ptr<spdlog::logger> github_client_log() {
     return category_logger("github.client");
   }();
   return logger;
+}
+
+PullRequestCheckState interpret_check_state(const nlohmann::json &meta) {
+  std::string checks_state;
+  if (meta.contains("checks_state") && meta["checks_state"].is_string()) {
+    checks_state = meta["checks_state"].get<std::string>();
+  }
+  if (checks_state.empty() && meta.contains("mergeable_state") &&
+      meta["mergeable_state"].is_string()) {
+    checks_state = meta["mergeable_state"].get<std::string>();
+  }
+  std::string normalized = to_lower_copy(checks_state);
+  if (normalized == "clean" || normalized == "success" ||
+      normalized == "passed" || normalized == "pass" ||
+      normalized == "passing") {
+    return PullRequestCheckState::Passed;
+  }
+  if (normalized == "failure" || normalized == "failed" ||
+      normalized == "rejected" || normalized == "blocked" ||
+      normalized == "unstable") {
+    return PullRequestCheckState::Rejected;
+  }
+  return PullRequestCheckState::Unknown;
 }
 
 /**
@@ -478,6 +502,69 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
 }
 
 /**
+ * Issue a PATCH request with the provided payload.
+ */
+std::string CurlHttpClient::patch(const std::string &url,
+                                  const std::string &data,
+                                  const std::vector<std::string> &headers) {
+  CURL *curl = curl_.get();
+  curl_easy_reset(curl);
+  std::string response;
+  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+  apply_proxy(curl, url);
+  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, timeout_ms_);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms_);
+  if (download_limit_ > 0)
+    curl_easy_setopt(curl, CURLOPT_MAX_RECV_SPEED_LARGE, download_limit_);
+  if (upload_limit_ > 0)
+    curl_easy_setopt(curl, CURLOPT_MAX_SEND_SPEED_LARGE, upload_limit_);
+  char errbuf[CURL_ERROR_SIZE];
+  errbuf[0] = '\0';
+  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+  CurlSlist header_list;
+  for (const auto &h : headers) {
+    header_list.append(h);
+  }
+  header_list.append("User-Agent: autogithubpullmerge");
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list.get());
+  CURLcode res = curl_easy_perform(curl);
+  long http_code = 0;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+  curl_off_t dl = 0;
+  curl_off_t ul = 0;
+  curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD_T, &dl);
+  curl_easy_getinfo(curl, CURLINFO_SIZE_UPLOAD_T, &ul);
+  total_downloaded_ += dl;
+  total_uploaded_ += ul;
+  if (max_download_ > 0 && total_downloaded_ > max_download_) {
+    github_client_log()->error("Maximum download exceeded");
+    throw std::runtime_error("Maximum download exceeded");
+  }
+  if (max_upload_ > 0 && total_uploaded_ > max_upload_) {
+    github_client_log()->error("Maximum upload exceeded");
+    throw std::runtime_error("Maximum upload exceeded");
+  }
+  if (res != CURLE_OK) {
+    std::string msg = format_curl_error("PATCH", url, res, errbuf);
+    github_client_log()->error(msg);
+    throw std::runtime_error(msg);
+  }
+  if (http_code < 200 || http_code >= 300) {
+    github_client_log()->error("curl PATCH {} failed with HTTP code {}", url,
+                               http_code);
+    throw std::runtime_error("curl PATCH failed with HTTP code " +
+                             std::to_string(http_code));
+  }
+  return response;
+}
+
+/**
  * Issue a DELETE request.
  */
 std::string CurlHttpClient::del(const std::string &url,
@@ -573,6 +660,12 @@ public:
   std::string put(const std::string &url, const std::string &data,
                   const std::vector<std::string> &headers) override {
     return request([&] { return inner_->put(url, data, headers); });
+  }
+
+  /// @copydoc HttpClient::patch()
+  std::string patch(const std::string &url, const std::string &data,
+                    const std::vector<std::string> &headers) override {
+    return request([&] { return inner_->patch(url, data, headers); });
   }
 
   /// @copydoc HttpClient::del()
@@ -981,9 +1074,68 @@ GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
   return prs;
 }
 
+/// @copydoc GitHubClient::pull_request_metadata
+std::optional<PullRequestMetadata>
+GitHubClient::pull_request_metadata(const std::string &owner,
+                                    const std::string &repo, int pr_number) {
+  if (!repo_allowed(owner, repo)) {
+    github_client_log()->debug(
+        "Skipping metadata fetch for disallowed repo {}/{}", owner, repo);
+    return std::nullopt;
+  }
+  std::vector<std::string> headers;
+  if (!tokens_.empty()) {
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  }
+  headers.push_back("Accept: application/vnd.github+json");
+  enforce_delay();
+  std::string pr_url = api_base_ + "/repos/" + owner + "/" + repo + "/pulls/" +
+                       std::to_string(pr_number);
+  nlohmann::json meta_json;
+  try {
+    std::string pr_resp = get_with_cache(pr_url, headers).body;
+    meta_json = nlohmann::json::parse(pr_resp);
+  } catch (const std::exception &e) {
+    github_client_log()->error("Failed to fetch pull request metadata: {}",
+                               e.what());
+    return std::nullopt;
+  }
+  if (!meta_json.is_object()) {
+    return std::nullopt;
+  }
+  PullRequestMetadata metadata;
+  metadata.approvals = meta_json.value("approvals", 0);
+  metadata.mergeable = meta_json.value("mergeable", false);
+  if (meta_json.contains("mergeable_state") &&
+      meta_json["mergeable_state"].is_string()) {
+    metadata.mergeable_state = meta_json["mergeable_state"].get<std::string>();
+  }
+  if (meta_json.contains("state") && meta_json["state"].is_string()) {
+    metadata.state = meta_json["state"].get<std::string>();
+  }
+  if (meta_json.contains("draft") && meta_json["draft"].is_boolean()) {
+    metadata.draft = meta_json["draft"].get<bool>();
+  }
+  metadata.check_state = interpret_check_state(meta_json);
+  return metadata;
+}
+
 /// @copydoc GitHubClient::merge_pull_request
 bool GitHubClient::merge_pull_request(const std::string &owner,
                                       const std::string &repo, int pr_number) {
+  return merge_pull_request_internal(owner, repo, pr_number, nullptr);
+}
+
+/// @copydoc GitHubClient::merge_pull_request
+bool GitHubClient::merge_pull_request(const std::string &owner,
+                                      const std::string &repo, int pr_number,
+                                      const PullRequestMetadata &metadata) {
+  return merge_pull_request_internal(owner, repo, pr_number, &metadata);
+}
+
+bool GitHubClient::merge_pull_request_internal(
+    const std::string &owner, const std::string &repo, int pr_number,
+    const PullRequestMetadata *metadata) {
   if (!repo_allowed(owner, repo)) {
     github_client_log()->debug("Skipping merge for disallowed repo {}/{}",
                                owner, repo);
@@ -992,36 +1144,32 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
   github_client_log()->info("Attempting to merge PR #{} in {}/{}", pr_number,
                             owner, repo);
   std::vector<std::string> headers;
-  if (!tokens_.empty())
+  if (!tokens_.empty()) {
     headers.push_back("Authorization: token " + tokens_[token_index_]);
+  }
   headers.push_back("Accept: application/vnd.github+json");
-  // Fetch pull request metadata
-  enforce_delay();
-  std::string pr_url = api_base_ + "/repos/" + owner + "/" + repo + "/pulls/" +
-                       std::to_string(pr_number);
-  nlohmann::json meta;
-  try {
-    std::string pr_resp = get_with_cache(pr_url, headers).body;
-    meta = nlohmann::json::parse(pr_resp);
-  } catch (const std::exception &e) {
-    github_client_log()->error("Failed to fetch pull request metadata: {}",
-                               e.what());
-    return false;
+  const PullRequestMetadata *meta_ptr = metadata;
+  std::optional<PullRequestMetadata> fetched_metadata;
+  if (!meta_ptr) {
+    auto details = pull_request_metadata(owner, repo, pr_number);
+    if (!details) {
+      return false;
+    }
+    fetched_metadata = std::move(details);
+    meta_ptr = &*fetched_metadata;
   }
-  if (!meta.is_object()) {
-    return false;
-  }
-  int approvals = meta.value("approvals", 0);
-  if (required_approvals_ > 0 && approvals < required_approvals_) {
+  const PullRequestMetadata &meta = *meta_ptr;
+  if (required_approvals_ > 0 && meta.approvals < required_approvals_) {
     github_client_log()->info("PR #{} requires {} approvals but has {}",
-                              pr_number, required_approvals_, approvals);
+                              pr_number, required_approvals_, meta.approvals);
     return false;
   }
-  if (require_status_success_ && meta.value("mergeable_state", "") != "clean") {
+  if (require_status_success_ &&
+      to_lower_copy(meta.mergeable_state) != "clean") {
     github_client_log()->info("PR #{} status checks not successful", pr_number);
     return false;
   }
-  if (require_mergeable_state_ && !meta.value("mergeable", false)) {
+  if (require_mergeable_state_ && !meta.mergeable) {
     github_client_log()->info("PR #{} is not mergeable", pr_number);
     return false;
   }
@@ -1047,6 +1195,49 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
     return merged;
   } catch (const std::exception &e) {
     github_client_log()->error("Failed to merge pull request: {}", e.what());
+    return false;
+  }
+}
+
+bool GitHubClient::close_pull_request(const std::string &owner,
+                                      const std::string &repo, int pr_number) {
+  if (!repo_allowed(owner, repo)) {
+    github_client_log()->debug("Skipping close for disallowed repo {}/{}",
+                               owner, repo);
+    return false;
+  }
+  github_client_log()->info("Attempting to close PR #{} in {}/{}", pr_number,
+                            owner, repo);
+  if (dry_run_) {
+    github_client_log()->info("[dry-run] Would close PR #{} in {}/{}",
+                              pr_number, owner, repo);
+    return true;
+  }
+  std::vector<std::string> headers;
+  if (!tokens_.empty()) {
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  }
+  headers.push_back("Accept: application/vnd.github+json");
+  headers.push_back("Content-Type: application/json");
+  enforce_delay();
+  std::string url = api_base_ + "/repos/" + owner + "/" + repo + "/pulls/" +
+                    std::to_string(pr_number);
+  nlohmann::json payload = {{"state", "closed"}};
+  try {
+    std::string resp = http_->patch(url, payload.dump(), headers);
+    nlohmann::json j = nlohmann::json::parse(resp);
+    std::string state = j.value("state", "");
+    bool closed = to_lower_copy(state) == "closed";
+    if (closed) {
+      github_client_log()->info("Closed PR #{} in {}/{}", pr_number, owner,
+                                repo);
+    } else {
+      github_client_log()->info("PR #{} in {}/{} remained {}", pr_number, owner,
+                                repo, state);
+    }
+    return closed;
+  } catch (const std::exception &e) {
+    github_client_log()->error("Failed to close pull request: {}", e.what());
     return false;
   }
 }

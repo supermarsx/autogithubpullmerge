@@ -12,6 +12,7 @@
 #include <optional>
 #include <spdlog/spdlog.h>
 #include <sstream>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace agpm {
@@ -62,9 +63,8 @@ GitHubPoller::GitHubPoller(
     std::vector<std::pair<std::string, std::string>> repos, int interval_ms,
     int max_rate, int hourly_request_limit, int workers, bool only_poll_prs,
     bool only_poll_stray, StrayDetectionMode stray_detection_mode,
-    bool reject_dirty,
-    std::string purge_prefix, bool auto_merge, bool purge_only,
-    std::string sort_mode, PullRequestHistory *history,
+    bool reject_dirty, std::string purge_prefix, bool auto_merge,
+    bool purge_only, std::string sort_mode, PullRequestHistory *history,
     std::vector<std::string> protected_branches,
     std::vector<std::string> protected_branch_excludes, bool dry_run,
     GitHubGraphQLClient *graphql_client, bool delete_stray,
@@ -77,11 +77,11 @@ GitHubPoller::GitHubPoller(
                                                      : 0),
       fallback_hourly_limit_(kFallbackHourlyLimit),
       only_poll_prs_(only_poll_prs), only_poll_stray_(only_poll_stray),
-      stray_detection_mode_(stray_detection_mode),
-      reject_dirty_(reject_dirty), delete_stray_(delete_stray),
-      purge_prefix_(std::move(purge_prefix)), auto_merge_(auto_merge),
-      purge_only_(purge_only), sort_mode_(std::move(sort_mode)),
-      dry_run_(dry_run), graphql_client_(graphql_client),
+      stray_detection_mode_(stray_detection_mode), reject_dirty_(reject_dirty),
+      delete_stray_(delete_stray), purge_prefix_(std::move(purge_prefix)),
+      auto_merge_(auto_merge), purge_only_(purge_only),
+      sort_mode_(std::move(sort_mode)), dry_run_(dry_run),
+      graphql_client_(graphql_client),
       protected_branches_(std::move(protected_branches)),
       protected_branch_excludes_(std::move(protected_branch_excludes)),
       history_(history), rate_limit_margin_(rate_limit_margin) {
@@ -117,6 +117,17 @@ GitHubPoller::GitHubPoller(
       [this](std::size_t outstanding, std::chrono::seconds clearance) {
         handle_backlog(outstanding, clearance);
       });
+  if (!delete_stray_) {
+    branch_rule_engine_.set_action("stray", BranchAction::kKeep);
+  }
+  if (purge_prefix_.empty()) {
+    branch_rule_engine_.set_action("purge", BranchAction::kKeep);
+  }
+  if (reject_dirty_) {
+    branch_rule_engine_.set_action("dirty", BranchAction::kDelete);
+  } else {
+    branch_rule_engine_.set_action("dirty", BranchAction::kKeep);
+  }
   if (max_rate_ > 0) {
     auto interval =
         std::chrono::duration<double>(60.0 / static_cast<double>(max_rate_));
@@ -189,6 +200,14 @@ void GitHubPoller::set_log_callback(
 void GitHubPoller::set_stray_callback(
     std::function<void(const std::vector<StrayBranch> &)> cb) {
   stray_cb_ = std::move(cb);
+}
+
+/**
+ * Configure the branch rule engine to take a specific action for a state.
+ */
+void GitHubPoller::set_branch_rule_action(const std::string &state,
+                                          BranchAction action) {
+  branch_rule_engine_.set_action(state, action);
 }
 
 /**
@@ -285,50 +304,86 @@ void GitHubPoller::poll() {
                              repo.first, repo.second);
         }
         if (auto_merge_) {
+          auto remove_pr = [&](const PullRequest &target) {
+            std::lock_guard<std::mutex> lk(pr_mutex);
+            auto new_end =
+                std::remove_if(all_prs.begin(), all_prs.end(),
+                               [&](const PullRequest &candidate) {
+                                 return candidate.number == target.number &&
+                                        candidate.owner == target.owner &&
+                                        candidate.repo == target.repo;
+                               });
+            std::size_t removed =
+                static_cast<std::size_t>(std::distance(new_end, all_prs.end()));
+            if (removed > 0) {
+              all_prs.erase(new_end, all_prs.end());
+              total_pr_count.fetch_sub(removed, std::memory_order_relaxed);
+            }
+          };
           for (const auto &pr : prs) {
+            auto metadata =
+                client_.pull_request_metadata(pr.owner, pr.repo, pr.number);
+            if (!metadata) {
+              continue;
+            }
+            PullRequestAction action = rule_engine_.decide(*metadata);
             if (dry_run_) {
-              client_.merge_pull_request(pr.owner, pr.repo, pr.number);
-              if (log_cb_) {
-                std::lock_guard<std::mutex> lk(log_mutex);
-                log_cb_("Would merge PR #" + std::to_string(pr.number));
+              if (action == PullRequestAction::kMerge) {
+                client_.merge_pull_request(pr.owner, pr.repo, pr.number,
+                                           *metadata);
+                if (log_cb_) {
+                  std::lock_guard<std::mutex> lk(log_mutex);
+                  log_cb_("Would merge PR #" + std::to_string(pr.number));
+                }
+              } else if (action == PullRequestAction::kClose) {
+                client_.close_pull_request(pr.owner, pr.repo, pr.number);
+                if (log_cb_) {
+                  std::lock_guard<std::mutex> lk(log_mutex);
+                  log_cb_("Would close PR #" + std::to_string(pr.number));
+                }
               }
               continue;
             }
-            bool merged =
-                client_.merge_pull_request(pr.owner, pr.repo, pr.number);
-            if (merged) {
-              if (history_) {
-                std::lock_guard<std::mutex> lk(pr_mutex);
-                history_->update_merged(pr.number);
-              }
-              if (log_cb_) {
-                std::lock_guard<std::mutex> lk(log_mutex);
-                log_cb_("Merged PR #" + std::to_string(pr.number));
-              }
-              if (notifier_) {
-                notifier_->notify("Merged PR #" + std::to_string(pr.number) +
-                                  " in " + pr.owner + "/" + pr.repo);
-              }
-              {
-                std::lock_guard<std::mutex> lk(pr_mutex);
-                auto new_end = std::remove_if(
-                    all_prs.begin(), all_prs.end(),
-                    [&](const PullRequest &candidate) {
-                      return candidate.number == pr.number &&
-                             candidate.owner == pr.owner &&
-                             candidate.repo == pr.repo;
-                    });
-                std::size_t removed = static_cast<std::size_t>(
-                    std::distance(new_end, all_prs.end()));
-                if (removed > 0) {
-                  all_prs.erase(new_end, all_prs.end());
-                  total_pr_count.fetch_sub(removed, std::memory_order_relaxed);
+            if (action == PullRequestAction::kMerge) {
+              bool merged = client_.merge_pull_request(pr.owner, pr.repo,
+                                                       pr.number, *metadata);
+              if (merged) {
+                if (history_) {
+                  std::lock_guard<std::mutex> lk(pr_mutex);
+                  history_->update_merged(pr.number);
                 }
+                if (log_cb_) {
+                  std::lock_guard<std::mutex> lk(log_mutex);
+                  log_cb_("Merged PR #" + std::to_string(pr.number));
+                }
+                if (notifier_) {
+                  notifier_->notify("Merged PR #" + std::to_string(pr.number) +
+                                    " in " + pr.owner + "/" + pr.repo);
+                }
+                remove_pr(pr);
+              } else if (log_cb_) {
+                std::lock_guard<std::mutex> lk(log_mutex);
+                log_cb_("PR #" + std::to_string(pr.number) +
+                        " did not meet merge requirements");
               }
-            } else if (log_cb_) {
-              std::lock_guard<std::mutex> lk(log_mutex);
-              log_cb_("PR #" + std::to_string(pr.number) +
-                      " did not meet merge requirements");
+            } else if (action == PullRequestAction::kClose) {
+              bool closed =
+                  client_.close_pull_request(pr.owner, pr.repo, pr.number);
+              if (closed) {
+                if (log_cb_) {
+                  std::lock_guard<std::mutex> lk(log_mutex);
+                  log_cb_("Closed PR #" + std::to_string(pr.number));
+                }
+                if (notifier_) {
+                  notifier_->notify("Closed PR #" + std::to_string(pr.number) +
+                                    " in " + pr.owner + "/" + pr.repo);
+                }
+                remove_pr(pr);
+              } else if (log_cb_) {
+                std::lock_guard<std::mutex> lk(log_mutex);
+                log_cb_("PR #" + std::to_string(pr.number) +
+                        " could not be closed");
+              }
             }
           }
         }
@@ -347,6 +402,16 @@ void GitHubPoller::poll() {
           poller_log()->info("Fetched {} branches for {}/{}", branches.size(),
                              repo.first, repo.second);
         }
+        std::unordered_set<std::string> new_branches;
+        {
+          std::lock_guard<std::mutex> lk(known_branches_mutex_);
+          auto &known = known_branches_[repo.first + "/" + repo.second];
+          for (const auto &branch : branches) {
+            if (known.insert(branch).second) {
+              new_branches.insert(branch);
+            }
+          }
+        }
         std::vector<std::string> stray;
         std::unordered_set<std::string> seen_branches;
         auto record_branch = [&](const std::string &branch) {
@@ -356,8 +421,7 @@ void GitHubPoller::poll() {
         };
         if (uses_rule_based(stray_detection_mode_)) {
           for (const auto &branch : branches) {
-            if (!purge_prefix_.empty() &&
-                branch.rfind(purge_prefix_, 0) == 0) {
+            if (!purge_prefix_.empty() && branch.rfind(purge_prefix_, 0) == 0) {
               continue;
             }
             record_branch(branch);
@@ -368,8 +432,7 @@ void GitHubPoller::poll() {
               repo.first, repo.second, default_branch, branches,
               protected_branches_, protected_branch_excludes_);
           for (const auto &branch : heuristic_branches) {
-            if (!purge_prefix_.empty() &&
-                branch.rfind(purge_prefix_, 0) == 0) {
+            if (!purge_prefix_.empty() && branch.rfind(purge_prefix_, 0) == 0) {
               continue;
             }
             record_branch(branch);
@@ -386,55 +449,92 @@ void GitHubPoller::poll() {
         if (!stray.empty()) {
           std::lock_guard<std::mutex> lk(stray_mutex);
           for (const auto &branch : stray) {
-            all_stray.push_back(
-                StrayBranch{repo.first, repo.second, branch});
+            all_stray.push_back(StrayBranch{repo.first, repo.second, branch});
           }
         }
-        if (delete_stray_) {
-          for (const auto &b : stray) {
+        std::unordered_set<std::string> stray_lookup(stray.begin(),
+                                                     stray.end());
+        for (const auto &branch : stray) {
+          BranchMetadata metadata{repo.first, repo.second, branch, "stray", true,
+                                  new_branches.count(branch) > 0};
+          BranchAction action = branch_rule_engine_.decide(metadata);
+          if (action == BranchAction::kDelete) {
             auto removed = client_.cleanup_branches(
-                repo.first, repo.second, b, protected_branches_,
+                repo.first, repo.second, branch, protected_branches_,
                 protected_branch_excludes_);
             if (!removed.empty()) {
               std::lock_guard<std::mutex> lk(stray_mutex);
               for (const auto &name : removed) {
-                auto new_end = std::remove_if(
-                    all_stray.begin(), all_stray.end(),
-                    [&](const StrayBranch &entry) {
-                      return entry.owner == repo.first &&
-                             entry.repo == repo.second && entry.name == name;
-                    });
+                auto new_end =
+                    std::remove_if(all_stray.begin(), all_stray.end(),
+                                   [&](const StrayBranch &entry) {
+                                     return entry.owner == repo.first &&
+                                            entry.repo == repo.second &&
+                                            entry.name == name;
+                                   });
                 all_stray.erase(new_end, all_stray.end());
               }
             }
+          } else if (action == BranchAction::kIgnore) {
+            std::lock_guard<std::mutex> lk(stray_mutex);
+            auto new_end = std::remove_if(all_stray.begin(), all_stray.end(),
+                                          [&](const StrayBranch &entry) {
+                                            return entry.owner == repo.first &&
+                                                   entry.repo == repo.second &&
+                                                   entry.name == branch;
+                                          });
+            all_stray.erase(new_end, all_stray.end());
+          }
+        }
+        for (const auto &branch : new_branches) {
+          if (stray_lookup.find(branch) != stray_lookup.end()) {
+            continue;
+          }
+          BranchMetadata metadata{repo.first, repo.second, branch, "new", false,
+                                  true};
+          BranchAction action = branch_rule_engine_.decide(metadata);
+          if (action == BranchAction::kDelete) {
+            client_.cleanup_branches(repo.first, repo.second, branch,
+                                     protected_branches_,
+                                     protected_branch_excludes_);
           }
         }
       }
       if (!purge_prefix_.empty()) {
-        auto removed = client_.cleanup_branches(
-            repo.first, repo.second, purge_prefix_, protected_branches_,
-            protected_branch_excludes_);
-        if (!removed.empty()) {
-          std::lock_guard<std::mutex> lk(stray_mutex);
-          for (const auto &name : removed) {
-            auto new_end = std::remove_if(
-                all_stray.begin(), all_stray.end(),
-                [&](const StrayBranch &entry) {
-                  return entry.owner == repo.first &&
-                         entry.repo == repo.second && entry.name == name;
-                });
-            all_stray.erase(new_end, all_stray.end());
+        BranchMetadata metadata{repo.first, repo.second, purge_prefix_, "purge"};
+        BranchAction action = branch_rule_engine_.decide(metadata);
+        if (action == BranchAction::kDelete) {
+          auto removed = client_.cleanup_branches(
+              repo.first, repo.second, purge_prefix_, protected_branches_,
+              protected_branch_excludes_);
+          if (!removed.empty()) {
+            std::lock_guard<std::mutex> lk(stray_mutex);
+            for (const auto &name : removed) {
+              auto new_end =
+                  std::remove_if(all_stray.begin(), all_stray.end(),
+                                 [&](const StrayBranch &entry) {
+                                   return entry.owner == repo.first &&
+                                          entry.repo == repo.second &&
+                                          entry.name == name;
+                                 });
+              all_stray.erase(new_end, all_stray.end());
+            }
+          }
+          if (notifier_) {
+            notifier_->notify("Purged branches in " + repo.first + "/" +
+                              repo.second);
           }
         }
-        if (notifier_) {
-          notifier_->notify("Purged branches in " + repo.first + "/" +
-                            repo.second);
-        }
       }
-      if (!skip_branch_ops && reject_dirty_) {
-        client_.close_dirty_branches(repo.first, repo.second,
-                                     protected_branches_,
-                                     protected_branch_excludes_);
+      if (!skip_branch_ops) {
+        BranchMetadata dirty_metadata{repo.first, repo.second, std::string{},
+                                      "dirty"};
+        BranchAction dirty_action = branch_rule_engine_.decide(dirty_metadata);
+        if (dirty_action == BranchAction::kDelete) {
+          client_.close_dirty_branches(repo.first, repo.second,
+                                       protected_branches_,
+                                       protected_branch_excludes_);
+        }
       }
     }));
   }
