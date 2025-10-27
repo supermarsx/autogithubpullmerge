@@ -217,6 +217,7 @@ private:
   GitHubGraphQLClient *graphql_client_;
   PullRequestRuleEngine rule_engine_;
   BranchRuleEngine branch_rule_engine_;
+  std::unordered_set<std::string> explicit_branch_rule_states_;
 
   std::vector<std::string> protected_branches_;
   std::vector<std::string> protected_branch_excludes_;

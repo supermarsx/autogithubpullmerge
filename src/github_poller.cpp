@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <future>
@@ -28,6 +29,12 @@ std::shared_ptr<spdlog::logger> poller_log() {
     return category_logger("github.poller");
   }();
   return logger;
+}
+
+std::string normalize_rule_state(std::string state) {
+  std::transform(state.begin(), state.end(), state.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return state;
 }
 } // namespace
 
@@ -254,6 +261,7 @@ void GitHubPoller::set_stray_callback(
 void GitHubPoller::set_branch_rule_action(const std::string &state,
                                           BranchAction action) {
   branch_rule_engine_.set_action(state, action);
+  explicit_branch_rule_states_.insert(normalize_rule_state(state));
 }
 
 /**
@@ -606,8 +614,24 @@ void GitHubPoller::poll() {
                                   branch,     "stray",
                                   true,       new_branches.count(branch) > 0};
           BranchAction action = branch_rule_engine_.decide(metadata);
-          if (!options.delete_stray && action != BranchAction::kDelete) {
-            action = BranchAction::kKeep;
+          if (!options.delete_stray) {
+            if (action == BranchAction::kDelete) {
+              std::string state_key = normalize_rule_state(metadata.state);
+              bool explicit_rule = false;
+              if (!state_key.empty()) {
+                explicit_rule =
+                    explicit_branch_rule_states_.count(state_key) > 0;
+              }
+              if (!explicit_rule && metadata.stray) {
+                explicit_rule =
+                    explicit_branch_rule_states_.count("stray") > 0;
+              }
+              if (!explicit_rule) {
+                action = BranchAction::kKeep;
+              }
+            } else {
+              action = BranchAction::kKeep;
+            }
           }
           if (action == BranchAction::kDelete) {
             bool deleted_directly = client_.delete_branch(
