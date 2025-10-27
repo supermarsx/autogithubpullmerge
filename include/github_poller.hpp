@@ -248,6 +248,7 @@ private:
   bool rate_limit_monitor_enabled_{true};
   int rate_limit_query_attempts_{1};
   std::chrono::milliseconds min_request_delay_{0};
+  bool fast_mode_{false};
 
   mutable std::mutex budget_mutex_;
   std::optional<RateBudgetSnapshot> last_budget_snapshot_;

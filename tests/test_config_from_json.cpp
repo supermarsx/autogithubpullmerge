@@ -82,7 +82,7 @@ TEST_CASE("test config from json") {
   octo["hooks"]["event_actions"]["pull_request.merged"] =
       nlohmann::json::array(
           {{{"type", "http"}, {"endpoint", "https://example.com"},
-            {"method", "PUT"}}}});
+            {"method", "PUT"}}});
   auto &regex_override = repo_overrides["regex:^agpm/.+$"];
   regex_override["auto_merge"] = true;
 

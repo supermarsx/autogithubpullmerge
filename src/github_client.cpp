@@ -22,6 +22,8 @@ namespace agpm {
 
 namespace {
 
+std::string to_lower_copy(const std::string &value);
+
 std::shared_ptr<spdlog::logger> github_client_log() {
   static auto logger = [] {
     ensure_default_logger();

@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+: "${AGPM_FAST_TESTS:=1}"
+export AGPM_FAST_TESTS
+
 BIN=${1:-./tests/agpm_tests}
 
 # Build a list of tests excluding those tagged [tui] or [cli]
