@@ -85,6 +85,46 @@ private:
   std::string body;
 };
 
+class OverrideHttpClient : public HttpClient {
+public:
+  OverrideHttpClient(std::atomic<int> &pr_counter,
+                     std::atomic<int> &branch_counter)
+      : pr_requests_(pr_counter), branch_requests_(branch_counter) {}
+
+  std::string get(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)headers;
+    if (url.find("/rate_limit") != std::string::npos) {
+      return "{}";
+    }
+    if (url.find("/pulls") != std::string::npos) {
+      ++pr_requests_;
+      return "[{\"number\":1,\"title\":\"T\",\"state\":\"open\"}]";
+    }
+    if (url.find("/branches") != std::string::npos) {
+      ++branch_requests_;
+      return "[{\"name\":\"main\"}]";
+    }
+    if (url.find("/repos/") != std::string::npos) {
+      return "{\"default_branch\":\"main\"}";
+    }
+    return "{}";
+  }
+
+  std::string put(const std::string &, const std::string &,
+                  const std::vector<std::string> &) override {
+    return "{}";
+  }
+
+  std::string del(const std::string &, const std::vector<std::string> &) override {
+    return "";
+  }
+
+private:
+  std::atomic<int> &pr_requests_;
+  std::atomic<int> &branch_requests_;
+};
+
 TEST_CASE("github poller sorts pull requests") {
   const std::string json =
       "[{\"number\":1,\"title\":\"PR2\"},{\"number\":2,\"title\":\"PR10\"},{"
@@ -120,4 +160,30 @@ TEST_CASE("github poller sorts pull requests") {
     poller.poll_now();
     REQUIRE(titles == std::vector<std::string>{"PR2", "PR10", "PR1"});
   }
+}
+
+TEST_CASE("repository overrides influence polling behaviour") {
+  std::atomic<int> pr_requests{0};
+  std::atomic<int> branch_requests{0};
+  auto http = std::make_unique<OverrideHttpClient>(pr_requests, branch_requests);
+  GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+  std::vector<std::pair<std::string, std::string>> repos = {{"me", "repo"}};
+  agpm::GitHubPoller::RepositoryOptions opts;
+  opts.only_poll_prs = true;
+  opts.only_poll_stray = true;
+  opts.purge_only = false;
+  opts.auto_merge = false;
+  opts.reject_dirty = false;
+  opts.delete_stray = false;
+  opts.purge_prefix = "";
+  opts.hooks_enabled = false;
+  agpm::GitHubPoller::RepositoryOptionsMap overrides;
+  overrides.emplace("me/repo", opts);
+  GitHubPoller poller(client, repos, 0, 60, 0, 1, false, false,
+                      StrayDetectionMode::RuleBased, false, "", false, false,
+                      "", nullptr, {}, {}, false, nullptr, false, 0.7,
+                      std::chrono::seconds(60), false, 3, std::move(overrides));
+  poller.poll_now();
+  REQUIRE(pr_requests.load() >= 1);
+  REQUIRE(branch_requests.load() == 0);
 }

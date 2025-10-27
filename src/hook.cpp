@@ -94,6 +94,7 @@ HookDispatcher::HookDispatcher(HookSettings settings,
     : settings_(std::move(settings)),
       command_executor_(std::move(command_executor)),
       http_executor_(std::move(http_executor)) {
+  repo_overrides_ = std::move(settings_.repository_overrides);
   if (!settings_.enabled || !has_actions()) {
     if (settings_.enabled && !has_actions()) {
       hook_log()->warn("Hook dispatcher enabled without any configured actions");
@@ -154,14 +155,44 @@ void HookDispatcher::dispatch(const HookEvent &event) {
                                 {"timestamp", iso_timestamp(
                                                    std::chrono::system_clock::now())},
                                 {"data", event.data}};
-  const std::string payload_str = payload.dump();
-  auto it = settings_.event_actions.find(event.name);
-  const auto &actions =
-      it != settings_.event_actions.end() ? it->second : settings_.default_actions;
-  if (actions.empty()) {
+  const RepositoryHookSettings *override_settings =
+      match_repository_override(event);
+  bool enabled = settings_.enabled;
+  const std::vector<HookAction> *default_actions = &settings_.default_actions;
+  if (override_settings) {
+    if (override_settings->has_enabled) {
+      enabled = override_settings->enabled;
+    }
+    if (override_settings->overrides_default_actions) {
+      default_actions = &override_settings->default_actions;
+    }
+  }
+  if (!enabled) {
+    hook_log()->debug("Hooks disabled for event '{}'", event.name);
+    return;
+  }
+  const std::vector<HookAction> *actions_ptr = nullptr;
+  if (override_settings && override_settings->overrides_event_actions) {
+    auto ov_it = override_settings->event_actions.find(event.name);
+    if (ov_it != override_settings->event_actions.end()) {
+      actions_ptr = &ov_it->second;
+    }
+  }
+  if (!actions_ptr) {
+    auto it = settings_.event_actions.find(event.name);
+    if (it != settings_.event_actions.end()) {
+      actions_ptr = &it->second;
+    }
+  }
+  if (!actions_ptr) {
+    actions_ptr = default_actions;
+  }
+  if (actions_ptr == nullptr || actions_ptr->empty()) {
     hook_log()->debug("No hook actions configured for event '{}'", event.name);
     return;
   }
+  const std::string payload_str = payload.dump();
+  const auto &actions = *actions_ptr;
   for (const auto &action : actions) {
     switch (action.type) {
     case HookActionType::Command:
@@ -269,6 +300,37 @@ void HookDispatcher::execute_http(const HookAction &action,
   }
 }
 
+std::optional<std::string>
+HookDispatcher::extract_repository(const HookEvent &event) {
+  auto owner_it = event.data.find("owner");
+  auto repo_it = event.data.find("repo");
+  if (owner_it == event.data.end() || repo_it == event.data.end()) {
+    return std::nullopt;
+  }
+  if (!owner_it->is_string() || !repo_it->is_string()) {
+    return std::nullopt;
+  }
+  return owner_it->get<std::string>() + "/" + repo_it->get<std::string>();
+}
+
+const RepositoryHookSettings *
+HookDispatcher::match_repository_override(const HookEvent &event) const {
+  auto repository = extract_repository(event);
+  if (!repository) {
+    return nullptr;
+  }
+  for (const auto &entry : repo_overrides_) {
+    if (entry.compiled_pattern) {
+      if (std::regex_match(*repository, *entry.compiled_pattern)) {
+        return &entry;
+      }
+    } else if (entry.pattern == *repository) {
+      return &entry;
+    }
+  }
+  return nullptr;
+}
+
 bool HookDispatcher::has_actions() const {
   if (!settings_.default_actions.empty()) {
     return true;
@@ -276,6 +338,21 @@ bool HookDispatcher::has_actions() const {
   for (const auto &kv : settings_.event_actions) {
     if (!kv.second.empty()) {
       return true;
+    }
+  }
+  for (const auto &entry : repo_overrides_) {
+    if (entry.has_enabled) {
+      return true;
+    }
+    if (entry.overrides_default_actions && !entry.default_actions.empty()) {
+      return true;
+    }
+    if (entry.overrides_event_actions) {
+      for (const auto &kv : entry.event_actions) {
+        if (!kv.second.empty()) {
+          return true;
+        }
+      }
     }
   }
   return false;
