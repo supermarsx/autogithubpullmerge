@@ -293,11 +293,15 @@ void GitHubPoller::poll() {
   std::atomic<std::size_t> total_branch_count{0};
   std::vector<std::future<void>> futures;
   futures.reserve(repos_.size());
+  bool all_repos_skipped_branch_ops = true;
   for (const auto &repo : repos_) {
     RepositoryOptions options =
         effective_repository_options(repo.first, repo.second);
     bool skip_branch_ops =
         options.only_poll_prs || (max_rate_ > 0 && max_rate_ <= 1);
+    if (!skip_branch_ops) {
+      all_repos_skipped_branch_ops = false;
+    }
     std::string repo_name = repo.first + "/" + repo.second;
     std::string job_label;
     if (options.purge_only) {
@@ -712,7 +716,7 @@ void GitHubPoller::poll() {
   if (stray_cb_) {
     stray_cb_(all_stray);
   }
-  if (!skip_branch_ops) {
+  if (!all_repos_skipped_branch_ops) {
     const std::size_t total_branches =
         total_branch_count.load(std::memory_order_relaxed);
     if (log_cb_) {
@@ -741,7 +745,7 @@ void GitHubPoller::poll() {
     poller_log()->info("Running export callback");
     export_cb_();
   }
-  if (log_cb_ && skip_branch_ops) {
+  if (log_cb_ && all_repos_skipped_branch_ops) {
     std::lock_guard<std::mutex> lk(log_mutex);
     log_cb_("Polled " + std::to_string(all_prs.size()) + " pull requests");
   }
