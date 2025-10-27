@@ -1,9 +1,11 @@
 #include "poller.hpp"
 #include <algorithm>
 #include <cmath>
+#include <exception>
 #include <limits>
 #include <memory>
 #include <optional>
+#include <string>
 #include <thread>
 
 namespace agpm {
@@ -34,6 +36,7 @@ Poller::Poller(int workers, int max_rate, double smoothing_factor)
   next_allowed_ = std::chrono::steady_clock::now();
   queued_.store(0, std::memory_order_relaxed);
   in_flight_.store(0, std::memory_order_relaxed);
+  session_start_ = std::chrono::steady_clock::now();
 }
 
 /**
@@ -49,6 +52,7 @@ void Poller::start() {
     return;
   running_ = true;
   next_allowed_ = std::chrono::steady_clock::now();
+  session_start_ = next_allowed_;
   threads_.reserve(workers_);
   for (int i = 0; i < workers_; ++i) {
     threads_.emplace_back(&Poller::worker, this);
@@ -80,18 +84,53 @@ void Poller::stop() {
  *        or via a worker thread.
  * @return Future that is fulfilled when the job completes.
  */
-std::future<void> Poller::submit(std::function<void()> job) {
+std::future<void> Poller::submit(std::string name, std::function<void()> job) {
+  auto info = create_request_info(std::move(name));
   if (!running_) {
-    std::packaged_task<void()> pt(std::move(job));
+    std::packaged_task<void()> pt([this, info, job = std::move(job)]() mutable {
+      auto start = std::chrono::steady_clock::now();
+      mark_started(info, start);
+      try {
+        job();
+        mark_finished(info, std::chrono::steady_clock::now(),
+                      RequestState::Completed, {});
+      } catch (const std::exception &e) {
+        mark_finished(info, std::chrono::steady_clock::now(),
+                      RequestState::Failed, e.what());
+        throw;
+      } catch (...) {
+        mark_finished(info, std::chrono::steady_clock::now(),
+                      RequestState::Failed, "unknown error");
+        throw;
+      }
+    });
     auto fut = pt.get_future();
     pt();
     return fut;
   }
-  auto task = std::make_shared<std::packaged_task<void()>>(std::move(job));
+  auto task = std::make_shared<std::packaged_task<void()>>(
+      [this, info, job = std::move(job)]() mutable {
+        auto start = std::chrono::steady_clock::now();
+        mark_started(info, start);
+        try {
+          job();
+          mark_finished(info, std::chrono::steady_clock::now(),
+                        RequestState::Completed, {});
+        } catch (const std::exception &e) {
+          mark_finished(info, std::chrono::steady_clock::now(),
+                        RequestState::Failed, e.what());
+          throw;
+        } catch (...) {
+          mark_finished(info, std::chrono::steady_clock::now(),
+                        RequestState::Failed, "unknown error");
+          throw;
+        }
+      });
   std::future<void> fut = task->get_future();
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    jobs_.emplace([task]() { (*task)(); });
+    jobs_.push({info, task});
+    pending_infos_.push_back(info);
     queued_.fetch_add(1, std::memory_order_relaxed);
   }
   cv_.notify_one();
@@ -261,7 +300,7 @@ void Poller::update_queue_margin() {
  */
 void Poller::worker() {
   while (true) {
-    std::function<void()> job;
+    ScheduledJob job;
     {
       std::unique_lock<std::mutex> lock(mutex_);
       cv_.wait(lock, [this] { return !running_ || !jobs_.empty(); });
@@ -273,10 +312,11 @@ void Poller::worker() {
       in_flight_.fetch_add(1, std::memory_order_relaxed);
     }
     if (!acquire_token()) {
+      mark_cancelled(job.info);
       in_flight_.fetch_sub(1, std::memory_order_relaxed);
       return;
     }
-    job();
+    (*job.task)();
     in_flight_.fetch_sub(1, std::memory_order_relaxed);
     record_execution();
     check_backlog();
@@ -341,6 +381,107 @@ void Poller::check_backlog() {
     return;
   last_backlog_alert_ = now;
   callback(outstanding, *clearance);
+}
+
+std::shared_ptr<Poller::RequestInfo>
+Poller::create_request_info(std::string name) {
+  auto info = std::make_shared<RequestInfo>();
+  info->id = next_request_id_.fetch_add(1, std::memory_order_relaxed);
+  if (name.empty()) {
+    info->name = "Request " + std::to_string(info->id);
+  } else {
+    info->name = std::move(name);
+  }
+  info->enqueued_at = std::chrono::steady_clock::now();
+  return info;
+}
+
+void Poller::mark_started(const std::shared_ptr<RequestInfo> &info,
+                          std::chrono::steady_clock::time_point start) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  info->started_at = start;
+  info->state = RequestState::Running;
+  auto it = std::find_if(pending_infos_.begin(), pending_infos_.end(),
+                         [&](const auto &ptr) { return ptr.get() == info.get(); });
+  if (it != pending_infos_.end()) {
+    pending_infos_.erase(it);
+  }
+  active_infos_.push_back(info);
+}
+
+void Poller::mark_finished(const std::shared_ptr<RequestInfo> &info,
+                           std::chrono::steady_clock::time_point finish,
+                           RequestState state, std::string error) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  info->finished_at = finish;
+  if (info->started_at) {
+    info->duration = finish - *info->started_at;
+    total_latency_ += *info->duration;
+    ++latency_samples_;
+  }
+  info->state = state;
+  info->error = std::move(error);
+  auto it = std::find_if(active_infos_.begin(), active_infos_.end(),
+                         [&](const auto &ptr) { return ptr.get() == info.get(); });
+  if (it != active_infos_.end()) {
+    active_infos_.erase(it);
+  }
+  completed_infos_.push_back(info);
+  if (state == RequestState::Completed) {
+    ++total_completed_;
+  } else if (state == RequestState::Failed) {
+    ++total_failed_;
+  }
+  trim_completed_history();
+}
+
+void Poller::mark_cancelled(const std::shared_ptr<RequestInfo> &info) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  auto it = std::find_if(pending_infos_.begin(), pending_infos_.end(),
+                         [&](const auto &ptr) { return ptr.get() == info.get(); });
+  if (it != pending_infos_.end()) {
+    pending_infos_.erase(it);
+  }
+  info->state = RequestState::Cancelled;
+  info->finished_at = std::chrono::steady_clock::now();
+  completed_infos_.push_back(info);
+  ++total_failed_;
+  trim_completed_history();
+}
+
+void Poller::trim_completed_history() {
+  while (completed_infos_.size() > completed_history_limit_) {
+    completed_infos_.pop_front();
+  }
+}
+
+Poller::RequestQueueSnapshot Poller::request_snapshot() const {
+  RequestQueueSnapshot snapshot;
+  snapshot.session_start = session_start_;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    snapshot.total_completed = total_completed_;
+    snapshot.total_failed = total_failed_;
+    if (latency_samples_ > 0) {
+      auto avg = total_latency_ / latency_samples_;
+      snapshot.average_latency_ms =
+          std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(avg)
+              .count();
+    }
+    auto copy_entries = [](const auto &source) {
+      std::vector<RequestInfo> result;
+      result.reserve(source.size());
+      for (const auto &ptr : source) {
+        result.push_back(*ptr);
+      }
+      return result;
+    };
+    snapshot.pending = copy_entries(pending_infos_);
+    snapshot.running = copy_entries(active_infos_);
+    snapshot.completed = copy_entries(completed_infos_);
+  }
+  snapshot.clearance = estimate_clearance_time();
+  return snapshot;
 }
 
 } // namespace agpm

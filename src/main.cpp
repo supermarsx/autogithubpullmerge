@@ -398,7 +398,7 @@ int main(int argc, char **argv) {
         listen_host, mcp_options.port, mcp_options.backlog, max_clients_desc);
   }
   agpm::Tui ui(client, poller, opts.log_limit, opts.log_sidecar,
-               opts.mcp_caddy_window);
+               opts.mcp_caddy_window, opts.request_caddy_window);
   std::function<void(const std::string &)> mcp_event_sink;
   if (opts.mcp_caddy_window) {
     mcp_event_sink = [&ui](const std::string &msg) { ui.add_mcp_event(msg); };

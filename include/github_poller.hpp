@@ -135,6 +135,28 @@ public:
   /// Configure thresholds for aggregate hook events.
   void set_hook_thresholds(int pull_threshold, int branch_threshold);
 
+  /// Retrieve the current scheduler queue snapshot for UI consumption.
+  Poller::RequestQueueSnapshot request_queue_snapshot() const {
+    return poller_.request_snapshot();
+  }
+
+  /// Aggregated view of the latest rate limit budget calculation.
+  struct RateBudgetSnapshot {
+    long limit{0};
+    long remaining{0};
+    long used{0};
+    long reserve{0};
+    long usable{0};
+    double minutes_until_reset{0.0};
+    double allowed_rpm{0.0};
+    double projected_rpm{0.0};
+    std::string source;
+    bool monitor_enabled{true};
+  };
+
+  /// Return the most recently computed rate budget snapshot, if available.
+  std::optional<RateBudgetSnapshot> rate_budget_snapshot() const;
+
 private:
   void poll();
 
@@ -211,6 +233,9 @@ private:
   bool rate_limit_monitor_enabled_{true};
   int rate_limit_query_attempts_{1};
   std::chrono::milliseconds min_request_delay_{0};
+
+  mutable std::mutex budget_mutex_;
+  std::optional<RateBudgetSnapshot> last_budget_snapshot_;
 
   std::unordered_map<std::string, std::unordered_set<std::string>>
       known_branches_;

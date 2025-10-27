@@ -2,7 +2,9 @@
 #include "log.hpp"
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cstdlib>
+#include <iomanip>
 #include <iterator>
 #include <memory>
 #include <optional>
@@ -10,6 +12,7 @@
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -96,6 +99,29 @@ std::vector<std::string> split_binding_list(const std::string &spec) {
     parts.push_back(trimmed);
   }
   return parts;
+}
+
+std::string
+format_duration_brief(std::chrono::steady_clock::duration duration) {
+  if (duration <= std::chrono::steady_clock::duration::zero()) {
+    return "0s";
+  }
+  auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+  long total = seconds.count();
+  if (total < 0)
+    total = 0;
+  long hours = total / 3600;
+  long minutes = (total % 3600) / 60;
+  long secs = total % 60;
+  std::ostringstream oss;
+  if (hours > 0) {
+    oss << hours << 'h' << ' ';
+  }
+  if (minutes > 0 || hours > 0) {
+    oss << minutes << 'm' << ' ';
+  }
+  oss << secs << 's';
+  return oss.str();
 }
 
 /**
@@ -230,10 +256,11 @@ namespace agpm {
  * @param log_limit Maximum number of log entries to retain.
  */
 Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit,
-         bool log_sidecar, bool mcp_caddy_window)
+         bool log_sidecar, bool mcp_caddy_window, bool request_caddy_window)
     : client_(client), poller_(poller), log_limit_(log_limit),
       mcp_event_limit_(log_limit), log_sidecar_(log_sidecar),
-      mcp_caddy_window_(mcp_caddy_window) {
+      mcp_caddy_window_(mcp_caddy_window),
+      request_caddy_window_(request_caddy_window) {
   ensure_default_logger();
   initialize_default_hotkeys();
   open_cmd_ = [](const std::string &url) {
@@ -285,6 +312,25 @@ void Tui::set_mcp_caddy(bool enabled) {
   if (mcp_win_) {
     delwin(mcp_win_);
     mcp_win_ = nullptr;
+  }
+}
+
+void Tui::set_request_caddy(bool enabled) {
+  if (request_caddy_window_ == enabled)
+    return;
+  request_caddy_window_ = enabled;
+  last_h_ = 0;
+  last_w_ = 0;
+  if (!initialized_)
+    return;
+  if (request_win_) {
+    delwin(request_win_);
+    request_win_ = nullptr;
+  }
+  if (request_caddy_window_) {
+    start_request_monitor();
+  } else {
+    stop_request_monitor();
   }
 }
 
@@ -491,6 +537,9 @@ void Tui::init() {
   }
   refresh();
   initialized_ = true;
+  if (request_caddy_window_) {
+    start_request_monitor();
+  }
 }
 
 /**
@@ -514,6 +563,32 @@ void Tui::log(const std::string &msg) {
   logs_.push_back(msg);
   if (logs_.size() > log_limit_) {
     logs_.erase(logs_.begin(), logs_.begin() + (logs_.size() - log_limit_));
+  }
+}
+
+void Tui::start_request_monitor() {
+  if (request_thread_running_.exchange(true))
+    return;
+  request_thread_ = std::thread([this] {
+    while (request_thread_running_.load()) {
+      Poller::RequestQueueSnapshot queue_snapshot =
+          poller_.request_queue_snapshot();
+      auto budget = poller_.rate_budget_snapshot();
+      {
+        std::lock_guard<std::mutex> lock(request_mutex_);
+        request_snapshot_ = std::move(queue_snapshot);
+        budget_snapshot_ = std::move(budget);
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    }
+  });
+}
+
+void Tui::stop_request_monitor() {
+  if (!request_thread_running_.exchange(false))
+    return;
+  if (request_thread_.joinable()) {
+    request_thread_.join();
   }
 }
 
@@ -541,6 +616,10 @@ void Tui::draw() {
   int mcp_width = 0;
   int mcp_y = 0;
   int mcp_x = 0;
+  int request_height = 0;
+  int request_width = 0;
+  int request_y = 0;
+  int request_x = 0;
 
   if (log_sidecar_) {
     log_width = std::max(20, w / 3);
@@ -594,26 +673,42 @@ void Tui::draw() {
     help_x = w - help_width;
   }
 
-  if (mcp_caddy_window_) {
-    mcp_width = log_width;
-    int divisor = log_sidecar_ ? 3 : 2;
-    if (divisor <= 0) {
-      divisor = 1;
-    }
-    mcp_height = std::max(3, log_height / divisor);
-    if (mcp_height >= log_height) {
-      mcp_height = std::max(0, log_height - 1);
-    }
-    if (mcp_height > 0) {
-      log_height -= mcp_height;
-      if (log_height < 1) {
-        log_height = 1;
+  int caddy_count = (request_caddy_window_ ? 1 : 0) + (mcp_caddy_window_ ? 1 : 0);
+  if (caddy_count > 0 && log_height > 0) {
+    int available = log_height;
+    int caddy_height = std::max(3, available / (caddy_count + 1));
+    int total_caddy = caddy_height * caddy_count;
+    if (total_caddy >= available) {
+      total_caddy = std::max(0, available - 1);
+      if (caddy_count > 0) {
+        caddy_height = std::max(1, total_caddy / caddy_count);
+      } else {
+        caddy_height = 0;
       }
-      mcp_y = log_y + log_height;
+    }
+    if (caddy_height <= 0 && caddy_count > 0) {
+      caddy_height = 1;
+    }
+    log_height = std::max(1, available - total_caddy);
+    int offset_y = log_y + log_height;
+    if (request_caddy_window_) {
+      request_height = std::min(caddy_height, std::max(0, available - (offset_y - log_y)));
+      if (request_height <= 0 && total_caddy > 0) {
+        request_height = std::min(total_caddy, std::max(1, available - log_height));
+      }
+      request_width = log_width;
+      request_y = offset_y;
+      request_x = log_x;
+      offset_y += request_height;
+    }
+    if (mcp_caddy_window_) {
+      mcp_height = std::min(caddy_height, std::max(0, available - (offset_y - log_y)));
+      if (mcp_height <= 0 && total_caddy > 0) {
+        mcp_height = std::min(total_caddy, std::max(1, available - (offset_y - log_y)));
+      }
+      mcp_width = log_width;
+      mcp_y = offset_y;
       mcp_x = log_x;
-    } else {
-      mcp_height = 0;
-      mcp_width = 0;
     }
   }
 
@@ -630,10 +725,15 @@ void Tui::draw() {
     delwin(mcp_win_);
     mcp_win_ = nullptr;
   }
+  if (!request_caddy_window_ && request_win_ != nullptr) {
+    delwin(request_win_);
+    request_win_ = nullptr;
+  }
 
   if (h != last_h_ || w != last_w_ || pr_win_ == nullptr ||
       log_win_ == nullptr || help_win_ == nullptr ||
-      (mcp_caddy_window_ && mcp_win_ == nullptr)) {
+      (mcp_caddy_window_ && mcp_win_ == nullptr) ||
+      (request_caddy_window_ && request_win_ == nullptr)) {
     last_h_ = h;
     last_w_ = w;
     if (pr_win_)
@@ -646,6 +746,10 @@ void Tui::draw() {
       delwin(mcp_win_);
       mcp_win_ = nullptr;
     }
+    if (request_win_) {
+      delwin(request_win_);
+      request_win_ = nullptr;
+    }
     if (detail_win_) {
       delwin(detail_win_);
       detail_win_ = nullptr;
@@ -653,6 +757,11 @@ void Tui::draw() {
     pr_win_ = newwin(pr_height, pr_width, pr_y, pr_x);
     log_win_ = newwin(log_height, log_width, log_y, log_x);
     help_win_ = newwin(help_height, help_width, help_y, help_x);
+    if (request_caddy_window_ && request_height > 0 && request_width > 0) {
+      request_win_ =
+          newwin(std::max(1, request_height), std::max(1, request_width),
+                 request_y, request_x);
+    }
     if (mcp_caddy_window_ && mcp_height > 0 && mcp_width > 0) {
       mcp_win_ = newwin(std::max(1, mcp_height), std::max(1, mcp_width),
                         mcp_y, mcp_x);
@@ -662,6 +771,10 @@ void Tui::draw() {
     wbkgd(pr_win_, COLOR_PAIR(0));
     wbkgd(log_win_, COLOR_PAIR(0));
     wbkgd(help_win_, COLOR_PAIR(0));
+    if (request_win_) {
+      wbkgd(request_win_, COLOR_PAIR(0));
+      redrawwin(request_win_);
+    }
     if (mcp_win_) {
       wbkgd(mcp_win_, COLOR_PAIR(0));
       redrawwin(mcp_win_);
@@ -674,6 +787,13 @@ void Tui::draw() {
   if (mcp_caddy_window_) {
     std::lock_guard<std::mutex> lock(mcp_mutex_);
     mcp_snapshot = mcp_events_;
+  }
+  Poller::RequestQueueSnapshot queue_snapshot;
+  std::optional<GitHubPoller::RateBudgetSnapshot> budget_snapshot;
+  if (request_caddy_window_) {
+    std::lock_guard<std::mutex> lock(request_mutex_);
+    queue_snapshot = request_snapshot_;
+    budget_snapshot = budget_snapshot_;
   }
   // PR window
   werase(pr_win_);
@@ -713,6 +833,131 @@ void Tui::draw() {
     wattroff(log_win_, COLOR_PAIR(2));
   }
   wrefresh(log_win_);
+
+  if (request_caddy_window_ && request_win_ != nullptr) {
+    werase(request_win_);
+    box(request_win_, 0, 0);
+    mvwprintw(request_win_, 0, 2, "Request Queue");
+    int req_win_h = 0;
+    int req_win_w = 0;
+    getmaxyx(request_win_, req_win_h, req_win_w);
+    int row = 1;
+    auto print_line = [&](std::string text) {
+      if (row >= req_win_h - 1)
+        return;
+      if (req_win_w > 2 && static_cast<int>(text.size()) > req_win_w - 2) {
+        if (req_win_w > 5) {
+          text = text.substr(0, req_win_w - 5) + "...";
+        } else {
+          text = text.substr(0, std::max(0, req_win_w - 2));
+        }
+      }
+      mvwprintw(request_win_, row++, 1, "%s", text.c_str());
+    };
+    auto now = std::chrono::steady_clock::now();
+    std::string session_text = "Session --";
+    if (queue_snapshot.session_start != std::chrono::steady_clock::time_point{}) {
+      session_text =
+          "Session " + format_duration_brief(now - queue_snapshot.session_start);
+    }
+    std::size_t outstanding = queue_snapshot.pending.size() +
+                              queue_snapshot.running.size();
+    std::ostringstream stats_line;
+    stats_line << session_text << " | Outstanding " << outstanding;
+    stats_line << " | Done " << queue_snapshot.total_completed << "/"
+               << queue_snapshot.total_failed;
+    if (queue_snapshot.average_latency_ms) {
+      stats_line << " | Avg " << std::fixed << std::setprecision(1)
+                 << *queue_snapshot.average_latency_ms << "ms";
+    } else {
+      stats_line << " | Avg --";
+    }
+    if (queue_snapshot.clearance) {
+      auto clearance_duration = std::chrono::duration_cast<
+          std::chrono::steady_clock::duration>(*queue_snapshot.clearance);
+      stats_line << " | Clearance " << format_duration_brief(clearance_duration);
+    }
+    print_line(stats_line.str());
+    if (budget_snapshot) {
+      std::ostringstream budget_line;
+      budget_line << "Budget " << budget_snapshot->remaining << "/"
+                  << budget_snapshot->limit;
+      budget_line << " used " << budget_snapshot->used;
+      budget_line << " reserve " << budget_snapshot->reserve;
+      print_line(budget_line.str());
+      std::ostringstream budget_detail;
+      budget_detail << "RPM " << std::fixed << std::setprecision(1)
+                    << budget_snapshot->allowed_rpm;
+      budget_detail << " proj " << std::fixed << std::setprecision(1)
+                    << budget_snapshot->projected_rpm;
+      budget_detail << " src " << budget_snapshot->source;
+      if (!budget_snapshot->monitor_enabled) {
+        budget_detail << " (monitor off)";
+      }
+      print_line(budget_detail.str());
+    }
+    auto format_entry = [&](const Poller::RequestInfo &info) {
+      std::ostringstream oss;
+      oss << '#' << info.id << ' ' << info.name;
+      switch (info.state) {
+      case Poller::RequestState::Pending:
+        oss << " [pending]";
+        break;
+      case Poller::RequestState::Running:
+        oss << " [running";
+        if (info.started_at) {
+          oss << ' ' << format_duration_brief(now - *info.started_at);
+        }
+        oss << ']';
+        break;
+      case Poller::RequestState::Completed:
+        if (info.duration) {
+          double ms =
+              std::chrono::duration<double, std::milli>(*info.duration).count();
+          oss << " [done " << std::fixed << std::setprecision(1) << ms << "ms]";
+        } else {
+          oss << " [done]";
+        }
+        break;
+      case Poller::RequestState::Failed:
+        oss << " [failed";
+        if (!info.error.empty()) {
+          oss << ": " << info.error;
+        }
+        oss << ']';
+        break;
+      case Poller::RequestState::Cancelled:
+        oss << " [cancelled]";
+        break;
+      }
+      return oss.str();
+    };
+    auto print_section = [&](const char *title,
+                             const std::vector<Poller::RequestInfo> &items,
+                             bool reverse = false) {
+      if (items.empty())
+        return;
+      print_line(title);
+      if (row >= req_win_h - 1)
+        return;
+      if (reverse) {
+        for (auto it = items.rbegin();
+             it != items.rend() && row < req_win_h - 1; ++it) {
+          print_line(format_entry(*it));
+        }
+      } else {
+        for (const auto &item : items) {
+          if (row >= req_win_h - 1)
+            break;
+          print_line(format_entry(item));
+        }
+      }
+    };
+    print_section("Active:", queue_snapshot.running);
+    print_section("Pending:", queue_snapshot.pending);
+    print_section("Done:", queue_snapshot.completed, true);
+    wrefresh(request_win_);
+  }
 
   if (mcp_caddy_window_ && mcp_win_ != nullptr) {
     werase(mcp_win_);
@@ -896,6 +1141,7 @@ void Tui::cleanup() {
   // Detach callbacks to avoid dangling references during teardown
   poller_.set_pr_callback(nullptr);
   poller_.set_log_callback(nullptr);
+  stop_request_monitor();
   if (pr_win_)
     delwin(pr_win_);
   if (log_win_)

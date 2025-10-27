@@ -142,6 +142,12 @@ public:
   /// Enable or disable the logger sidecar window.
   void set_log_sidecar(bool enable) { log_sidecar_ = enable; }
 
+  /// Return whether the request queue caddy window is enabled.
+  bool request_caddy_window() const { return request_caddy_window_; }
+
+  /// Enable or disable the request queue caddy window.
+  void set_request_caddy_window(bool enable) { request_caddy_window_ = enable; }
+
   /// Retrieve configured log category overrides.
   const std::unordered_map<std::string, std::string> &log_categories() const {
     return log_categories_;
@@ -646,6 +652,7 @@ private:
   int log_rotate_ = 3;
   bool log_compress_ = false;
   bool log_sidecar_ = false;
+  bool request_caddy_window_{false};
   std::unordered_map<std::string, std::string> log_categories_;
   std::vector<std::string> include_repos_;
   std::vector<std::string> exclude_repos_;

@@ -19,6 +19,7 @@ logging:
   log_level: debug                   # Default log verbosity
   log_compress: true                 # Compress rotated log files on disk
   log_sidecar: true                  # Display log sidecar in the TUI
+  request_caddy_window: true         # Show request queue statistics sidecar
   log_categories:
     logging: trace                   # Override log level for specific categories
     history: debug                   # Elevate history logging for audit output

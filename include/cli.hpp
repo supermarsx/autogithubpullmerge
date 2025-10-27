@@ -173,6 +173,8 @@ struct CliOptions {
   bool mcp_server_max_clients_explicit{false}; ///< True if CLI set max clients
   bool mcp_caddy_window{false}; ///< Enable MCP server event sidecar window
   bool mcp_caddy_explicit{false}; ///< True if CLI toggled MCP caddy window
+  bool request_caddy_window{false}; ///< Enable request queue sidecar window
+  bool request_caddy_explicit{false}; ///< True if CLI toggled request caddy
 
   // Testing utilities
   std::string single_open_prs_repo; ///< OWNER/REPO for single open-PR poll

@@ -20,6 +20,7 @@
     "log_level": "warn",
     "log_compress": true,
     "log_sidecar": true,
+    "request_caddy_window": true,
     "log_categories": {
       "logging": "trace",
       "history": "debug"

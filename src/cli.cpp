@@ -397,6 +397,16 @@ CliOptions parse_cli(int argc, char **argv) {
       options.log_sidecar_explicit = true;
       continue;
     }
+    if (arg == "--request-caddy-window") {
+      options.request_caddy_window = true;
+      options.request_caddy_explicit = true;
+      continue;
+    }
+    if (arg == "--no-request-caddy-window") {
+      options.request_caddy_window = false;
+      options.request_caddy_explicit = true;
+      continue;
+    }
     if (arg == "--open-pat-page") {
       options.open_pat_window = true;
       continue;
@@ -451,6 +461,14 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("--no-log-sidecar",
                "Disable the logger sidecar and use the default layout")
       ->group("Logging");
+  request_caddy_flag = app.add_flag(
+      "--request-caddy-window", options.request_caddy_window,
+      "Show a sidecar window with request queue status and statistics")
+                            ->group("UI");
+  request_caddy_disable_flag = app.add_flag(
+      "--no-request-caddy-window",
+      "Disable the request queue sidecar window")
+                                   ->group("UI");
   app.add_option_function<std::string>(
          "--log-category",
          [&options](const std::string &value) {
@@ -696,6 +714,8 @@ CliOptions parse_cli(int argc, char **argv) {
   CLI::Option *mcp_backlog_option = nullptr;
   CLI::Option *mcp_max_clients_option = nullptr;
   CLI::Option *mcp_caddy_flag = nullptr;
+  CLI::Option *request_caddy_flag = nullptr;
+  CLI::Option *request_caddy_disable_flag = nullptr;
   app.add_flag("--mcp-server",
                "Enable the Model Context Protocol (MCP) server for "
                "automation integrations")
@@ -971,6 +991,15 @@ CliOptions parse_cli(int argc, char **argv) {
   }
   if (mcp_caddy_flag != nullptr && mcp_caddy_flag->count() > 0U) {
     options.mcp_caddy_explicit = true;
+  }
+  if (request_caddy_flag != nullptr && request_caddy_flag->count() > 0U) {
+    options.request_caddy_window = true;
+    options.request_caddy_explicit = true;
+  }
+  if (request_caddy_disable_flag != nullptr &&
+      request_caddy_disable_flag->count() > 0U) {
+    options.request_caddy_window = false;
+    options.request_caddy_explicit = true;
   }
   if (retry_rate_limit_flag != nullptr && retry_rate_limit_flag->count() > 0U) {
     options.retry_rate_limit_endpoint_explicit = true;

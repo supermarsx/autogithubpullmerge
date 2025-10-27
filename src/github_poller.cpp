@@ -12,6 +12,7 @@
 #include <optional>
 #include <spdlog/spdlog.h>
 #include <sstream>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -232,6 +233,12 @@ void GitHubPoller::set_hook_thresholds(int pull_threshold, int branch_threshold)
   }
 }
 
+std::optional<GitHubPoller::RateBudgetSnapshot>
+GitHubPoller::rate_budget_snapshot() const {
+  std::lock_guard<std::mutex> lock(budget_mutex_);
+  return last_budget_snapshot_;
+}
+
 /**
  * Register a callback that performs export tasks after each poll.
  *
@@ -277,13 +284,23 @@ void GitHubPoller::poll() {
   std::vector<std::future<void>> futures;
   futures.reserve(repos_.size());
   for (const auto &repo : repos_) {
-    futures.emplace_back(poller_.submit([this, repo, skip_branch_ops, &all_prs,
-                                         &all_stray, &pr_mutex, &stray_mutex,
-                                         &log_mutex, &total_pr_count,
-                                         &total_branch_count] {
+    std::string repo_name = repo.first + "/" + repo.second;
+    std::string job_label;
+    if (purge_only_) {
+      job_label = repo_name + " purge";
+    } else if (skip_branch_ops) {
+      job_label = repo_name + " pull requests";
+    } else {
+      job_label = repo_name + " sync";
+    }
+    futures.emplace_back(poller_.submit(job_label, [this, repo, repo_name,
+                                                    skip_branch_ops, &all_prs,
+                                                    &all_stray, &pr_mutex,
+                                                    &stray_mutex, &log_mutex,
+                                                    &total_pr_count,
+                                                    &total_branch_count] {
       if (purge_only_) {
-        poller_log()->debug("purge_only set - skipping repo {}/{}", repo.first,
-                            repo.second);
+        poller_log()->debug("purge_only set - skipping repo {}", repo_name);
         if (!purge_prefix_.empty()) {
           auto removed = client_.cleanup_branches(
               repo.first, repo.second, purge_prefix_, protected_branches_,
@@ -837,6 +854,25 @@ void GitHubPoller::adjust_rate_budget() {
                        desired_rate, limit, remaining, reserve, source_tag);
     poller_.set_max_rate(desired_rate);
     max_rate_ = desired_rate;
+  }
+  RateBudgetSnapshot snapshot{};
+  snapshot.limit = limit;
+  snapshot.remaining = remaining;
+  snapshot.reserve = reserve;
+  snapshot.usable = usable;
+  snapshot.minutes_until_reset = minutes_left;
+  snapshot.allowed_rpm = allowed;
+  snapshot.projected_rpm = remaining_cap;
+  snapshot.source = source_tag;
+  snapshot.monitor_enabled = rate_limit_monitor_enabled_;
+  if (status_opt && status_opt->used > 0) {
+    snapshot.used = status_opt->used;
+  } else if (limit > 0) {
+    snapshot.used = limit - remaining;
+  }
+  {
+    std::lock_guard<std::mutex> lock(budget_mutex_);
+    last_budget_snapshot_ = snapshot;
   }
   double observed_rpm = poller_.smoothed_requests_per_minute();
   if (observed_rpm > 0.0) {

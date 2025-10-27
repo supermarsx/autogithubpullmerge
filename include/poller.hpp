@@ -4,11 +4,14 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <deque>
 #include <functional>
 #include <future>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <queue>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -20,6 +23,35 @@ namespace agpm {
  */
 class Poller {
 public:
+  /// Enumeration describing the lifecycle state of a scheduled request.
+  enum class RequestState { Pending, Running, Completed, Failed, Cancelled };
+
+  /** Metadata describing a scheduled request. */
+  struct RequestInfo {
+    std::size_t id{0};
+    std::string name;
+    RequestState state{RequestState::Pending};
+    std::chrono::steady_clock::time_point enqueued_at{};
+    std::optional<std::chrono::steady_clock::time_point> started_at;
+    std::optional<std::chrono::steady_clock::time_point> finished_at;
+    std::optional<std::chrono::steady_clock::duration> duration;
+    std::string error;
+  };
+
+  /**
+   * Snapshot of the scheduler request queue and aggregate statistics.
+   */
+  struct RequestQueueSnapshot {
+    std::chrono::steady_clock::time_point session_start{};
+    std::vector<RequestInfo> pending;
+    std::vector<RequestInfo> running;
+    std::vector<RequestInfo> completed;
+    std::size_t total_completed{0};
+    std::size_t total_failed{0};
+    std::optional<double> average_latency_ms;
+    std::optional<std::chrono::seconds> clearance;
+  };
+
   /**
    * Construct a thread pool and request scheduler.
    *
@@ -45,7 +77,12 @@ public:
    * @param job Callable to execute on one of the worker threads.
    * @return Future that becomes ready once the task completes.
    */
-  std::future<void> submit(std::function<void()> job);
+  std::future<void> submit(std::string name, std::function<void()> job);
+
+  /// Convenience overload that uses an auto-generated friendly name.
+  std::future<void> submit(std::function<void()> job) {
+    return submit({}, std::move(job));
+  }
 
   /**
    * Adjust the maximum request rate enforced by the token bucket.
@@ -85,6 +122,9 @@ public:
    */
   std::optional<std::chrono::seconds> estimate_clearance_time() const;
 
+  /// Capture a snapshot of pending, running, and completed requests.
+  RequestQueueSnapshot request_snapshot() const;
+
   /**
    * Configure backlog alert thresholds and notification callback.
    *
@@ -108,13 +148,28 @@ private:
   std::optional<std::chrono::seconds>
   estimate_clearance_time_unlocked(std::size_t outstanding) const;
   void update_queue_margin();
+  std::shared_ptr<RequestInfo> create_request_info(std::string name);
+  void mark_started(const std::shared_ptr<RequestInfo> &info,
+                    std::chrono::steady_clock::time_point start);
+  void mark_finished(const std::shared_ptr<RequestInfo> &info,
+                     std::chrono::steady_clock::time_point finish,
+                     RequestState state, std::string error);
+  void mark_cancelled(const std::shared_ptr<RequestInfo> &info);
+  void trim_completed_history();
 
   int workers_;
   int max_rate_;
   std::atomic<bool> running_{false};
   std::vector<std::thread> threads_;
-  std::queue<std::function<void()>> jobs_;
-  std::mutex mutex_;
+  struct ScheduledJob {
+    std::shared_ptr<RequestInfo> info;
+    std::shared_ptr<std::packaged_task<void()>> task;
+  };
+  std::queue<ScheduledJob> jobs_;
+  std::deque<std::shared_ptr<RequestInfo>> pending_infos_;
+  std::vector<std::shared_ptr<RequestInfo>> active_infos_;
+  std::deque<std::shared_ptr<RequestInfo>> completed_infos_;
+  mutable std::mutex mutex_;
   std::condition_variable cv_;
 
   // Token bucket
@@ -131,6 +186,13 @@ private:
   double ema_rpm_{0.0};
   std::atomic<std::size_t> queued_{0};
   std::atomic<std::size_t> in_flight_{0};
+  std::atomic<std::size_t> next_request_id_{1};
+  std::chrono::steady_clock::time_point session_start_{};
+  std::chrono::steady_clock::duration total_latency_{};
+  std::size_t latency_samples_{0};
+  std::size_t total_completed_{0};
+  std::size_t total_failed_{0};
+  std::size_t completed_history_limit_{64};
 
   // Backlog alerting
   std::size_t backlog_job_threshold_{0};

@@ -19,10 +19,13 @@ using WINDOW = _win_st;
 
 #include "github_client.hpp"
 #include "github_poller.hpp"
+#include <atomic>
 #include <cstddef>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -43,7 +46,8 @@ public:
    * @param log_limit Maximum number of log messages to keep in memory.
    */
   Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit = 200,
-      bool log_sidecar = false, bool mcp_caddy_window = false);
+      bool log_sidecar = false, bool mcp_caddy_window = false,
+      bool request_caddy_window = false);
   ~Tui();
 
   /// Initialize the curses library and windows.
@@ -113,6 +117,9 @@ public:
   /// Toggle the MCP activity sidecar layout.
   void set_mcp_caddy(bool enabled);
 
+  /// Toggle the request queue caddy sidecar layout.
+  void set_request_caddy(bool enabled);
+
   /// Append an MCP server event to the activity log.
   void add_mcp_event(const std::string &event);
 
@@ -128,6 +135,8 @@ public:
 
 private:
   void log(const std::string &msg);
+  void start_request_monitor();
+  void stop_request_monitor();
   struct HotkeyBinding {
     int key;
     std::string label;
@@ -149,6 +158,7 @@ private:
   WINDOW *log_win_{nullptr};
   WINDOW *help_win_{nullptr};
   WINDOW *mcp_win_{nullptr};
+  WINDOW *request_win_{nullptr};
   WINDOW *detail_win_{nullptr};
   bool detail_visible_{false};
   std::string detail_text_;
@@ -160,7 +170,13 @@ private:
   bool hotkeys_enabled_{true};
   bool log_sidecar_{false};
   bool mcp_caddy_window_{false};
+  bool request_caddy_window_{false};
   mutable std::mutex mcp_mutex_;
+  mutable std::mutex request_mutex_;
+  Poller::RequestQueueSnapshot request_snapshot_;
+  std::optional<GitHubPoller::RateBudgetSnapshot> budget_snapshot_;
+  std::thread request_thread_;
+  std::atomic<bool> request_thread_running_{false};
   std::vector<std::string> hotkey_help_order_;
   std::unordered_map<std::string, std::vector<HotkeyBinding>> action_bindings_;
   std::unordered_map<int, std::string> key_to_action_;

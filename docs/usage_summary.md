@@ -34,6 +34,8 @@ For example, `-C` maps to `--config` and `-1` toggles `--only-poll-prs`.
 - `--log-rotate N` - retain `N` rotated log files (default `3`, `0` disables rotation).
 - `--log-compress` - enable gzip compression for rotated log files (disabled by default).
 - `--log-sidecar` - open a dedicated log window alongside pull request details.
+- `--request-caddy-window` - display request queue status, latency, and budget
+  projections in a sidecar window.
 - `--log-category NAME[=LEVEL]` - enable a logging category with an optional level override (defaults to `debug`). Repeat to
   enable multiple categories.
 

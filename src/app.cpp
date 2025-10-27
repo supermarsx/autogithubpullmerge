@@ -84,6 +84,11 @@ int App::run(int argc, char **argv) {
   } else {
     config_.set_log_sidecar(options_.log_sidecar);
   }
+  if (!options_.request_caddy_explicit) {
+    options_.request_caddy_window = config_.request_caddy_window();
+  } else {
+    config_.set_request_caddy_window(options_.request_caddy_window);
+  }
   if (!options_.rate_limit_margin_explicit) {
     options_.rate_limit_margin = config_.rate_limit_margin();
   } else {

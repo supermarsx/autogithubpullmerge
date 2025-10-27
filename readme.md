@@ -307,6 +307,8 @@ Logging
 - `--log-rotate N` Number of rotated log files to retain (default `3`, `0` disables rotation).
 - `--log-compress` Enable gzip compression for rotated log files (disabled by default).
 - `--log-sidecar` Show logs in a dedicated sidecar window beside the pull request list.
+- `--request-caddy-window` Show request queue statistics and backlog projections
+  in a dedicated sidecar window.
 - `--log-category NAME[=LEVEL]` Enable a specific logging category and optionally set its level (defaults to `debug`). Repeat to enable multiple categories.
 
 Repositories

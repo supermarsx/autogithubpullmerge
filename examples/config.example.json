@@ -24,6 +24,7 @@
     "_comment": "Logging output and per-category overrides",
     "log_compress": false,
     "log_sidecar": false,
+    "request_caddy_window": false,
     "log_categories": {
       "logging": "debug"
     }

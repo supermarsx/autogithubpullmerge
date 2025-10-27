@@ -259,6 +259,9 @@ void Config::load_json(const nlohmann::json &j) {
   if (cfg.contains("log_sidecar")) {
     set_log_sidecar(cfg["log_sidecar"].get<bool>());
   }
+  if (cfg.contains("request_caddy_window")) {
+    set_request_caddy_window(cfg["request_caddy_window"].get<bool>());
+  }
   if (cfg.contains("log_categories")) {
     std::unordered_map<std::string, std::string> categories;
     const auto &value = cfg["log_categories"];

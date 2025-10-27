@@ -22,6 +22,7 @@ use_graphql = true                   # Prefer GraphQL API for pull request listi
 [logging]
 log_compress = false                 # Compress rotated log files on disk
 log_sidecar = false                  # Display log sidecar in the TUI
+request_caddy_window = false         # Show request queue statistics sidecar
 
 [logging.log_categories]
 logging = "debug"                    # Override log level for a specific category

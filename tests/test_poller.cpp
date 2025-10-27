@@ -112,3 +112,18 @@ TEST_CASE("request queue balancer preserves cadence with margin") {
   REQUIRE(diff >= 70);
   REQUIRE(diff <= 95);
 }
+
+TEST_CASE("request snapshot exposes friendly names and stats") {
+  Poller p(1, 0);
+  p.start();
+  auto fut = p.submit("friendly sync", [] {});
+  fut.get();
+  p.stop();
+  auto snapshot = p.request_snapshot();
+  REQUIRE(snapshot.total_completed >= 1);
+  REQUIRE_FALSE(snapshot.completed.empty());
+  const auto &entry = snapshot.completed.back();
+  REQUIRE(entry.name == "friendly sync");
+  REQUIRE(entry.state == Poller::RequestState::Completed);
+  REQUIRE(entry.duration.has_value());
+}
