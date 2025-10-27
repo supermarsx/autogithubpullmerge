@@ -120,7 +120,7 @@ In configuration files, use the `repo_discovery_mode` key with values
 - `--only-poll-stray` - only poll stray branches.
 - `--stray-detection-engine` - select `rule`, `heuristic`, or `both` for stray
   branch analysis (defaults to `rule`).
-- `--heuristic-stray-detection` - shorthand to enable heuristics in addition to
+- `-J,--heuristic-stray-detection` - shorthand to enable heuristics in addition to
   the default rule-based analysis (performs extra API calls).
 
 ### Networking
@@ -165,7 +165,7 @@ The poller always runs a deterministic rule-based engine to flag likely stray
 branches. Supply `--stray-detection-engine` (or set
 `stray_detection_engine: rule|heuristic|both` in the configuration) to switch to
 heuristics-only analysis or to combine both engines. The
-`--heuristic-stray-detection` flag is preserved for convenience and simply
+`-J,--heuristic-stray-detection` flag is preserved for convenience and simply
 enables the heuristic engine alongside the rule-based checks. When heuristics
 are active the poller compares each branch against the repository's default
 branch and inspects recent commit activity. Branches that are fully merged, fall

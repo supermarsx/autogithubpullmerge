@@ -334,6 +334,14 @@ TEST_CASE("test cli", "[cli]") {
   agpm::CliOptions opts12 = agpm::parse_cli(3, argv12);
   REQUIRE(opts12.history_db == "my.db");
 
+  char db_flag_short[] = "-H";
+  char path_db_short[] = "short.db";
+  char *argv12b[] = {prog, db_flag_short, path_db_short};
+  agpm::CliOptions opts12b = agpm::parse_cli(3, argv12b);
+  REQUIRE(opts12b.history_db == "short.db");
+  REQUIRE(opts12b.stray_detection_mode == agpm::StrayDetectionMode::RuleBased);
+  REQUIRE_FALSE(opts12b.stray_detection_mode_explicit);
+
   char merged_flag[] = "--include-merged";
   char *argv13[] = {prog, merged_flag};
   agpm::CliOptions opts13 = agpm::parse_cli(2, argv13);
@@ -355,6 +363,14 @@ TEST_CASE("test cli", "[cli]") {
   REQUIRE(opts_heuristic.stray_detection_mode ==
           agpm::StrayDetectionMode::Combined);
   REQUIRE(opts_heuristic.stray_detection_mode_explicit);
+
+  char heuristic_flag_short[] = "-J";
+  char *argv_heuristic_short[] = {prog, heuristic_flag_short};
+  agpm::CliOptions opts_heuristic_short =
+      agpm::parse_cli(2, argv_heuristic_short);
+  REQUIRE(opts_heuristic_short.stray_detection_mode ==
+          agpm::StrayDetectionMode::Combined);
+  REQUIRE(opts_heuristic_short.stray_detection_mode_explicit);
 
   char engine_flag[] = "--stray-detection-engine";
   char engine_rule_val[] = "rule";

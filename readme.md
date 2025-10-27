@@ -393,7 +393,7 @@ Branch Management
 - `--only-poll-stray` Poll only stray branches.
 - `--stray-detection-engine MODE` Choose `rule`, `heuristic`, or `both` when
   analysing branches (defaults to `rule`).
-- `--heuristic-stray-detection` Enable heuristics in addition to the default
+- `-J,--heuristic-stray-detection` Enable heuristics in addition to the default
   rule-based detection (performs additional GitHub API calls).
 - `--reject-dirty` Close dirty stray branches automatically (dangerous).
 - `--delete-stray` Delete stray branches without requiring a prefix (dangerous).
