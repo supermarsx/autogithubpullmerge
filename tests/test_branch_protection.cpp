@@ -66,7 +66,7 @@ TEST_CASE("branch protection excludes override patterns") {
   (void)client.cleanup_branches("me", "repo", "tmp/", {"tmp/.*"},
                                 {"tmp/remove"});
   REQUIRE(raw->last_deleted ==
-          "https://api.github.com/repos/me/repo/git/refs/heads/tmp/remove");
+          "https://api.github.com/repos/me/repo/git/refs/heads/tmp%2Fremove");
 }
 
 TEST_CASE("dirty branches excluded from protection are purged") {
@@ -76,11 +76,11 @@ TEST_CASE("dirty branches excluded from protection are purged") {
   raw->responses[base] = "{\"default_branch\":\"main\"}";
   raw->responses[base + "/branches"] =
       "[{\"name\":\"main\"},{\"name\":\"tmp/safe\"},{\"name\":\"tmp/remove\"}]";
-  raw->responses[base + "/compare/main...tmp/safe"] =
+  raw->responses[base + "/compare/main...tmp%2Fsafe"] =
       "{\"status\":\"ahead\",\"ahead_by\":1}";
-  raw->responses[base + "/compare/main...tmp/remove"] =
+  raw->responses[base + "/compare/main...tmp%2Fremove"] =
       "{\"status\":\"ahead\",\"ahead_by\":1}";
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   client.close_dirty_branches("me", "repo", {"tmp/.*"}, {"tmp/remove"});
-  REQUIRE(raw->last_deleted == base + "/git/refs/heads/tmp/remove");
+  REQUIRE(raw->last_deleted == base + "/git/refs/heads/tmp%2Fremove");
 }

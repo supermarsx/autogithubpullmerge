@@ -116,4 +116,20 @@ TEST_CASE("test github client behavior") {
     branch_client.close_dirty_branches("me", "repo");
     REQUIRE(raw->last_deleted == base + "/git/refs/heads/feature");
   }
+
+  // Branch names with reserved characters are percent-encoded before deletion.
+  {
+    auto http = std::make_unique<BranchHttpClient>();
+    BranchHttpClient *raw = http.get();
+    std::string base = "https://api.github.com/repos/me/repo";
+    raw->responses[base] = "{\"default_branch\":\"main\"}";
+    raw->responses[base + "/branches"] =
+        "[{\"name\":\"main\"},{\"name\":\"feature/topic\"}]";
+    raw->responses[base + "/compare/main...feature%2Ftopic"] =
+        "{\"status\":\"ahead\",\"ahead_by\":1}";
+    GitHubClient branch_client({"tok"},
+                               std::unique_ptr<HttpClient>(http.release()));
+    branch_client.close_dirty_branches("me", "repo");
+    REQUIRE(raw->last_deleted == base + "/git/refs/heads/feature%2Ftopic");
+  }
 }
