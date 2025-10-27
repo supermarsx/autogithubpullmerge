@@ -116,13 +116,103 @@ public:
     return "{}";
   }
 
-  std::string del(const std::string &, const std::vector<std::string> &) override {
+  std::string del(const std::string &,
+                  const std::vector<std::string> &) override {
     return "";
   }
 
 private:
   std::atomic<int> &pr_requests_;
   std::atomic<int> &branch_requests_;
+};
+
+class SerializedHttpClient : public HttpClient {
+public:
+  SerializedHttpClient(std::atomic<int> &active, std::atomic<int> &max_active,
+                       std::atomic<bool> &violation)
+      : active_(active), max_active_(max_active), violation_(violation) {}
+
+  std::string get(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)headers;
+    Guard guard(active_, max_active_, violation_);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    return response_for(url);
+  }
+
+  HttpResponse
+  get_with_headers(const std::string &url,
+                   const std::vector<std::string> &headers) override {
+    (void)headers;
+    Guard guard(active_, max_active_, violation_);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    HttpResponse resp;
+    resp.body = response_for(url);
+    resp.status_code = 200;
+    return resp;
+  }
+
+  std::string put(const std::string &url, const std::string &data,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)data;
+    (void)headers;
+    Guard guard(active_, max_active_, violation_);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    return "{}";
+  }
+
+  std::string del(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
+    Guard guard(active_, max_active_, violation_);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    return "";
+  }
+
+private:
+  struct Guard {
+    Guard(std::atomic<int> &active, std::atomic<int> &max_active,
+          std::atomic<bool> &violation)
+        : active_(active), max_active_(max_active), violation_(violation) {
+      int current = active_.fetch_add(1, std::memory_order_acq_rel) + 1;
+      int expected = max_active_.load(std::memory_order_relaxed);
+      while (current > expected &&
+             !max_active_.compare_exchange_weak(expected, current,
+                                                std::memory_order_release,
+                                                std::memory_order_relaxed)) {
+      }
+      if (current > 1) {
+        violation_.store(true, std::memory_order_relaxed);
+      }
+    }
+
+    ~Guard() { active_.fetch_sub(1, std::memory_order_acq_rel); }
+
+    std::atomic<int> &active_;
+    std::atomic<int> &max_active_;
+    std::atomic<bool> &violation_;
+  };
+
+  static std::string response_for(const std::string &url) {
+    if (url.find("rate_limit") != std::string::npos) {
+      return "{\"resources\":{\"core\":{\"limit\":5000,\"remaining\":4999,"
+             "\"reset\":999999999}}}";
+    }
+    if (url.find("/pulls") != std::string::npos) {
+      return "[{\"number\":1,\"title\":\"Test "
+             "PR\",\"created_at\":\"2024-01-01T00:00:00Z\"}]";
+    }
+    if (url.find("/repos/") != std::string::npos) {
+      return "{\"default_branch\":\"main\"}";
+    }
+    return "{}";
+  }
+
+  std::atomic<int> &active_;
+  std::atomic<int> &max_active_;
+  std::atomic<bool> &violation_;
 };
 
 TEST_CASE("github poller sorts pull requests") {
@@ -167,7 +257,8 @@ TEST_CASE("github poller sorts pull requests") {
 TEST_CASE("repository overrides influence polling behaviour") {
   std::atomic<int> pr_requests{0};
   std::atomic<int> branch_requests{0};
-  auto http = std::make_unique<OverrideHttpClient>(pr_requests, branch_requests);
+  auto http =
+      std::make_unique<OverrideHttpClient>(pr_requests, branch_requests);
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   std::vector<std::pair<std::string, std::string>> repos = {{"me", "repo"}};
   agpm::RepositoryOptions opts;
@@ -188,4 +279,23 @@ TEST_CASE("repository overrides influence polling behaviour") {
   poller.poll_now();
   REQUIRE(pr_requests.load() >= 1);
   REQUIRE(branch_requests.load() == 0);
+}
+
+TEST_CASE("github poller serializes GitHubClient usage across workers") {
+  std::atomic<int> active{0};
+  std::atomic<int> max_active{0};
+  std::atomic<bool> violation{false};
+  auto http =
+      std::make_unique<SerializedHttpClient>(active, max_active, violation);
+  GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+  client.set_delay_ms(0);
+  std::vector<std::pair<std::string, std::string>> repos = {
+      {"me", "repo1"}, {"me", "repo2"}, {"me", "repo3"}, {"me", "repo4"}};
+  GitHubPoller poller(client, repos, 0, 120, 0, 4, true, false,
+                      StrayDetectionMode::RuleBased, false, "", false, false,
+                      "");
+  poller.set_pr_callback([](const std::vector<PullRequest> &) {});
+  poller.poll_now();
+  REQUIRE_FALSE(violation.load());
+  REQUIRE(max_active.load() == 1);
 }

@@ -285,16 +285,28 @@ public:
   void set_delay_ms(int delay_ms);
 
   /// Set required approvals before merging.
-  void set_required_approvals(int n) { required_approvals_ = n; }
+  void set_required_approvals(int n) {
+    std::scoped_lock lock(mutex_);
+    required_approvals_ = n;
+  }
 
   /// Set whether successful status checks are required before merging.
-  void set_require_status_success(bool v) { require_status_success_ = v; }
+  void set_require_status_success(bool v) {
+    std::scoped_lock lock(mutex_);
+    require_status_success_ = v;
+  }
 
   /// Set whether a PR must be mergeable before merging.
-  void set_require_mergeable_state(bool v) { require_mergeable_state_ = v; }
+  void set_require_mergeable_state(bool v) {
+    std::scoped_lock lock(mutex_);
+    require_mergeable_state_ = v;
+  }
 
   /// Set whether base branches such as main/master may be deleted.
-  void set_allow_delete_base_branch(bool v) { allow_delete_base_branch_ = v; }
+  void set_allow_delete_base_branch(bool v) {
+    std::scoped_lock lock(mutex_);
+    allow_delete_base_branch_ = v;
+  }
 
   /**
    * List repositories accessible to the authenticated user.
@@ -362,11 +374,11 @@ public:
    * @param protected_branch_excludes Patterns overriding protections.
    * @return `true` when the branch was deleted or simulated successfully.
    */
-  bool delete_branch(const std::string &owner, const std::string &repo,
-                     const std::string &branch,
-                     const std::vector<std::string> &protected_branches = {},
-                     const std::vector<std::string> &protected_branch_excludes =
-                         {});
+  bool
+  delete_branch(const std::string &owner, const std::string &repo,
+                const std::string &branch,
+                const std::vector<std::string> &protected_branches = {},
+                const std::vector<std::string> &protected_branch_excludes = {});
 
   /// Fetch metadata describing a pull request's current state.
   std::optional<PullRequestMetadata>
@@ -465,6 +477,7 @@ public:
   std::optional<RateLimitStatus> rate_limit_status(int max_attempts = 1);
 
 private:
+  mutable std::mutex mutex_;
   std::vector<std::string> tokens_;
   size_t token_index_{0};
   std::unique_ptr<HttpClient> http_;
@@ -492,10 +505,13 @@ private:
   bool repo_allowed(const std::string &owner, const std::string &repo) const;
   void enforce_delay();
   bool handle_rate_limit(const HttpResponse &resp);
-  HttpResponse get_with_cache(const std::string &url,
-                              const std::vector<std::string> &headers);
-  void load_cache();
-  void save_cache();
+  HttpResponse get_with_cache_locked(const std::string &url,
+                                     const std::vector<std::string> &headers);
+  void load_cache_locked();
+  void save_cache_locked();
+  std::optional<PullRequestMetadata>
+  pull_request_metadata_locked(const std::string &owner,
+                               const std::string &repo, int pr_number);
   bool merge_pull_request_internal(const std::string &owner,
                                    const std::string &repo, int pr_number,
                                    const PullRequestMetadata *metadata);
