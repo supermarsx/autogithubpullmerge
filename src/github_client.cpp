@@ -752,20 +752,24 @@ GitHubClient::GitHubClient(std::vector<std::string> tokens,
       delay_ms_(delay_ms), last_request_(std::chrono::steady_clock::now() -
                                          std::chrono::milliseconds(delay_ms)) {
   ensure_default_logger();
-  load_cache();
+  std::scoped_lock lock(mutex_);
+  load_cache_locked();
 }
 
 /**
  * Persist any cached responses when the client is destroyed.
  */
-GitHubClient::~GitHubClient() { save_cache(); }
+GitHubClient::~GitHubClient() {
+  std::scoped_lock lock(mutex_);
+  save_cache_locked();
+}
 
 /**
  * Perform a GET request leveraging an on-disk cache keyed by URL.
  */
 HttpResponse
-GitHubClient::get_with_cache(const std::string &url,
-                             const std::vector<std::string> &headers) {
+GitHubClient::get_with_cache_locked(const std::string &url,
+                                    const std::vector<std::string> &headers) {
   std::vector<std::string> hdrs = headers;
   auto it = cache_.find(url);
   if (it != cache_.end() && !it->second.etag.empty()) {
@@ -784,7 +788,7 @@ GitHubClient::get_with_cache(const std::string &url,
     if (!etag.empty() && etag[0] == ' ')
       etag.erase(0, 1);
     cache_[url] = {etag, res.body, res.headers};
-    save_cache();
+    save_cache_locked();
   }
   return res;
 }
@@ -792,7 +796,7 @@ GitHubClient::get_with_cache(const std::string &url,
 /**
  * Load cached HTTP responses from disk.
  */
-void GitHubClient::load_cache() {
+void GitHubClient::load_cache_locked() {
   if (cache_file_.empty())
     return;
   std::ifstream in(cache_file_);
@@ -815,7 +819,7 @@ void GitHubClient::load_cache() {
 /**
  * Serialize cached HTTP responses to disk.
  */
-void GitHubClient::save_cache() {
+void GitHubClient::save_cache_locked() {
   if (cache_file_.empty())
     return;
   nlohmann::json j;
@@ -830,7 +834,10 @@ void GitHubClient::save_cache() {
 /**
  * Update the minimum delay enforced between HTTP requests.
  */
-void GitHubClient::set_delay_ms(int delay_ms) { delay_ms_ = delay_ms; }
+void GitHubClient::set_delay_ms(int delay_ms) {
+  std::scoped_lock lock(mutex_);
+  delay_ms_ = delay_ms;
+}
 
 /**
  * Determine if a repository passes include/exclude filters.
@@ -850,6 +857,7 @@ bool GitHubClient::repo_allowed(const std::string &owner,
 /// @copydoc GitHubClient::list_repositories
 std::vector<std::pair<std::string, std::string>>
 GitHubClient::list_repositories() {
+  std::scoped_lock lock(mutex_);
   std::vector<std::pair<std::string, std::string>> repos;
   github_client_log()->info("Listing repositories");
   std::string url = api_base_ + "/user/repos?per_page=100";
@@ -861,7 +869,7 @@ GitHubClient::list_repositories() {
     enforce_delay();
     HttpResponse res;
     try {
-      res = get_with_cache(url, headers);
+      res = get_with_cache_locked(url, headers);
     } catch (const std::exception &e) {
       github_client_log()->error("HTTP GET failed: {}", e.what());
       break;
@@ -921,6 +929,7 @@ std::vector<PullRequest>
 GitHubClient::list_pull_requests(const std::string &owner,
                                  const std::string &repo, bool include_merged,
                                  int per_page, std::chrono::seconds since) {
+  std::scoped_lock lock(mutex_);
   if (!repo_allowed(owner, repo)) {
     return {};
   }
@@ -948,7 +957,7 @@ GitHubClient::list_pull_requests(const std::string &owner,
     enforce_delay();
     HttpResponse res;
     try {
-      res = get_with_cache(url, headers);
+      res = get_with_cache_locked(url, headers);
     } catch (const std::exception &e) {
       github_client_log()->error("HTTP GET failed: {}", e.what());
       break;
@@ -1043,6 +1052,7 @@ GitHubClient::list_pull_requests(const std::string &owner,
 std::vector<PullRequest>
 GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
                                              int per_page) {
+  std::scoped_lock lock(mutex_);
   std::vector<PullRequest> prs;
   auto pos = owner_repo.find('/');
   if (pos == std::string::npos) {
@@ -1097,6 +1107,12 @@ GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
 std::optional<PullRequestMetadata>
 GitHubClient::pull_request_metadata(const std::string &owner,
                                     const std::string &repo, int pr_number) {
+  std::scoped_lock lock(mutex_);
+  return pull_request_metadata_locked(owner, repo, pr_number);
+}
+
+std::optional<PullRequestMetadata> GitHubClient::pull_request_metadata_locked(
+    const std::string &owner, const std::string &repo, int pr_number) {
   if (!repo_allowed(owner, repo)) {
     github_client_log()->debug(
         "Skipping metadata fetch for disallowed repo {}/{}", owner, repo);
@@ -1112,7 +1128,7 @@ GitHubClient::pull_request_metadata(const std::string &owner,
                        std::to_string(pr_number);
   nlohmann::json meta_json;
   try {
-    std::string pr_resp = get_with_cache(pr_url, headers).body;
+    std::string pr_resp = get_with_cache_locked(pr_url, headers).body;
     meta_json = nlohmann::json::parse(pr_resp);
   } catch (const std::exception &e) {
     github_client_log()->error("Failed to fetch pull request metadata: {}",
@@ -1142,6 +1158,7 @@ GitHubClient::pull_request_metadata(const std::string &owner,
 /// @copydoc GitHubClient::merge_pull_request
 bool GitHubClient::merge_pull_request(const std::string &owner,
                                       const std::string &repo, int pr_number) {
+  std::scoped_lock lock(mutex_);
   return merge_pull_request_internal(owner, repo, pr_number, nullptr);
 }
 
@@ -1149,6 +1166,7 @@ bool GitHubClient::merge_pull_request(const std::string &owner,
 bool GitHubClient::merge_pull_request(const std::string &owner,
                                       const std::string &repo, int pr_number,
                                       const PullRequestMetadata &metadata) {
+  std::scoped_lock lock(mutex_);
   return merge_pull_request_internal(owner, repo, pr_number, &metadata);
 }
 
@@ -1170,7 +1188,7 @@ bool GitHubClient::merge_pull_request_internal(
   const PullRequestMetadata *meta_ptr = metadata;
   std::optional<PullRequestMetadata> fetched_metadata;
   if (!meta_ptr) {
-    auto details = pull_request_metadata(owner, repo, pr_number);
+    auto details = pull_request_metadata_locked(owner, repo, pr_number);
     if (!details) {
       return false;
     }
@@ -1220,6 +1238,7 @@ bool GitHubClient::merge_pull_request_internal(
 
 bool GitHubClient::close_pull_request(const std::string &owner,
                                       const std::string &repo, int pr_number) {
+  std::scoped_lock lock(mutex_);
   if (!repo_allowed(owner, repo)) {
     github_client_log()->debug("Skipping close for disallowed repo {}/{}",
                                owner, repo);
@@ -1266,6 +1285,7 @@ bool GitHubClient::delete_branch(
     const std::string &branch,
     const std::vector<std::string> &protected_branches,
     const std::vector<std::string> &protected_branch_excludes) {
+  std::scoped_lock lock(mutex_);
   if (!repo_allowed(owner, repo)) {
     github_client_log()->debug(
         "Skipping branch delete for disallowed repo {}/{}", owner, repo);
@@ -1323,6 +1343,7 @@ bool GitHubClient::delete_branch(
 std::vector<std::string>
 GitHubClient::list_branches(const std::string &owner, const std::string &repo,
                             std::string *default_branch_out) {
+  std::scoped_lock lock(mutex_);
   std::vector<std::string> branches;
   if (!repo_allowed(owner, repo)) {
     return branches;
@@ -1338,7 +1359,7 @@ GitHubClient::list_branches(const std::string &owner, const std::string &repo,
   std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
   std::string repo_resp;
   try {
-    repo_resp = get_with_cache(repo_url, headers).body;
+    repo_resp = get_with_cache_locked(repo_url, headers).body;
   } catch (const std::exception &e) {
     github_client_log()->error("Failed to fetch repo metadata: {}", e.what());
     return branches;
@@ -1359,7 +1380,7 @@ GitHubClient::list_branches(const std::string &owner, const std::string &repo,
     enforce_delay();
     HttpResponse res;
     try {
-      res = get_with_cache(url, headers);
+      res = get_with_cache_locked(url, headers);
     } catch (const std::exception &e) {
       github_client_log()->error("Failed to fetch branches: {}", e.what());
       return branches;
@@ -1416,6 +1437,7 @@ std::vector<std::string> GitHubClient::detect_stray_branches(
     const std::string &default_branch, const std::vector<std::string> &branches,
     const std::vector<std::string> &protected_branches,
     const std::vector<std::string> &protected_branch_excludes) {
+  std::scoped_lock lock(mutex_);
   std::vector<std::string> stray;
   if (!repo_allowed(owner, repo) || default_branch.empty()) {
     return stray;
@@ -1503,7 +1525,7 @@ std::vector<std::string> GitHubClient::detect_stray_branches(
       enforce_delay();
       std::string branch_url =
           repo_url + "/branches/" + encode_ref_segment(branch);
-      HttpResponse branch_resp = get_with_cache(branch_url, headers);
+      HttpResponse branch_resp = get_with_cache_locked(branch_url, headers);
       nlohmann::json branch_json = nlohmann::json::parse(branch_resp.body);
       if (branch_json.is_object() && branch_json.contains("commit") &&
           branch_json["commit"].is_object()) {
@@ -1593,6 +1615,7 @@ std::vector<std::string> GitHubClient::cleanup_branches(
     const std::string &prefix,
     const std::vector<std::string> &protected_branches,
     const std::vector<std::string> &protected_branch_excludes) {
+  std::scoped_lock lock(mutex_);
   std::vector<std::string> deleted;
   if (!repo_allowed(owner, repo) || prefix.empty()) {
     github_client_log()->debug("Skipping branch cleanup for {}/{}", owner,
@@ -1616,7 +1639,7 @@ std::vector<std::string> GitHubClient::cleanup_branches(
   std::string default_branch;
   if (!allow_delete_base_branch_) {
     try {
-      auto repo_res = get_with_cache(repo_url, headers);
+      auto repo_res = get_with_cache_locked(repo_url, headers);
       auto repo_json = nlohmann::json::parse(repo_res.body);
       if (repo_json.is_object() && repo_json.contains("default_branch")) {
         default_branch = repo_json["default_branch"].get<std::string>();
@@ -1631,7 +1654,7 @@ std::vector<std::string> GitHubClient::cleanup_branches(
     enforce_delay();
     HttpResponse res;
     try {
-      res = get_with_cache(url, headers);
+      res = get_with_cache_locked(url, headers);
     } catch (const std::exception &e) {
       github_client_log()->error(
           "Failed to fetch pull requests for cleanup: {}", e.what());
@@ -1715,6 +1738,7 @@ void GitHubClient::close_dirty_branches(
     const std::string &owner, const std::string &repo,
     const std::vector<std::string> &protected_branches,
     const std::vector<std::string> &protected_branch_excludes) {
+  std::scoped_lock lock(mutex_);
   if (!repo_allowed(owner, repo)) {
     return;
   }
@@ -1754,7 +1778,7 @@ void GitHubClient::close_dirty_branches(
     enforce_delay();
     HttpResponse res;
     try {
-      res = get_with_cache(url, headers);
+      res = get_with_cache_locked(url, headers);
     } catch (const std::exception &e) {
       github_client_log()->error("Failed to fetch branches: {}", e.what());
       return;
@@ -1859,6 +1883,7 @@ void GitHubClient::close_dirty_branches(
 
 std::optional<GitHubClient::RateLimitStatus>
 GitHubClient::rate_limit_status(int max_attempts) {
+  std::scoped_lock lock(mutex_);
   std::vector<std::string> headers;
   if (!tokens_.empty()) {
     headers.push_back("Authorization: token " + tokens_[token_index_]);
