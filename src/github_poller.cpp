@@ -156,21 +156,6 @@ GitHubPoller::GitHubPoller(
       min_poll_interval_ = std::chrono::nanoseconds(1);
     }
   }
-  if (delete_stray_) {
-    branch_rule_engine_.set_action("stray", BranchAction::kDelete);
-  } else {
-    branch_rule_engine_.set_action("stray", BranchAction::kKeep);
-  }
-  if (purge_prefix_.empty()) {
-    branch_rule_engine_.set_action("purge", BranchAction::kKeep);
-  } else {
-    branch_rule_engine_.set_action("purge", BranchAction::kDelete);
-  }
-  if (reject_dirty_) {
-    branch_rule_engine_.set_action("dirty", BranchAction::kDelete);
-  } else {
-    branch_rule_engine_.set_action("dirty", BranchAction::kKeep);
-  }
 }
 
 RepositoryOptions
