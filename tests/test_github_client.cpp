@@ -252,4 +252,19 @@ TEST_CASE("test github client") {
   REQUIRE(timeout_prs.empty());
   bool timeout_merge = client_timeout.merge_pull_request("owner", "repo", 1);
   REQUIRE(!timeout_merge);
+
+  // Branch deletions percent-encode reserved characters in ref names.
+  {
+    auto mock_delete = std::make_unique<MockHttpClient>();
+    MockHttpClient *raw_delete = mock_delete.get();
+    raw_delete->response = "";
+    GitHubClient delete_client(
+        {"tok"}, std::unique_ptr<HttpClient>(mock_delete.release()));
+    bool ok =
+        delete_client.delete_branch("me", "repo", "feature/bug fix", {}, {});
+    REQUIRE(ok);
+    REQUIRE(raw_delete->last_method == "DELETE");
+    REQUIRE(raw_delete->last_url == "https://api.github.com/repos/me/repo/git/"
+                                    "refs/heads/feature%2Fbug%20fix");
+  }
 }

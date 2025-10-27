@@ -60,7 +60,7 @@ public:
              "purge\"},{\"name\":\"feature\"}]";
     if (url == base + "/compare/main...feature")
       return "{\"status\":\"ahead\",\"ahead_by\":1}";
-    if (url == base + "/compare/main...tmp/purge")
+    if (url == base + "/compare/main...tmp%2Fpurge")
       return "{\"status\":\"identical\"}";
     if (url == base + "/pulls?state=closed")
       return "[{\"head\":{\"ref\":\"tmp/purge\"}}]";
@@ -112,7 +112,7 @@ public:
       ++compare_requests;
       return R"({"status":"identical","ahead_by":0,"behind_by":0})";
     }
-    if (url == base + "/compare/main...legacy/tmp") {
+    if (url == base + "/compare/main...legacy%2Ftmp") {
       ++compare_requests;
       return R"({"status":"behind","ahead_by":0,"behind_by":4})";
     }
@@ -124,7 +124,7 @@ public:
       ++branch_metadata_requests;
       return R"({"name":"feature-identical","commit":{"commit":{"committer":{"date":"2015-01-01T00:00:00Z"}}}})";
     }
-    if (url == base + "/branches/legacy/tmp") {
+    if (url == base + "/branches/legacy%2Ftmp") {
       ++branch_metadata_requests;
       return R"({"name":"legacy/tmp","commit":{"commit":{"committer":{"date":"2010-01-01T00:00:00Z"}}}})";
     }
@@ -210,7 +210,7 @@ TEST_CASE("test poller branch") {
     poller.set_branch_rule_action("dirty", BranchAction::kDelete);
     poller.poll_now();
     REQUIRE(raw->deleted.count(raw->base + "/git/refs/heads/feature") == 1);
-    REQUIRE(raw->deleted.count(raw->base + "/git/refs/heads/tmp/purge") == 1);
+    REQUIRE(raw->deleted.count(raw->base + "/git/refs/heads/tmp%2Fpurge") == 1);
   }
 
   // Heuristic stray detection

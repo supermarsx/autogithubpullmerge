@@ -145,8 +145,9 @@ TEST_CASE("test branch cleanup") {
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     (void)client.cleanup_branches("me", "repo", "tmp/");
     REQUIRE(raw->last_url.find("state=closed") != std::string::npos);
-    REQUIRE(raw->last_deleted ==
-            "https://api.github.com/repos/me/repo/git/refs/heads/tmp/feature");
+    REQUIRE(
+        raw->last_deleted ==
+        "https://api.github.com/repos/me/repo/git/refs/heads/tmp%2Ffeature");
   }
 
   // Base branch should never be deleted without override.
@@ -211,6 +212,21 @@ TEST_CASE("test branch cleanup") {
     REQUIRE(raw->last_deleted == base + "/git/refs/heads/feature");
   }
 
+  // Dirty branch containing reserved characters should be percent-encoded.
+  {
+    auto http = std::make_unique<BranchHttpClient>();
+    BranchHttpClient *raw = http.get();
+    std::string base = "https://api.github.com/repos/me/repo";
+    raw->responses[base] = "{\"default_branch\":\"main\"}";
+    raw->responses[base + "/branches"] =
+        "[{\"name\":\"main\"},{\"name\":\"feature/topic\"}]";
+    raw->responses[base + "/compare/main...feature%2Ftopic"] =
+        "{\"status\":\"ahead\",\"ahead_by\":1}";
+    GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+    client.close_dirty_branches("me", "repo");
+    REQUIRE(raw->last_deleted == base + "/git/refs/heads/feature%2Ftopic");
+  }
+
   // Dirty branch matching protected pattern should remain.
   {
     auto http = std::make_unique<BranchHttpClient>();
@@ -232,7 +248,8 @@ TEST_CASE("test branch cleanup") {
     http->response = "[{\"head\":{\"ref\":\"release/v1\"}}]";
     CleanupHttpClient *raw = http.get();
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    (void)client.cleanup_branches("me", "repo", "release/", {"prefix:release/"});
+    (void)client.cleanup_branches("me", "repo", "release/",
+                                  {"prefix:release/"});
     REQUIRE(raw->last_deleted.empty());
   }
 
@@ -268,7 +285,7 @@ TEST_CASE("test branch cleanup") {
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
     (void)client.cleanup_branches("me", "repo", "tmp/");
     REQUIRE(raw->last_deleted ==
-            "https://api.github.com/repos/me/repo/git/refs/heads/tmp/paged");
+            "https://api.github.com/repos/me/repo/git/refs/heads/tmp%2Fpaged");
   }
 
   // Dirty branch discovered on later page should be deleted.

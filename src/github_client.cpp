@@ -267,6 +267,23 @@ bool is_protected_branch(const std::string &name,
   return false;
 }
 
+std::string encode_ref_segment(const std::string &segment) {
+  if (segment.empty()) {
+    return segment;
+  }
+  static CurlHandle curl;
+  char *escaped = curl_easy_escape(curl.get(), segment.c_str(),
+                                   static_cast<int>(segment.size()));
+  if (escaped == nullptr) {
+    github_client_log()->warn(
+        "Failed to percent-encode ref segment {}; using raw value", segment);
+    return segment;
+  }
+  std::string encoded(escaped);
+  curl_free(escaped);
+  return encoded;
+}
+
 } // namespace
 
 /**
@@ -1279,8 +1296,8 @@ bool GitHubClient::delete_branch(
   }
   headers.push_back("Accept: application/vnd.github+json");
 
-  std::string url =
-      api_base_ + "/repos/" + owner + "/" + repo + "/git/refs/heads/" + branch;
+  std::string url = api_base_ + "/repos/" + owner + "/" + repo +
+                    "/git/refs/heads/" + encode_ref_segment(branch);
   github_client_log()->info("Attempting to delete branch {} from {}/{}", branch,
                             owner, repo);
   if (dry_run_) {
@@ -1463,8 +1480,9 @@ std::vector<std::string> GitHubClient::detect_stray_branches(
     std::string status;
     try {
       enforce_delay();
-      std::string compare_url =
-          repo_url + "/compare/" + default_branch + "..." + branch;
+      std::string compare_url = repo_url + "/compare/" +
+                                encode_ref_segment(default_branch) + "..." +
+                                encode_ref_segment(branch);
       std::string compare_resp = http_->get(compare_url, headers);
       nlohmann::json compare_json = nlohmann::json::parse(compare_resp);
       if (compare_json.is_object()) {
@@ -1483,7 +1501,8 @@ std::vector<std::string> GitHubClient::detect_stray_branches(
     std::optional<std::chrono::system_clock::time_point> last_commit_time;
     try {
       enforce_delay();
-      std::string branch_url = repo_url + "/branches/" + branch;
+      std::string branch_url =
+          repo_url + "/branches/" + encode_ref_segment(branch);
       HttpResponse branch_resp = get_with_cache(branch_url, headers);
       nlohmann::json branch_json = nlohmann::json::parse(branch_resp.body);
       if (branch_json.is_object() && branch_json.contains("commit") &&
@@ -1650,7 +1669,7 @@ std::vector<std::string> GitHubClient::cleanup_branches(
           }
           enforce_delay();
           std::string del_url = api_base_ + "/repos/" + owner + "/" + repo +
-                                "/git/refs/heads/" + branch;
+                                "/git/refs/heads/" + encode_ref_segment(branch);
           if (dry_run_) {
             github_client_log()->info("[dry-run] Would delete branch {}",
                                       branch);
@@ -1771,8 +1790,9 @@ void GitHubClient::close_dirty_branches(
       }
       // Compare branch with default branch to detect divergence.
       enforce_delay();
-      std::string compare_url =
-          repo_url + "/compare/" + default_branch + "..." + branch;
+      std::string compare_url = repo_url + "/compare/" +
+                                encode_ref_segment(default_branch) + "..." +
+                                encode_ref_segment(branch);
       std::string compare_resp;
       try {
         // Fetch comparison without caching since headers are unnecessary and
@@ -1799,7 +1819,8 @@ void GitHubClient::close_dirty_branches(
       if (ahead_by > 0 && (status == "ahead" || status == "diverged")) {
         // Branch has unmerged commits; delete it to reject dirty branch.
         enforce_delay();
-        std::string del_url = repo_url + "/git/refs/heads/" + branch;
+        std::string del_url =
+            repo_url + "/git/refs/heads/" + encode_ref_segment(branch);
         if (dry_run_) {
           github_client_log()->info("[dry-run] Would delete dirty branch {}",
                                     branch);
