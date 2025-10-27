@@ -51,7 +51,7 @@ TEST_CASE("test auto merge") {
   MergeHttpClient *raw = http.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   GitHubPoller poller(client, {{"me", "repo"}}, 50, 120, 0, 1, false, false,
-                      false, "", true);
+                      StrayDetectionMode::RuleBased, false, "", true);
   std::vector<std::vector<PullRequest>> snapshots;
   poller.set_pr_callback(
       [&](const std::vector<PullRequest> &prs) { snapshots.push_back(prs); });
@@ -109,7 +109,7 @@ TEST_CASE("dirty pull requests are closed by rule engine") {
   DirtyHttpClient *raw = http.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   GitHubPoller poller(client, {{"me", "repo"}}, 50, 120, 0, 1, false, false,
-                      false, "", true);
+                      StrayDetectionMode::RuleBased, false, "", true);
   std::vector<std::vector<PullRequest>> snapshots;
   poller.set_pr_callback(
       [&](const std::vector<PullRequest> &prs) { snapshots.push_back(prs); });

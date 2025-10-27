@@ -369,6 +369,8 @@ discover_token_files(const std::filesystem::path &exe_path,
 CliOptions parse_cli(int argc, char **argv) {
   CLI::App app{"autogithubpullmerge command line"};
   app.footer(log_category_help_text());
+  CLI::Option *request_caddy_flag = nullptr;
+  CLI::Option *request_caddy_disable_flag = nullptr;
   CliOptions options;
   std::vector<std::string> raw_args;
   raw_args.reserve(static_cast<std::size_t>(argc));
@@ -714,8 +716,6 @@ CliOptions parse_cli(int argc, char **argv) {
   CLI::Option *mcp_backlog_option = nullptr;
   CLI::Option *mcp_max_clients_option = nullptr;
   CLI::Option *mcp_caddy_flag = nullptr;
-  CLI::Option *request_caddy_flag = nullptr;
-  CLI::Option *request_caddy_disable_flag = nullptr;
   app.add_flag("--mcp-server",
                "Enable the Model Context Protocol (MCP) server for "
                "automation integrations")

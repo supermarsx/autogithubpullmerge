@@ -177,11 +177,12 @@ nlohmann::json McpServer::handle_request(const nlohmann::json &request) {
     if (method == "listRepositories") {
       auto repos = backend_.list_repositories();
       nlohmann::json result = nlohmann::json::array();
-      result.reserve(repos.size());
+      auto &result_array = result.get_ref<nlohmann::json::array_t &>();
+      result_array.reserve(repos.size());
       for (const auto &repo : repos) {
-        result.push_back({{"owner", repo.first},
-                          {"name", repo.second},
-                          {"slug", repo.first + "/" + repo.second}});
+        result_array.push_back({{"owner", repo.first},
+                                {"name", repo.second},
+                                {"slug", repo.first + "/" + repo.second}});
       }
       emit_event("method=listRepositories count=" +
                  std::to_string(result.size()));
@@ -225,13 +226,14 @@ nlohmann::json McpServer::handle_request(const nlohmann::json &request) {
                                              repo_it->get<std::string>(),
                                              include_merged);
       nlohmann::json result = nlohmann::json::array();
-      result.reserve(prs.size());
+      auto &result_array = result.get_ref<nlohmann::json::array_t &>();
+      result_array.reserve(prs.size());
       for (const auto &pr : prs) {
-        result.push_back({{"number", pr.number},
-                          {"title", pr.title},
-                          {"merged", pr.merged},
-                          {"owner", pr.owner},
-                          {"repo", pr.repo}});
+        result_array.push_back({{"number", pr.number},
+                                {"title", pr.title},
+                                {"merged", pr.merged},
+                                {"owner", pr.owner},
+                                {"repo", pr.repo}});
       }
       emit_event("method=listPullRequests count=" +
                  std::to_string(result.size()));

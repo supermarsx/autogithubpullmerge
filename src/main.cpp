@@ -362,11 +362,11 @@ int main(int argc, char **argv) {
       !opts.history_db.empty() ? opts.history_db : cfg.history_db();
   agpm::PullRequestHistory history(history_db);
 
-  agpm::GitHubPoller::RepositoryOptionsMap repo_override_options;
+  agpm::RepositoryOptionsMap repo_override_options;
   repo_override_options.reserve(repos.size());
   bool hooks_available = static_cast<bool>(hook_dispatcher);
   for (const auto &entry : repos) {
-    agpm::GitHubPoller::RepositoryOptions repo_opts;
+    agpm::RepositoryOptions repo_opts;
     repo_opts.only_poll_prs = only_poll_prs;
     repo_opts.only_poll_stray = only_poll_stray;
     repo_opts.purge_only = purge_only;

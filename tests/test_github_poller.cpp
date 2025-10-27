@@ -134,8 +134,9 @@ TEST_CASE("github poller sorts pull requests") {
   SECTION("alphanum") {
     auto http = std::make_unique<JsonHttpClient>(json);
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    GitHubPoller poller(client, repos, 0, 60, 0, 1, true, false, false, "",
-                        false, false, "alphanum");
+    GitHubPoller poller(client, repos, 0, 60, 0, 1, true, false,
+                        StrayDetectionMode::RuleBased, false, "", false, false,
+                        "alphanum");
     std::vector<std::string> titles;
     poller.set_pr_callback([&](const std::vector<PullRequest> &prs) {
       titles.reserve(titles.size() + prs.size());
@@ -149,8 +150,9 @@ TEST_CASE("github poller sorts pull requests") {
   SECTION("reverse") {
     auto http = std::make_unique<JsonHttpClient>(json);
     GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
-    GitHubPoller poller(client, repos, 0, 60, 0, 1, true, false, false, "",
-                        false, false, "reverse");
+    GitHubPoller poller(client, repos, 0, 60, 0, 1, true, false,
+                        StrayDetectionMode::RuleBased, false, "", false, false,
+                        "reverse");
     std::vector<std::string> titles;
     poller.set_pr_callback([&](const std::vector<PullRequest> &prs) {
       titles.reserve(titles.size() + prs.size());
@@ -168,7 +170,7 @@ TEST_CASE("repository overrides influence polling behaviour") {
   auto http = std::make_unique<OverrideHttpClient>(pr_requests, branch_requests);
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   std::vector<std::pair<std::string, std::string>> repos = {{"me", "repo"}};
-  agpm::GitHubPoller::RepositoryOptions opts;
+  agpm::RepositoryOptions opts;
   opts.only_poll_prs = true;
   opts.only_poll_stray = true;
   opts.purge_only = false;
@@ -177,7 +179,7 @@ TEST_CASE("repository overrides influence polling behaviour") {
   opts.delete_stray = false;
   opts.purge_prefix = "";
   opts.hooks_enabled = false;
-  agpm::GitHubPoller::RepositoryOptionsMap overrides;
+  agpm::RepositoryOptionsMap overrides;
   overrides.emplace("me/repo", opts);
   GitHubPoller poller(client, repos, 0, 60, 0, 1, false, false,
                       StrayDetectionMode::RuleBased, false, "", false, false,
