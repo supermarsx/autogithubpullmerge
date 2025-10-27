@@ -22,6 +22,20 @@
 
 namespace agpm {
 
+struct RepositoryOptions {
+  bool only_poll_prs{false};
+  bool only_poll_stray{false};
+  bool purge_only{false};
+  bool auto_merge{false};
+  bool reject_dirty{false};
+  bool delete_stray{false};
+  bool hooks_enabled{true};
+  std::string purge_prefix;
+};
+
+using RepositoryOptionsMap =
+    std::unordered_map<std::string, RepositoryOptions>;
+
 /**
  * Polls GitHub repositories periodically using a token bucket rate limiter.
  */
@@ -78,7 +92,8 @@ public:
       bool delete_stray = false, double rate_limit_margin = 0.7,
       std::chrono::seconds rate_limit_refresh_interval =
           std::chrono::seconds(60),
-      bool retry_rate_limit_endpoint = false, int rate_limit_retry_limit = 3);
+      bool retry_rate_limit_endpoint = false, int rate_limit_retry_limit = 3,
+      RepositoryOptionsMap repo_overrides = {});
 
   /// Start polling in a background thread.
   void start();
@@ -240,6 +255,10 @@ private:
   std::unordered_map<std::string, std::unordered_set<std::string>>
       known_branches_;
   std::mutex known_branches_mutex_;
+  RepositoryOptionsMap repo_overrides_;
+
+  RepositoryOptions effective_repository_options(const std::string &owner,
+                                                 const std::string &repo) const;
 };
 
 } // namespace agpm

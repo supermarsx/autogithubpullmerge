@@ -262,6 +262,74 @@ JSON:
 }
 ```
 
+## Repository Overrides
+
+Per-repository overrides tailor polling, automation, and hook behaviour for a
+subset of projects. Each entry maps a repository pattern—supporting literal
+`owner/repo` names, `glob:` expressions, or raw wildcards—to optional `actions`
+and `hooks` blocks:
+
+- `actions` adjusts automation flags such as `only_poll_prs`,
+  `delete_stray`, `purge_only`, `auto_merge`, and `hooks_enabled` for the
+  matched repositories.
+- `hooks` may override the enable flag, provide replacement default actions,
+  or assign event-specific actions without affecting the global dispatcher.
+
+Patterns honour the same wildcard helpers used for branch protection. For
+example, `octo/*` applies to every repository owned by `octo`, while
+`regex:^team/.+$` targets names matching the regular expression.
+
+YAML:
+```yaml
+repository_overrides:
+  "octocat/*":
+    actions:
+      only_poll_prs: true
+      delete_stray: false
+    hooks:
+      enabled: false
+      actions:
+        - type: command
+          command: scripts/notify.sh
+      event_actions:
+        pull_request.merged:
+          - type: http
+            endpoint: https://hooks.example/merged
+            method: PUT
+            headers:
+              X-Repo-Override: enabled
+```
+
+JSON:
+```json
+{
+  "repository_overrides": {
+    "octocat/*": {
+      "actions": {
+        "only_poll_prs": true,
+        "delete_stray": false
+      },
+      "hooks": {
+        "enabled": false,
+        "actions": [
+          {"type": "command", "command": "scripts/notify.sh"}
+        ],
+        "event_actions": {
+          "pull_request.merged": [
+            {
+              "type": "http",
+              "endpoint": "https://hooks.example/merged",
+              "method": "PUT",
+              "headers": {"X-Repo-Override": "enabled"}
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
 ## Dry-Run and Proxy Support
 
 `--dry-run` simulates operations without altering repositories. HTTP requests

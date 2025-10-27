@@ -7,11 +7,13 @@
 #include <fstream>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_set>
+#include <utility>
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -28,6 +30,13 @@ std::shared_ptr<spdlog::logger> config_log() {
     return category_logger("config");
   }();
   return logger;
+}
+
+std::string to_lower_copy(std::string value) {
+  std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
+    return static_cast<char>(std::tolower(c));
+  });
+  return value;
 }
 
 /**
@@ -165,6 +174,287 @@ nlohmann::json normalize_config_sections(const nlohmann::json &source) {
   }
 
   return normalized;
+}
+
+std::regex repo_glob_to_regex(const std::string &glob) {
+  std::string rx = "^";
+  for (char c : glob) {
+    switch (c) {
+    case '*':
+      rx += ".*";
+      break;
+    case '?':
+      rx += '.';
+      break;
+    case '.':
+    case '+':
+    case '(':
+    case ')':
+    case '{':
+    case '}':
+    case '^':
+    case '$':
+    case '|':
+    case '\\':
+    case '[':
+    case ']':
+      rx += '\\';
+      rx += c;
+      break;
+    default:
+      rx += c;
+    }
+  }
+  rx += '$';
+  return std::regex(rx);
+}
+
+std::string repo_mixed_to_regex(const std::string &value) {
+  std::string out;
+  out.reserve(value.size() * 2);
+  for (char c : value) {
+    switch (c) {
+    case '*':
+      out += ".*";
+      break;
+    case '?':
+      out += '.';
+      break;
+    default:
+      out.push_back(c);
+    }
+  }
+  return out;
+}
+
+std::optional<std::regex> compile_repo_pattern(const std::string &pattern) {
+  std::string body = pattern;
+  if (body.rfind("regex:", 0) == 0) {
+    body.erase(0, std::string("regex:").size());
+    try {
+      return std::regex(body);
+    } catch (const std::exception &e) {
+      config_log()->warn("Invalid regex repository override '{}': {}", pattern,
+                         e.what());
+      return std::nullopt;
+    }
+  }
+  if (body.rfind("glob:", 0) == 0 || body.rfind("wildcard:", 0) == 0) {
+    auto pos = body.find(':');
+    body.erase(0, pos + 1);
+    return repo_glob_to_regex(body);
+  }
+  if (body.rfind("mixed:", 0) == 0) {
+    body.erase(0, std::string("mixed:").size());
+    std::string mixed = repo_mixed_to_regex(body);
+    try {
+      return std::regex(mixed);
+    } catch (const std::exception &e) {
+      config_log()->warn("Invalid mixed pattern '{}': {}", pattern, e.what());
+      return std::nullopt;
+    }
+  }
+  if (body.find('*') != std::string::npos || body.find('?') != std::string::npos) {
+    return repo_glob_to_regex(body);
+  }
+  return std::nullopt;
+}
+
+std::vector<std::pair<std::string, std::string>>
+parse_hook_headers(const nlohmann::json &headers, std::string_view context) {
+  std::vector<std::pair<std::string, std::string>> parsed;
+  if (!headers.is_object()) {
+    config_log()->warn("Hook headers for '{}' must be an object", context);
+    return parsed;
+  }
+  for (const auto &[key, value] : headers.items()) {
+    if (!value.is_string()) {
+      config_log()->warn(
+          "Hook header '{}' for '{}' must be a string value", key, context);
+      continue;
+    }
+    parsed.emplace_back(key, value.get<std::string>());
+  }
+  return parsed;
+}
+
+std::optional<HookAction> parse_hook_action(const nlohmann::json &value,
+                                            std::string_view context) {
+  if (!value.is_object()) {
+    config_log()->warn("Hook action for '{}' must be an object", context);
+    return std::nullopt;
+  }
+  HookAction action;
+  std::string type;
+  if (value.contains("type") && value["type"].is_string()) {
+    type = to_lower_copy(value["type"].get<std::string>());
+  } else if (value.contains("command")) {
+    type = "command";
+  } else if (value.contains("endpoint")) {
+    type = "http";
+  } else {
+    config_log()->warn("Hook action for '{}' missing type/command/endpoint",
+                       context);
+    return std::nullopt;
+  }
+  if (type == "command") {
+    if (!value.contains("command") || !value["command"].is_string()) {
+      config_log()->warn("Command hook action for '{}' missing command",
+                         context);
+      return std::nullopt;
+    }
+    action.type = HookActionType::Command;
+    action.command = value["command"].get<std::string>();
+  } else if (type == "http" || type == "endpoint") {
+    if (!value.contains("endpoint") || !value["endpoint"].is_string()) {
+      config_log()->warn("HTTP hook action for '{}' missing endpoint",
+                         context);
+      return std::nullopt;
+    }
+    action.type = HookActionType::Http;
+    action.endpoint = value["endpoint"].get<std::string>();
+    if (value.contains("method") && value["method"].is_string()) {
+      action.method = value["method"].get<std::string>();
+    }
+    if (value.contains("headers")) {
+      action.headers = parse_hook_headers(value["headers"], context);
+    }
+  } else {
+    config_log()->warn("Unsupported hook action type '{}' for '{}'", type,
+                       context);
+    return std::nullopt;
+  }
+  return action;
+}
+
+void parse_repository_actions(const nlohmann::json &node,
+                              Config::RepositoryActionOverride &out) {
+  auto assign_bool = [&](std::string_view key, bool &has_value, bool &value) {
+    auto it = node.find(std::string(key));
+    if (it != node.end() && it->is_boolean()) {
+      has_value = true;
+      value = it->get<bool>();
+    }
+  };
+  assign_bool("only_poll_prs", out.has_only_poll_prs, out.only_poll_prs);
+  assign_bool("only_poll_stray", out.has_only_poll_stray, out.only_poll_stray);
+  assign_bool("purge_only", out.has_purge_only, out.purge_only);
+  assign_bool("auto_merge", out.has_auto_merge, out.auto_merge);
+  assign_bool("reject_dirty", out.has_reject_dirty, out.reject_dirty);
+  assign_bool("delete_stray", out.has_delete_stray, out.delete_stray);
+  assign_bool("hooks_enabled", out.has_hooks_enabled, out.hooks_enabled);
+  auto prefix_it = node.find("purge_prefix");
+  if (prefix_it != node.end() && prefix_it->is_string()) {
+    out.has_purge_prefix = true;
+    out.purge_prefix = prefix_it->get<std::string>();
+  }
+  auto nested_it = node.find("actions");
+  if (nested_it != node.end() && nested_it->is_object()) {
+    parse_repository_actions(*nested_it, out);
+  }
+}
+
+void parse_repository_hooks(const nlohmann::json &node,
+                            Config::RepositoryHookOverride &out,
+                            std::string_view context) {
+  auto parse_default_command = [&](const nlohmann::json &source,
+                                   std::string_view field) {
+    auto it = source.find(std::string(field));
+    if (it != source.end() && it->is_string()) {
+      HookAction action;
+      action.type = HookActionType::Command;
+      action.command = it->get<std::string>();
+      out.overrides_default_actions = true;
+      out.default_actions.push_back(std::move(action));
+    }
+  };
+  auto parse_default_http = [&](const nlohmann::json &source,
+                                std::string_view endpoint_field,
+                                std::string_view method_field,
+                                std::string_view headers_field) {
+    auto it = source.find(std::string(endpoint_field));
+    if (it == source.end() || !it->is_string()) {
+      return;
+    }
+    HookAction action;
+    action.type = HookActionType::Http;
+    action.endpoint = it->get<std::string>();
+    auto method_it = source.find(std::string(method_field));
+    if (method_it != source.end() && method_it->is_string()) {
+      action.method = method_it->get<std::string>();
+    }
+    auto headers_it = source.find(std::string(headers_field));
+    if (headers_it != source.end()) {
+      action.headers = parse_hook_headers(*headers_it, context);
+    }
+    out.overrides_default_actions = true;
+    out.default_actions.push_back(std::move(action));
+  };
+  auto parse_actions_array = [&](const nlohmann::json &arr,
+                                 std::vector<HookAction> &dest) {
+    for (const auto &entry : arr) {
+      if (auto action = parse_hook_action(entry, context)) {
+        dest.push_back(*action);
+      }
+    }
+  };
+
+  if (node.contains("hooks_enabled") && node["hooks_enabled"].is_boolean()) {
+    out.has_enabled = true;
+    out.enabled = node["hooks_enabled"].get<bool>();
+  }
+  parse_default_command(node, "hook_command");
+  parse_default_http(node, "hook_endpoint", "hook_method", "hook_headers");
+  auto top_actions = node.find("hook_actions");
+  if (top_actions != node.end() && top_actions->is_array()) {
+    out.overrides_default_actions = true;
+    parse_actions_array(*top_actions, out.default_actions);
+  }
+  auto top_events = node.find("hook_event_actions");
+  if (top_events != node.end() && top_events->is_object()) {
+    out.overrides_event_actions = true;
+    for (const auto &[event_name, actions] : top_events->items()) {
+      if (!actions.is_array()) {
+        config_log()->warn(
+            "hook_event_actions entry '{}' for '{}' must be an array",
+            event_name, context);
+        continue;
+      }
+      std::vector<HookAction> parsed;
+      parse_actions_array(actions, parsed);
+      out.event_actions[event_name] = std::move(parsed);
+    }
+  }
+  auto hooks_it = node.find("hooks");
+  if (hooks_it != node.end() && hooks_it->is_object()) {
+    const auto &hooks = *hooks_it;
+    if (hooks.contains("enabled") && hooks["enabled"].is_boolean()) {
+      out.has_enabled = true;
+      out.enabled = hooks["enabled"].get<bool>();
+    }
+    parse_default_command(hooks, "command");
+    parse_default_http(hooks, "endpoint", "method", "headers");
+    auto hooks_actions = hooks.find("actions");
+    if (hooks_actions != hooks.end() && hooks_actions->is_array()) {
+      out.overrides_default_actions = true;
+      parse_actions_array(*hooks_actions, out.default_actions);
+    }
+    auto hooks_events = hooks.find("event_actions");
+    if (hooks_events != hooks.end() && hooks_events->is_object()) {
+      out.overrides_event_actions = true;
+      for (const auto &[event_name, actions] : hooks_events->items()) {
+        if (!actions.is_array()) {
+          config_log()->warn(
+              "hooks.event_actions entry '{}' for '{}' must be an array",
+              event_name, context);
+          continue;
+        }
+        std::vector<HookAction> parsed;
+        parse_actions_array(actions, parsed);
+        out.event_actions[event_name] = std::move(parsed);
+      }
+    }
+  }
 }
 
 } // namespace
@@ -566,6 +856,51 @@ void Config::load_json(const nlohmann::json &j) {
   if (cfg.contains("hooks_branch_threshold")) {
     set_hook_branch_threshold(cfg["hooks_branch_threshold"].get<int>());
   }
+  repository_overrides_.clear();
+  if (cfg.contains("repository_overrides")) {
+    const auto &overrides = cfg["repository_overrides"];
+    auto add_override = [&](const std::string &pattern,
+                            const nlohmann::json &payload) {
+      if (!payload.is_object()) {
+        config_log()->warn(
+            "Repository override '{}' ignored because value is not an object",
+            pattern);
+        return;
+      }
+      RepositoryOverride entry;
+      entry.pattern = pattern;
+      entry.compiled_pattern = compile_repo_pattern(pattern);
+      parse_repository_actions(payload, entry.actions);
+      parse_repository_hooks(payload, entry.hooks, pattern);
+      repository_overrides_.push_back(std::move(entry));
+    };
+    if (overrides.is_object()) {
+      for (const auto &[pattern, payload] : overrides.items()) {
+        add_override(pattern, payload);
+      }
+    } else if (overrides.is_array()) {
+      for (const auto &item : overrides) {
+        if (!item.is_object()) {
+          config_log()->warn(
+              "repository_overrides array entries must be objects; skipping");
+          continue;
+        }
+        auto pat_it = item.find("pattern");
+        if (pat_it == item.end() || !pat_it->is_string()) {
+          config_log()->warn(
+              "repository_overrides array entry missing string 'pattern'; "
+              "skipping");
+          continue;
+        }
+        std::string pattern = pat_it->get<std::string>();
+        add_override(pattern, item);
+      }
+    } else {
+      config_log()->warn(
+          "repository_overrides must be an object mapping patterns or an array"
+          " of override objects");
+    }
+  }
   if (cfg.contains("mcp_server_enabled")) {
     set_mcp_server_enabled(cfg["mcp_server_enabled"].get<bool>());
   }
@@ -645,6 +980,30 @@ void Config::load_json(const nlohmann::json &j) {
       }
     }
   }
+}
+
+const Config::RepositoryOverride *
+Config::match_repository_override(const std::string &owner,
+                                  const std::string &repo) const {
+  if (repository_overrides_.empty()) {
+    return nullptr;
+  }
+  std::string key = owner + "/" + repo;
+  for (const auto &entry : repository_overrides_) {
+    if (entry.compiled_pattern) {
+      try {
+        if (std::regex_match(key, *entry.compiled_pattern)) {
+          return &entry;
+        }
+      } catch (const std::exception &e) {
+        config_log()->warn("Regex match failed for override '{}': {}",
+                           entry.pattern, e.what());
+      }
+    } else if (entry.pattern == key) {
+      return &entry;
+    }
+  }
+  return nullptr;
 }
 
 /**

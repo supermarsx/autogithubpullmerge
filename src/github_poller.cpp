@@ -70,7 +70,8 @@ GitHubPoller::GitHubPoller(
     std::vector<std::string> protected_branch_excludes, bool dry_run,
     GitHubGraphQLClient *graphql_client, bool delete_stray,
     double rate_limit_margin, std::chrono::seconds rate_limit_refresh_interval,
-    bool retry_rate_limit_endpoint, int rate_limit_retry_limit)
+    bool retry_rate_limit_endpoint, int rate_limit_retry_limit,
+    RepositoryOptionsMap repo_overrides)
     : client_(client), repos_(std::move(repos)), poller_(workers, max_rate),
       interval_ms_(interval_ms), base_interval_ms_(interval_ms),
       max_rate_(max_rate), base_max_rate_(max_rate),
@@ -85,7 +86,8 @@ GitHubPoller::GitHubPoller(
       graphql_client_(graphql_client),
       protected_branches_(std::move(protected_branches)),
       protected_branch_excludes_(std::move(protected_branch_excludes)),
-      history_(history), rate_limit_margin_(rate_limit_margin) {
+      history_(history), rate_limit_margin_(rate_limit_margin),
+      repo_overrides_(std::move(repo_overrides)) {
   ensure_default_logger();
   next_allowed_poll_ = std::chrono::steady_clock::now();
   if (rate_limit_margin_ <= 0.0) {
@@ -118,17 +120,6 @@ GitHubPoller::GitHubPoller(
       [this](std::size_t outstanding, std::chrono::seconds clearance) {
         handle_backlog(outstanding, clearance);
       });
-  if (!delete_stray_) {
-    branch_rule_engine_.set_action("stray", BranchAction::kKeep);
-  }
-  if (purge_prefix_.empty()) {
-    branch_rule_engine_.set_action("purge", BranchAction::kKeep);
-  }
-  if (reject_dirty_) {
-    branch_rule_engine_.set_action("dirty", BranchAction::kDelete);
-  } else {
-    branch_rule_engine_.set_action("dirty", BranchAction::kKeep);
-  }
   if (max_rate_ > 0) {
     auto interval =
         std::chrono::duration<double>(60.0 / static_cast<double>(max_rate_));
@@ -139,6 +130,26 @@ GitHubPoller::GitHubPoller(
       min_poll_interval_ = std::chrono::nanoseconds(1);
     }
   }
+}
+
+RepositoryOptions
+GitHubPoller::effective_repository_options(const std::string &owner,
+                                           const std::string &repo) const {
+  RepositoryOptions opts;
+  opts.only_poll_prs = only_poll_prs_;
+  opts.only_poll_stray = only_poll_stray_;
+  opts.purge_only = purge_only_;
+  opts.auto_merge = auto_merge_;
+  opts.reject_dirty = reject_dirty_;
+  opts.delete_stray = delete_stray_;
+  opts.purge_prefix = purge_prefix_;
+  opts.hooks_enabled = hook_ != nullptr;
+  auto it = repo_overrides_.find(owner + "/" + repo);
+  if (it != repo_overrides_.end()) {
+    opts = it->second;
+  }
+  opts.hooks_enabled = opts.hooks_enabled && hook_ != nullptr;
+  return opts;
 }
 
 /**
@@ -272,7 +283,6 @@ void GitHubPoller::poll() {
     }
     next_allowed_poll_ = now + min_poll_interval_;
   }
-  bool skip_branch_ops = only_poll_prs_ || (max_rate_ > 0 && max_rate_ <= 1);
   poller_log()->debug("Polling repositories");
   std::vector<PullRequest> all_prs;
   std::vector<StrayBranch> all_stray;
@@ -284,46 +294,50 @@ void GitHubPoller::poll() {
   std::vector<std::future<void>> futures;
   futures.reserve(repos_.size());
   for (const auto &repo : repos_) {
+    RepositoryOptions options =
+        effective_repository_options(repo.first, repo.second);
+    bool skip_branch_ops =
+        options.only_poll_prs || (max_rate_ > 0 && max_rate_ <= 1);
     std::string repo_name = repo.first + "/" + repo.second;
     std::string job_label;
-    if (purge_only_) {
+    if (options.purge_only) {
       job_label = repo_name + " purge";
     } else if (skip_branch_ops) {
       job_label = repo_name + " pull requests";
     } else {
       job_label = repo_name + " sync";
     }
-    futures.emplace_back(poller_.submit(job_label, [this, repo, repo_name,
-                                                    skip_branch_ops, &all_prs,
-                                                    &all_stray, &pr_mutex,
-                                                    &stray_mutex, &log_mutex,
-                                                    &total_pr_count,
-                                                    &total_branch_count] {
-      if (purge_only_) {
-        poller_log()->debug("purge_only set - skipping repo {}", repo_name);
-        if (!purge_prefix_.empty()) {
-          auto removed = client_.cleanup_branches(
-              repo.first, repo.second, purge_prefix_, protected_branches_,
-              protected_branch_excludes_);
-          if (hook_ && !removed.empty()) {
-            for (const auto &branch_name : removed) {
-              HookEvent evt{"branch.deleted"};
-              evt.data["owner"] = repo.first;
-              evt.data["repo"] = repo.second;
-              evt.data["branch"] = branch_name;
-              evt.data["reason"] = "purge_only";
-              hook_->enqueue(std::move(evt));
+    futures.emplace_back(poller_.submit(
+        job_label,
+        [this, repo, repo_name, options, skip_branch_ops, &all_prs, &all_stray,
+         &pr_mutex, &stray_mutex, &log_mutex, &total_pr_count,
+         &total_branch_count] {
+          bool repo_hooks_enabled = options.hooks_enabled && hook_;
+          if (options.purge_only) {
+            poller_log()->debug("purge_only set - skipping repo {}", repo_name);
+            if (!options.purge_prefix.empty()) {
+              auto removed = client_.cleanup_branches(
+                  repo.first, repo.second, options.purge_prefix,
+                  protected_branches_, protected_branch_excludes_);
+              if (repo_hooks_enabled && !removed.empty()) {
+                for (const auto &branch_name : removed) {
+                  HookEvent evt{"branch.deleted"};
+                  evt.data["owner"] = repo.first;
+                  evt.data["repo"] = repo.second;
+                  evt.data["branch"] = branch_name;
+                  evt.data["reason"] = "purge_only";
+                  hook_->enqueue(std::move(evt));
+                }
+              }
+              if (notifier_) {
+                notifier_->notify("Purged branches in " + repo.first + "/" +
+                                  repo.second);
+              }
             }
+            return;
           }
-          if (notifier_) {
-            notifier_->notify("Purged branches in " + repo.first + "/" +
-                              repo.second);
-          }
-        }
-        return;
-      }
-      if (!only_poll_stray_) {
-        const std::vector<PullRequest> prs = [this, &repo]() {
+          if (!options.only_poll_stray) {
+            const std::vector<PullRequest> prs = [this, &repo]() {
           if (graphql_client_) {
             return graphql_client_->list_pull_requests(repo.first, repo.second);
           }
@@ -333,43 +347,43 @@ void GitHubPoller::poll() {
                                                           repo.second);
           }
           return client_.list_pull_requests(repo.first, repo.second);
-        }();
-        {
-          std::lock_guard<std::mutex> lk(pr_mutex);
-          all_prs.insert(all_prs.end(), prs.begin(), prs.end());
-          if (history_) {
-            for (const auto &pr : prs) {
-              history_->insert(pr.number, pr.title, pr.merged);
+            }();
+            {
+              std::lock_guard<std::mutex> lk(pr_mutex);
+              all_prs.insert(all_prs.end(), prs.begin(), prs.end());
+              if (history_) {
+                for (const auto &pr : prs) {
+                  history_->insert(pr.number, pr.title, pr.merged);
+                }
+              }
             }
-          }
-        }
-        total_pr_count.fetch_add(prs.size(), std::memory_order_relaxed);
-        if (log_cb_) {
-          std::lock_guard<std::mutex> lk(log_mutex);
-          log_cb_(repo.first + "/" + repo.second +
-                  " pull requests: " + std::to_string(prs.size()));
-        } else {
-          poller_log()->info("Fetched {} pull requests for {}/{}", prs.size(),
-                             repo.first, repo.second);
-        }
-        if (auto_merge_) {
-          auto remove_pr = [&](const PullRequest &target) {
-            std::lock_guard<std::mutex> lk(pr_mutex);
-            auto new_end =
-                std::remove_if(all_prs.begin(), all_prs.end(),
-                               [&](const PullRequest &candidate) {
-                                 return candidate.number == target.number &&
-                                        candidate.owner == target.owner &&
-                                        candidate.repo == target.repo;
-                               });
-            std::size_t removed =
-                static_cast<std::size_t>(std::distance(new_end, all_prs.end()));
-            if (removed > 0) {
-              all_prs.erase(new_end, all_prs.end());
-              total_pr_count.fetch_sub(removed, std::memory_order_relaxed);
+            total_pr_count.fetch_add(prs.size(), std::memory_order_relaxed);
+            if (log_cb_) {
+              std::lock_guard<std::mutex> lk(log_mutex);
+              log_cb_(repo.first + "/" + repo.second +
+                      " pull requests: " + std::to_string(prs.size()));
+            } else {
+              poller_log()->info("Fetched {} pull requests for {}/{}",
+                                 prs.size(), repo.first, repo.second);
             }
-          };
-          for (const auto &pr : prs) {
+            if (options.auto_merge) {
+              auto remove_pr = [&](const PullRequest &target) {
+                std::lock_guard<std::mutex> lk(pr_mutex);
+                auto new_end = std::remove_if(
+                    all_prs.begin(), all_prs.end(),
+                    [&](const PullRequest &candidate) {
+                      return candidate.number == target.number &&
+                             candidate.owner == target.owner &&
+                             candidate.repo == target.repo;
+                    });
+                std::size_t removed = static_cast<std::size_t>(
+                    std::distance(new_end, all_prs.end()));
+                if (removed > 0) {
+                  all_prs.erase(new_end, all_prs.end());
+                  total_pr_count.fetch_sub(removed, std::memory_order_relaxed);
+                }
+              };
+              for (const auto &pr : prs) {
             auto metadata =
                 client_.pull_request_metadata(pr.owner, pr.repo, pr.number);
             if (!metadata) {
@@ -409,7 +423,7 @@ void GitHubPoller::poll() {
                   notifier_->notify("Merged PR #" + std::to_string(pr.number) +
                                     " in " + pr.owner + "/" + pr.repo);
                 }
-                if (hook_) {
+                if (repo_hooks_enabled) {
                   HookEvent evt{"pull_request.merged"};
                   evt.data["number"] = pr.number;
                   evt.data["owner"] = pr.owner;
@@ -422,7 +436,7 @@ void GitHubPoller::poll() {
                 }
                 remove_pr(pr);
               } else {
-                if (hook_) {
+                if (repo_hooks_enabled) {
                   HookEvent evt{"pull_request.merge_failed"};
                   evt.data["number"] = pr.number;
                   evt.data["owner"] = pr.owner;
@@ -451,7 +465,7 @@ void GitHubPoller::poll() {
                   notifier_->notify("Closed PR #" + std::to_string(pr.number) +
                                     " in " + pr.owner + "/" + pr.repo);
                 }
-                if (hook_) {
+                if (repo_hooks_enabled) {
                   HookEvent evt{"pull_request.closed"};
                   evt.data["number"] = pr.number;
                   evt.data["owner"] = pr.owner;
@@ -461,7 +475,7 @@ void GitHubPoller::poll() {
                 }
                 remove_pr(pr);
               } else {
-                if (hook_) {
+                if (repo_hooks_enabled) {
                   HookEvent evt{"pull_request.close_failed"};
                   evt.data["number"] = pr.number;
                   evt.data["owner"] = pr.owner;
@@ -512,7 +526,8 @@ void GitHubPoller::poll() {
         };
         if (uses_rule_based(stray_detection_mode_)) {
           for (const auto &branch : branches) {
-            if (!purge_prefix_.empty() && branch.rfind(purge_prefix_, 0) == 0) {
+            if (!options.purge_prefix.empty() &&
+                branch.rfind(options.purge_prefix, 0) == 0) {
               continue;
             }
             record_branch(branch);
@@ -523,7 +538,8 @@ void GitHubPoller::poll() {
               repo.first, repo.second, default_branch, branches,
               protected_branches_, protected_branch_excludes_);
           for (const auto &branch : heuristic_branches) {
-            if (!purge_prefix_.empty() && branch.rfind(purge_prefix_, 0) == 0) {
+            if (!options.purge_prefix.empty() &&
+                branch.rfind(options.purge_prefix, 0) == 0) {
               continue;
             }
             record_branch(branch);
@@ -549,6 +565,9 @@ void GitHubPoller::poll() {
           BranchMetadata metadata{repo.first, repo.second, branch, "stray", true,
                                   new_branches.count(branch) > 0};
           BranchAction action = branch_rule_engine_.decide(metadata);
+          if (!options.delete_stray) {
+            action = BranchAction::kKeep;
+          }
           if (action == BranchAction::kDelete) {
             auto removed = client_.cleanup_branches(
                 repo.first, repo.second, branch, protected_branches_,
@@ -565,7 +584,7 @@ void GitHubPoller::poll() {
                                    });
                 all_stray.erase(new_end, all_stray.end());
               }
-              if (hook_) {
+              if (repo_hooks_enabled) {
                 for (const auto &name : removed) {
                   HookEvent evt{"branch.deleted"};
                   evt.data["owner"] = repo.first;
@@ -598,7 +617,7 @@ void GitHubPoller::poll() {
             auto removed = client_.cleanup_branches(repo.first, repo.second,
                                                     branch, protected_branches_,
                                                     protected_branch_excludes_);
-            if (hook_ && !removed.empty()) {
+            if (repo_hooks_enabled && !removed.empty()) {
               for (const auto &name : removed) {
                 HookEvent evt{"branch.deleted"};
                 evt.data["owner"] = repo.first;
@@ -611,12 +630,13 @@ void GitHubPoller::poll() {
           }
         }
       }
-      if (!purge_prefix_.empty()) {
-        BranchMetadata metadata{repo.first, repo.second, purge_prefix_, "purge"};
+      if (!options.purge_prefix.empty()) {
+        BranchMetadata metadata{repo.first, repo.second, options.purge_prefix,
+                                 "purge"};
         BranchAction action = branch_rule_engine_.decide(metadata);
         if (action == BranchAction::kDelete) {
           auto removed = client_.cleanup_branches(
-              repo.first, repo.second, purge_prefix_, protected_branches_,
+              repo.first, repo.second, options.purge_prefix, protected_branches_,
               protected_branch_excludes_);
           if (!removed.empty()) {
             std::lock_guard<std::mutex> lk(stray_mutex);
@@ -630,7 +650,7 @@ void GitHubPoller::poll() {
                                  });
               all_stray.erase(new_end, all_stray.end());
             }
-            if (hook_) {
+            if (repo_hooks_enabled) {
               for (const auto &name : removed) {
                 HookEvent evt{"branch.deleted"};
                 evt.data["owner"] = repo.first;
@@ -651,6 +671,9 @@ void GitHubPoller::poll() {
         BranchMetadata dirty_metadata{repo.first, repo.second, std::string{},
                                       "dirty"};
         BranchAction dirty_action = branch_rule_engine_.decide(dirty_metadata);
+        if (!options.reject_dirty) {
+          dirty_action = BranchAction::kKeep;
+        }
         if (dirty_action == BranchAction::kDelete) {
           client_.close_dirty_branches(repo.first, repo.second,
                                        protected_branches_,

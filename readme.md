@@ -168,6 +168,61 @@ protected_branch_excludes:
 }
 ```
 
+## Repository Overrides
+
+Override polling behaviour, automation flags, and hook actions on a
+per-repository basis using pattern-matched entries. Patterns accept literal
+`owner/repo` names, `glob:` helpers, or plain `*`/`?` wildcards.
+
+```yaml
+repository_overrides:
+  "octocat/*":
+    actions:
+      only_poll_prs: true
+      delete_stray: false
+      hooks_enabled: false
+    hooks:
+      actions:
+        - type: command
+          command: scripts/notify.sh
+      event_actions:
+        pull_request.merged:
+          - type: http
+            endpoint: https://hooks.example/merged
+            method: PUT
+            headers:
+              X-Repo-Override: enabled
+```
+
+```json
+{
+  "repository_overrides": {
+    "octocat/*": {
+      "actions": {
+        "only_poll_prs": true,
+        "delete_stray": false,
+        "hooks_enabled": false
+      },
+      "hooks": {
+        "actions": [
+          {"type": "command", "command": "scripts/notify.sh"}
+        ],
+        "event_actions": {
+          "pull_request.merged": [
+            {
+              "type": "http",
+              "endpoint": "https://hooks.example/merged",
+              "method": "PUT",
+              "headers": {"X-Repo-Override": "enabled"}
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
 ## Dry-Run and Proxy Support
 
 Use `--dry-run` to simulate operations without altering repositories. HTTP

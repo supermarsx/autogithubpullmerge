@@ -1,4 +1,5 @@
 #include "config.hpp"
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <nlohmann/json.hpp>
@@ -72,6 +73,19 @@ TEST_CASE("test config from json") {
   hooks["pull_threshold"] = 12;
   hooks["branch_threshold"] = 3;
 
+  auto &repo_overrides = j["repository_overrides"];
+  auto &octo = repo_overrides["octocat/*"];
+  octo["only_poll_prs"] = true;
+  octo["hooks"]["enabled"] = false;
+  octo["hooks"]["actions"] =
+      nlohmann::json::array({{{"type", "command"}, {"command", "notify"}}});
+  octo["hooks"]["event_actions"]["pull_request.merged"] =
+      nlohmann::json::array(
+          {{{"type", "http"}, {"endpoint", "https://example.com"},
+            {"method", "PUT"}}}});
+  auto &regex_override = repo_overrides["regex:^agpm/.+$"];
+  regex_override["auto_merge"] = true;
+
   agpm::Config cfg = agpm::Config::from_json(j);
 
   REQUIRE(cfg.verbose());
@@ -119,4 +133,46 @@ TEST_CASE("test config from json") {
   REQUIRE(cfg.hook_headers().at("X-Test") == "alpha");
   REQUIRE(cfg.hook_pull_threshold() == 12);
   REQUIRE(cfg.hook_branch_threshold() == 3);
+  const auto &overrides = cfg.repository_overrides();
+  REQUIRE(overrides.size() == 2);
+  auto glob_it = std::find_if(overrides.begin(), overrides.end(),
+                              [](const agpm::Config::RepositoryOverride &entry) {
+                                return entry.pattern == "octocat/*";
+                              });
+  REQUIRE(glob_it != overrides.end());
+  const auto &glob_override = *glob_it;
+  REQUIRE(glob_override.actions.has_only_poll_prs);
+  REQUIRE(glob_override.actions.only_poll_prs);
+  REQUIRE_FALSE(glob_override.actions.has_auto_merge);
+  REQUIRE(glob_override.hooks.has_enabled);
+  REQUIRE_FALSE(glob_override.hooks.enabled);
+  REQUIRE(glob_override.hooks.overrides_default_actions);
+  REQUIRE(glob_override.hooks.default_actions.size() == 1);
+  REQUIRE(glob_override.hooks.default_actions.front().type ==
+          agpm::HookActionType::Command);
+  REQUIRE(glob_override.hooks.default_actions.front().command == "notify");
+  REQUIRE(glob_override.hooks.overrides_event_actions);
+  REQUIRE(glob_override.hooks.event_actions.count("pull_request.merged") == 1);
+  const auto &merged_actions =
+      glob_override.hooks.event_actions.at("pull_request.merged");
+  REQUIRE(merged_actions.size() == 1);
+  REQUIRE(merged_actions.front().type == agpm::HookActionType::Http);
+  REQUIRE(merged_actions.front().endpoint == "https://example.com");
+  REQUIRE(merged_actions.front().method == "PUT");
+  auto regex_it = std::find_if(overrides.begin(), overrides.end(),
+                               [](const agpm::Config::RepositoryOverride &entry) {
+                                 return entry.pattern == "regex:^agpm/.+$";
+                               });
+  REQUIRE(regex_it != overrides.end());
+  REQUIRE(regex_it->actions.has_auto_merge);
+  REQUIRE(regex_it->actions.auto_merge);
+
+  const auto *glob_match = cfg.match_repository_override("octocat", "widgets");
+  REQUIRE(glob_match != nullptr);
+  REQUIRE(glob_match->pattern == "octocat/*");
+  const auto *regex_match = cfg.match_repository_override("agpm", "core");
+  REQUIRE(regex_match != nullptr);
+  REQUIRE(regex_match->pattern == "regex:^agpm/.+$");
+  const auto *no_match = cfg.match_repository_override("someone", "else");
+  REQUIRE(no_match == nullptr);
 }

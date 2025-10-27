@@ -1,10 +1,13 @@
 #ifndef AUTOGITHUBPULLMERGE_CONFIG_HPP
 #define AUTOGITHUBPULLMERGE_CONFIG_HPP
 
+#include "hook.hpp"
 #include "repo_discovery.hpp"
 #include "stray_detection_mode.hpp"
 #include <chrono>
 #include <nlohmann/json_fwd.hpp>
+#include <optional>
+#include <regex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -14,6 +17,41 @@ namespace agpm {
 /// Application configuration loaded from a YAML, TOML, or JSON file.
 class Config {
 public:
+  struct RepositoryActionOverride {
+    bool has_only_poll_prs{false};
+    bool only_poll_prs{false};
+    bool has_only_poll_stray{false};
+    bool only_poll_stray{false};
+    bool has_purge_only{false};
+    bool purge_only{false};
+    bool has_auto_merge{false};
+    bool auto_merge{false};
+    bool has_reject_dirty{false};
+    bool reject_dirty{false};
+    bool has_delete_stray{false};
+    bool delete_stray{false};
+    bool has_hooks_enabled{false};
+    bool hooks_enabled{false};
+    bool has_purge_prefix{false};
+    std::string purge_prefix;
+  };
+
+  struct RepositoryHookOverride {
+    bool has_enabled{false};
+    bool enabled{false};
+    bool overrides_default_actions{false};
+    std::vector<HookAction> default_actions;
+    bool overrides_event_actions{false};
+    std::unordered_map<std::string, std::vector<HookAction>> event_actions;
+  };
+
+  struct RepositoryOverride {
+    std::string pattern;
+    RepositoryActionOverride actions;
+    RepositoryHookOverride hooks;
+    std::optional<std::regex> compiled_pattern;
+  };
+
   /** Check whether verbose output is enabled. */
   bool verbose() const { return verbose_; }
 
@@ -576,6 +614,16 @@ public:
     hook_branch_threshold_ = threshold < 0 ? 0 : threshold;
   }
 
+  /// Repository-specific configuration overrides.
+  const std::vector<RepositoryOverride> &repository_overrides() const {
+    return repository_overrides_;
+  }
+
+  /// Locate the first repository override matching the owner/name pair.
+  const RepositoryOverride *
+  match_repository_override(const std::string &owner,
+                            const std::string &repo) const;
+
   /// Load configuration from the file at `path`.
   static Config from_file(const std::string &path);
 
@@ -715,6 +763,7 @@ private:
   std::unordered_map<std::string, std::string> hook_headers_;
   int hook_pull_threshold_{0};
   int hook_branch_threshold_{0};
+  std::vector<RepositoryOverride> repository_overrides_;
   bool mcp_server_enabled_{false};
   std::string mcp_server_bind_address_{"127.0.0.1"};
   int mcp_server_port_{7332};

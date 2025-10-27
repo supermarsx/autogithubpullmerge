@@ -174,6 +174,27 @@ int main(int argc, char **argv) {
       }
       hook_settings.default_actions.push_back(std::move(http_action));
     }
+    for (const auto &override_cfg : cfg.repository_overrides()) {
+      agpm::RepositoryHookSettings repo_hooks;
+      repo_hooks.pattern = override_cfg.pattern;
+      repo_hooks.compiled_pattern = override_cfg.compiled_pattern;
+      if (override_cfg.hooks.has_enabled) {
+        repo_hooks.has_enabled = true;
+        repo_hooks.enabled = override_cfg.hooks.enabled;
+      }
+      if (override_cfg.hooks.overrides_default_actions) {
+        repo_hooks.overrides_default_actions = true;
+        repo_hooks.default_actions = override_cfg.hooks.default_actions;
+      }
+      if (override_cfg.hooks.overrides_event_actions) {
+        repo_hooks.overrides_event_actions = true;
+        repo_hooks.event_actions = override_cfg.hooks.event_actions;
+      }
+      if (repo_hooks.has_enabled || repo_hooks.overrides_default_actions ||
+          repo_hooks.overrides_event_actions) {
+        hook_settings.repository_overrides.push_back(std::move(repo_hooks));
+      }
+    }
     hook_dispatcher = std::make_shared<agpm::HookDispatcher>(hook_settings);
   }
 
@@ -341,6 +362,54 @@ int main(int argc, char **argv) {
       !opts.history_db.empty() ? opts.history_db : cfg.history_db();
   agpm::PullRequestHistory history(history_db);
 
+  agpm::GitHubPoller::RepositoryOptionsMap repo_override_options;
+  repo_override_options.reserve(repos.size());
+  bool hooks_available = static_cast<bool>(hook_dispatcher);
+  for (const auto &entry : repos) {
+    agpm::GitHubPoller::RepositoryOptions repo_opts;
+    repo_opts.only_poll_prs = only_poll_prs;
+    repo_opts.only_poll_stray = only_poll_stray;
+    repo_opts.purge_only = purge_only;
+    repo_opts.auto_merge = auto_merge;
+    repo_opts.reject_dirty = reject_dirty;
+    repo_opts.delete_stray = delete_stray;
+    repo_opts.purge_prefix = purge_prefix;
+    repo_opts.hooks_enabled = hooks_available;
+    if (const auto *override_cfg =
+            cfg.match_repository_override(entry.first, entry.second)) {
+      const auto &actions = override_cfg->actions;
+      if (actions.has_only_poll_prs) {
+        repo_opts.only_poll_prs = actions.only_poll_prs;
+      }
+      if (actions.has_only_poll_stray) {
+        repo_opts.only_poll_stray = actions.only_poll_stray;
+      }
+      if (actions.has_purge_only) {
+        repo_opts.purge_only = actions.purge_only;
+      }
+      if (actions.has_auto_merge) {
+        repo_opts.auto_merge = actions.auto_merge;
+      }
+      if (actions.has_reject_dirty) {
+        repo_opts.reject_dirty = actions.reject_dirty;
+      }
+      if (actions.has_delete_stray) {
+        repo_opts.delete_stray = actions.delete_stray;
+      }
+      if (actions.has_purge_prefix) {
+        repo_opts.purge_prefix = actions.purge_prefix;
+      }
+      if (actions.has_hooks_enabled) {
+        repo_opts.hooks_enabled = actions.hooks_enabled;
+      }
+      if (override_cfg->hooks.has_enabled) {
+        repo_opts.hooks_enabled = override_cfg->hooks.enabled;
+      }
+    }
+    repo_override_options.emplace(entry.first + "/" + entry.second,
+                                  std::move(repo_opts));
+  }
+
   agpm::GitHubPoller poller(
       client, repos, interval_ms, max_rate, hourly_limit, workers,
       only_poll_prs, only_poll_stray, stray_detection_mode, reject_dirty,
@@ -349,7 +418,8 @@ int main(int argc, char **argv) {
       (opts.use_graphql || cfg.use_graphql()) ? &graphql_client : nullptr,
       delete_stray, rate_limit_margin,
       std::chrono::seconds(rate_limit_refresh_interval),
-      retry_rate_limit_endpoint, rate_limit_retry_limit);
+      retry_rate_limit_endpoint, rate_limit_retry_limit,
+      std::move(repo_override_options));
 
   if (hook_dispatcher) {
     poller.set_hook_dispatcher(hook_dispatcher);
