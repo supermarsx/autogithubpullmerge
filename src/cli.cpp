@@ -925,7 +925,7 @@ CliOptions parse_cli(int argc, char **argv) {
       ->type_name("MODE")
       ->group("Branch Management");
   app.add_flag_function(
-         "-H,--heuristic-stray-detection",
+         "-J,--heuristic-stray-detection",
          [&options](std::int64_t) {
            options.stray_detection_mode = StrayDetectionMode::Combined;
            options.stray_detection_mode_explicit = true;
