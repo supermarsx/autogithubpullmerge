@@ -230,9 +230,10 @@ namespace agpm {
  * @param log_limit Maximum number of log entries to retain.
  */
 Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit,
-         bool log_sidecar)
+         bool log_sidecar, bool mcp_caddy_window)
     : client_(client), poller_(poller), log_limit_(log_limit),
-      log_sidecar_(log_sidecar) {
+      mcp_event_limit_(log_limit), log_sidecar_(log_sidecar),
+      mcp_caddy_window_(mcp_caddy_window) {
   ensure_default_logger();
   initialize_default_hotkeys();
   open_cmd_ = [](const std::string &url) {
@@ -266,6 +267,34 @@ void Tui::set_log_sidecar(bool enabled) {
   if (help_win_) {
     delwin(help_win_);
     help_win_ = nullptr;
+  }
+  if (mcp_win_) {
+    delwin(mcp_win_);
+    mcp_win_ = nullptr;
+  }
+}
+
+void Tui::set_mcp_caddy(bool enabled) {
+  if (mcp_caddy_window_ == enabled)
+    return;
+  mcp_caddy_window_ = enabled;
+  last_h_ = 0;
+  last_w_ = 0;
+  if (!initialized_)
+    return;
+  if (mcp_win_) {
+    delwin(mcp_win_);
+    mcp_win_ = nullptr;
+  }
+}
+
+void Tui::add_mcp_event(const std::string &event) {
+  std::lock_guard<std::mutex> lock(mcp_mutex_);
+  mcp_events_.push_back(event);
+  if (mcp_events_.size() > mcp_event_limit_) {
+    auto trim = mcp_events_.size() - mcp_event_limit_;
+    mcp_events_.erase(mcp_events_.begin(),
+                      mcp_events_.begin() + static_cast<std::ptrdiff_t>(trim));
   }
 }
 
@@ -508,6 +537,10 @@ void Tui::draw() {
   int help_width = 0;
   int help_y = 0;
   int help_x = 0;
+  int mcp_height = 0;
+  int mcp_width = 0;
+  int mcp_y = 0;
+  int mcp_x = 0;
 
   if (log_sidecar_) {
     log_width = std::max(20, w / 3);
@@ -561,15 +594,46 @@ void Tui::draw() {
     help_x = w - help_width;
   }
 
+  if (mcp_caddy_window_) {
+    mcp_width = log_width;
+    int divisor = log_sidecar_ ? 3 : 2;
+    if (divisor <= 0) {
+      divisor = 1;
+    }
+    mcp_height = std::max(3, log_height / divisor);
+    if (mcp_height >= log_height) {
+      mcp_height = std::max(0, log_height - 1);
+    }
+    if (mcp_height > 0) {
+      log_height -= mcp_height;
+      if (log_height < 1) {
+        log_height = 1;
+      }
+      mcp_y = log_y + log_height;
+      mcp_x = log_x;
+    } else {
+      mcp_height = 0;
+      mcp_width = 0;
+    }
+  }
+
   pr_height = std::max(1, pr_height);
   pr_width = std::max(1, pr_width);
   log_height = std::max(1, log_height);
   log_width = std::max(1, log_width);
   help_height = std::max(1, help_height);
   help_width = std::max(1, help_width);
+  mcp_height = std::max(0, mcp_height);
+  mcp_width = std::max(0, mcp_width);
+
+  if (!mcp_caddy_window_ && mcp_win_ != nullptr) {
+    delwin(mcp_win_);
+    mcp_win_ = nullptr;
+  }
 
   if (h != last_h_ || w != last_w_ || pr_win_ == nullptr ||
-      log_win_ == nullptr || help_win_ == nullptr) {
+      log_win_ == nullptr || help_win_ == nullptr ||
+      (mcp_caddy_window_ && mcp_win_ == nullptr)) {
     last_h_ = h;
     last_w_ = w;
     if (pr_win_)
@@ -578,6 +642,10 @@ void Tui::draw() {
       delwin(log_win_);
     if (help_win_)
       delwin(help_win_);
+    if (mcp_win_) {
+      delwin(mcp_win_);
+      mcp_win_ = nullptr;
+    }
     if (detail_win_) {
       delwin(detail_win_);
       detail_win_ = nullptr;
@@ -585,14 +653,27 @@ void Tui::draw() {
     pr_win_ = newwin(pr_height, pr_width, pr_y, pr_x);
     log_win_ = newwin(log_height, log_width, log_y, log_x);
     help_win_ = newwin(help_height, help_width, help_y, help_x);
+    if (mcp_caddy_window_ && mcp_height > 0 && mcp_width > 0) {
+      mcp_win_ = newwin(std::max(1, mcp_height), std::max(1, mcp_width),
+                        mcp_y, mcp_x);
+    }
   }
   if (has_colors()) {
     wbkgd(pr_win_, COLOR_PAIR(0));
     wbkgd(log_win_, COLOR_PAIR(0));
     wbkgd(help_win_, COLOR_PAIR(0));
+    if (mcp_win_) {
+      wbkgd(mcp_win_, COLOR_PAIR(0));
+      redrawwin(mcp_win_);
+    }
     redrawwin(pr_win_);
     redrawwin(log_win_);
     redrawwin(help_win_);
+  }
+  std::vector<std::string> mcp_snapshot;
+  if (mcp_caddy_window_) {
+    std::lock_guard<std::mutex> lock(mcp_mutex_);
+    mcp_snapshot = mcp_events_;
   }
   // PR window
   werase(pr_win_);
@@ -632,6 +713,33 @@ void Tui::draw() {
     wattroff(log_win_, COLOR_PAIR(2));
   }
   wrefresh(log_win_);
+
+  if (mcp_caddy_window_ && mcp_win_ != nullptr) {
+    werase(mcp_win_);
+    box(mcp_win_, 0, 0);
+    mvwprintw(mcp_win_, 0, 2, "MCP Activity");
+    int mcp_win_h = 0;
+    int mcp_win_w = 0;
+    getmaxyx(mcp_win_, mcp_win_h, mcp_win_w);
+    int max_mcp_lines = std::max(0, mcp_win_h - 2);
+    int start_index = static_cast<int>(mcp_snapshot.size()) - max_mcp_lines;
+    if (start_index < 0) {
+      start_index = 0;
+    }
+    for (int i = 0; i < max_mcp_lines && start_index + i <
+                                    static_cast<int>(mcp_snapshot.size()); ++i) {
+      std::string entry = mcp_snapshot[static_cast<std::size_t>(start_index + i)];
+      if (mcp_win_w > 2 && static_cast<int>(entry.size()) > mcp_win_w - 2) {
+        if (mcp_win_w > 5) {
+          entry = entry.substr(0, mcp_win_w - 5) + "...";
+        } else {
+          entry = entry.substr(0, std::max(0, mcp_win_w - 2));
+        }
+      }
+      mvwprintw(mcp_win_, 1 + i, 1, "%s", entry.c_str());
+    }
+    wrefresh(mcp_win_);
+  }
 
   // Help window
   werase(help_win_);
@@ -794,6 +902,8 @@ void Tui::cleanup() {
     delwin(log_win_);
   if (help_win_)
     delwin(help_win_);
+  if (mcp_win_)
+    delwin(mcp_win_);
   if (detail_win_)
     delwin(detail_win_);
   endwin();

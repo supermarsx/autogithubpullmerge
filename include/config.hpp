@@ -545,8 +545,7 @@ public:
   }
 
   /// Replace the configured hook HTTP headers.
-  void set_hook_headers(
-      std::unordered_map<std::string, std::string> headers) {
+  void set_hook_headers(std::unordered_map<std::string, std::string> headers) {
     hook_headers_ = std::move(headers);
   }
 
@@ -579,6 +578,60 @@ public:
 
   /// Populate this configuration from a JSON object.
   void load_json(const nlohmann::json &j);
+
+  /// Determine whether the MCP server should be enabled.
+  bool mcp_server_enabled() const { return mcp_server_enabled_; }
+
+  /// Enable or disable the MCP server integration.
+  void set_mcp_server_enabled(bool enabled) { mcp_server_enabled_ = enabled; }
+
+  /// Address used when binding the MCP server listener socket.
+  const std::string &mcp_server_bind_address() const {
+    return mcp_server_bind_address_;
+  }
+
+  /// Update the MCP server bind address.
+  void set_mcp_server_bind_address(const std::string &address) {
+    mcp_server_bind_address_ = address;
+  }
+
+  /// TCP port exposed by the MCP server listener.
+  int mcp_server_port() const { return mcp_server_port_; }
+
+  /// Set the MCP server port, clamping to the valid TCP range.
+  void set_mcp_server_port(int port) {
+    if (port < 1) {
+      mcp_server_port_ = 1;
+    } else if (port > 65535) {
+      mcp_server_port_ = 65535;
+    } else {
+      mcp_server_port_ = port;
+    }
+  }
+
+  /// Connection backlog permitted by the MCP server listener.
+  int mcp_server_backlog() const { return mcp_server_backlog_; }
+
+  /// Set the MCP server backlog (minimum of one pending connection).
+  void set_mcp_server_backlog(int backlog) {
+    mcp_server_backlog_ = backlog < 1 ? 1 : backlog;
+  }
+
+  /// Maximum clients served before restarting the MCP listener (0 = unlimited).
+  int mcp_server_max_clients() const { return mcp_server_max_clients_; }
+
+  /// Update the client budget; negative values are coerced to zero (unlimited).
+  void set_mcp_server_max_clients(int clients) {
+    mcp_server_max_clients_ = clients < 0 ? 0 : clients;
+  }
+
+  /// Whether the MCP activity sidecar window is enabled.
+  bool mcp_server_caddy_window() const { return mcp_server_caddy_window_; }
+
+  /// Toggle the MCP activity sidecar window.
+  void set_mcp_server_caddy_window(bool enabled) {
+    mcp_server_caddy_window_ = enabled;
+  }
 
 private:
   bool verbose_ = false;
@@ -655,6 +708,12 @@ private:
   std::unordered_map<std::string, std::string> hook_headers_;
   int hook_pull_threshold_{0};
   int hook_branch_threshold_{0};
+  bool mcp_server_enabled_{false};
+  std::string mcp_server_bind_address_{"127.0.0.1"};
+  int mcp_server_port_{7332};
+  int mcp_server_backlog_{16};
+  int mcp_server_max_clients_{4};
+  bool mcp_server_caddy_window_{false};
 };
 
 } // namespace agpm

@@ -160,7 +160,7 @@ nlohmann::json normalize_config_sections(const nlohmann::json &source) {
   for (std::string_view section :
        {"core", "rate_limits", "logging", "network", "repositories", "tokens",
         "features", "integrations", "workflow", "artifacts", "ui",
-        "personal_access_tokens", "pat", "single_run"}) {
+        "personal_access_tokens", "pat", "single_run", "mcp"}) {
     merge_section(section);
   }
 
@@ -411,8 +411,7 @@ void Config::load_json(const nlohmann::json &j) {
       throw std::runtime_error(
           "Invalid stray_detection_engine value in configuration");
     }
-    auto mode =
-        stray_detection_mode_from_string(engine.get<std::string>());
+    auto mode = stray_detection_mode_from_string(engine.get<std::string>());
     if (!mode) {
       config_log()->error(
           "Unrecognised stray_detection_engine value '{}'. Valid options are "
@@ -528,7 +527,8 @@ void Config::load_json(const nlohmann::json &j) {
       }
       set_hook_headers(std::move(headers));
     }
-    if (hooks.contains("pull_threshold") && hooks["pull_threshold"].is_number()) {
+    if (hooks.contains("pull_threshold") &&
+        hooks["pull_threshold"].is_number()) {
       set_hook_pull_threshold(hooks["pull_threshold"].get<int>());
     }
     if (hooks.contains("branch_threshold") &&
@@ -562,6 +562,57 @@ void Config::load_json(const nlohmann::json &j) {
   }
   if (cfg.contains("hooks_branch_threshold")) {
     set_hook_branch_threshold(cfg["hooks_branch_threshold"].get<int>());
+  }
+  if (cfg.contains("mcp_server_enabled")) {
+    set_mcp_server_enabled(cfg["mcp_server_enabled"].get<bool>());
+  }
+  if (cfg.contains("mcp_server_bind_address")) {
+    set_mcp_server_bind_address(
+        cfg["mcp_server_bind_address"].get<std::string>());
+  }
+  if (cfg.contains("mcp_server_port")) {
+    set_mcp_server_port(cfg["mcp_server_port"].get<int>());
+  }
+  if (cfg.contains("mcp_server_backlog")) {
+    set_mcp_server_backlog(cfg["mcp_server_backlog"].get<int>());
+  }
+  if (cfg.contains("mcp_server_max_clients")) {
+    set_mcp_server_max_clients(
+        cfg["mcp_server_max_clients"].get<int>());
+  }
+  if (cfg.contains("mcp_server_caddy_window")) {
+    set_mcp_server_caddy_window(
+        cfg["mcp_server_caddy_window"].get<bool>());
+  }
+  if (cfg.contains("mcp")) {
+    const auto &mcp_cfg = cfg["mcp"];
+    if (mcp_cfg.is_object()) {
+      if (mcp_cfg.contains("enabled")) {
+        set_mcp_server_enabled(mcp_cfg["enabled"].get<bool>());
+      }
+      if (mcp_cfg.contains("bind") && mcp_cfg["bind"].is_string()) {
+        set_mcp_server_bind_address(mcp_cfg["bind"].get<std::string>());
+      }
+      if (mcp_cfg.contains("bind_address") &&
+          mcp_cfg["bind_address"].is_string()) {
+        set_mcp_server_bind_address(
+            mcp_cfg["bind_address"].get<std::string>());
+      }
+      if (mcp_cfg.contains("port")) {
+        set_mcp_server_port(mcp_cfg["port"].get<int>());
+      }
+      if (mcp_cfg.contains("backlog")) {
+        set_mcp_server_backlog(mcp_cfg["backlog"].get<int>());
+      }
+      if (mcp_cfg.contains("max_clients")) {
+        set_mcp_server_max_clients(mcp_cfg["max_clients"].get<int>());
+      }
+      if (mcp_cfg.contains("caddy_window")) {
+        set_mcp_server_caddy_window(mcp_cfg["caddy_window"].get<bool>());
+      }
+    } else {
+      config_log()->warn("Ignoring 'mcp' configuration; expected an object");
+    }
   }
 
   // Warn on repositories appearing in both include and exclude lists.

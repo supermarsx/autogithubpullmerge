@@ -4,10 +4,12 @@ find_package(nlohmann_json REQUIRED)
 find_package(CURL REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(ZLIB REQUIRED)
+set(EXTRA_WIN_LIBS)
 if(WIN32)
   find_package(unofficial-pdcurses CONFIG REQUIRED)
   set(CURSES_LIBRARIES unofficial::pdcurses::pdcurses)
   set(CURSES_INCLUDE_DIR "")
+  list(APPEND EXTRA_WIN_LIBS ws2_32)
 else()
   find_package(Curses REQUIRED)
 endif()
@@ -21,6 +23,7 @@ add_library(
   config_manager.cpp
   demo_tui.cpp
   github_client.cpp
+  mcp_server.cpp
   history.cpp
   hook.cpp
   log.cpp
@@ -47,6 +50,7 @@ target_link_libraries(
          SQLite::SQLite3
          spdlog::spdlog
          ZLIB::ZLIB
+         ${EXTRA_WIN_LIBS}
          ${CURSES_LIBRARIES})
 
 

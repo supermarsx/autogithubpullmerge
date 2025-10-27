@@ -114,7 +114,7 @@ struct CliOptions {
   StrayDetectionMode stray_detection_mode{
       StrayDetectionMode::RuleBased}; ///< Selected stray detection engines
   bool stray_detection_mode_explicit{
-      false}; ///< True if CLI explicitly set detection engines
+      false};                ///< True if CLI explicitly set detection engines
   bool reject_dirty = false; ///< Auto close dirty branches
   bool delete_stray{false};  ///< Delete stray branches automatically
   bool allow_delete_base_branch{
@@ -145,11 +145,11 @@ struct CliOptions {
 
   bool demo_tui{false}; ///< Launch mock TUI demo mode
 
-  bool hooks_enabled{false};        ///< Enable hook dispatching
-  bool hooks_explicit{false};       ///< True if CLI toggled hooks
-  std::string hook_command;         ///< Command executed for hook events
+  bool hooks_enabled{false};  ///< Enable hook dispatching
+  bool hooks_explicit{false}; ///< True if CLI toggled hooks
+  std::string hook_command;   ///< Command executed for hook events
   bool hook_command_explicit{false};
-  std::string hook_endpoint;        ///< Endpoint invoked for hook events
+  std::string hook_endpoint; ///< Endpoint invoked for hook events
   bool hook_endpoint_explicit{false};
   std::string hook_method{"POST"}; ///< HTTP method for hook requests
   bool hook_method_explicit{false};
@@ -160,6 +160,19 @@ struct CliOptions {
   bool hook_pull_threshold_explicit{false};
   int hook_branch_threshold{0};
   bool hook_branch_threshold_explicit{false};
+
+  bool mcp_server_enabled{false};  ///< Enable the MCP server integration
+  bool mcp_server_explicit{false}; ///< True if CLI explicitly toggled MCP
+  std::string mcp_server_bind_address; ///< Bind address for the MCP server
+  bool mcp_server_bind_explicit{false}; ///< True if CLI set bind address
+  int mcp_server_port{0};                ///< TCP port for the MCP server
+  bool mcp_server_port_explicit{false};  ///< True if CLI set MCP port
+  int mcp_server_backlog{0};             ///< Listen backlog for the MCP server
+  bool mcp_server_backlog_explicit{false}; ///< True if CLI set backlog
+  int mcp_server_max_clients{0};           ///< Max clients handled per session
+  bool mcp_server_max_clients_explicit{false}; ///< True if CLI set max clients
+  bool mcp_caddy_window{false}; ///< Enable MCP server event sidecar window
+  bool mcp_caddy_explicit{false}; ///< True if CLI toggled MCP caddy window
 
   // Testing utilities
   std::string single_open_prs_repo; ///< OWNER/REPO for single open-PR poll

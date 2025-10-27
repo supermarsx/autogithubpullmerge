@@ -21,6 +21,7 @@ using WINDOW = _win_st;
 #include "github_poller.hpp"
 #include <cstddef>
 #include <functional>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -42,7 +43,7 @@ public:
    * @param log_limit Maximum number of log messages to keep in memory.
    */
   Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit = 200,
-      bool log_sidecar = false);
+      bool log_sidecar = false, bool mcp_caddy_window = false);
   ~Tui();
 
   /// Initialize the curses library and windows.
@@ -109,6 +110,12 @@ public:
   /// Toggle the logger sidecar layout.
   void set_log_sidecar(bool enabled);
 
+  /// Toggle the MCP activity sidecar layout.
+  void set_mcp_caddy(bool enabled);
+
+  /// Append an MCP server event to the activity log.
+  void add_mcp_event(const std::string &event);
+
   /**
    * Override the configured hotkey bindings.
    *
@@ -135,10 +142,13 @@ private:
   std::vector<PullRequest> prs_;
   std::vector<std::string> logs_;
   std::size_t log_limit_;
+  std::vector<std::string> mcp_events_;
+  std::size_t mcp_event_limit_{0};
   int selected_{0};
   WINDOW *pr_win_{nullptr};
   WINDOW *log_win_{nullptr};
   WINDOW *help_win_{nullptr};
+  WINDOW *mcp_win_{nullptr};
   WINDOW *detail_win_{nullptr};
   bool detail_visible_{false};
   std::string detail_text_;
@@ -149,6 +159,8 @@ private:
   int last_w_{0}; ///< Cached terminal width for resize detection.
   bool hotkeys_enabled_{true};
   bool log_sidecar_{false};
+  bool mcp_caddy_window_{false};
+  mutable std::mutex mcp_mutex_;
   std::vector<std::string> hotkey_help_order_;
   std::unordered_map<std::string, std::vector<HotkeyBinding>> action_bindings_;
   std::unordered_map<int, std::string> key_to_action_;

@@ -43,6 +43,7 @@ A cross‑platform tool that both automates safe pull request merging and manage
 - Adaptive rate limiting with a configurable margin to protect GitHub API usage
 - Branch protection patterns to guard important branches
 - Dry-run mode and HTTP/HTTPS proxy support
+- Optional Model Context Protocol (MCP) server for automation tooling
 
 ## Generating Documentation
 
@@ -83,6 +84,18 @@ to send JSON webhooks, and the `--hook-*-threshold` flags to trigger alerts when
 repositories accumulate excessive pull requests or branches. The dispatcher runs
 on a dedicated thread so hooks do not block polling. See the Hooks section in
 `docs/notifications.md` for the full payload format and available events.
+
+## MCP Server
+
+Set `--mcp-server` (or `mcp.enabled: true` in configuration) to start a
+JSON-RPC server that speaks the Model Context Protocol alongside the
+interactive TUI. The listener runs on a background thread so automations can
+query repositories, pull requests, and branches or trigger merges and branch
+deletions without blocking the UI. Adjust the bind address, port, backlog, and
+client budget with `--mcp-server-bind`, `--mcp-server-port`,
+`--mcp-server-backlog`, and `--mcp-server-max-clients` (or the matching keys
+under the `mcp` configuration section). Enable `--mcp-caddy-window` to show a
+dedicated sidecar panel that streams MCP requests and responses in real time.
 
 ## API Key Options
 

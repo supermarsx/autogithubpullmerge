@@ -7,9 +7,9 @@
 #include <CLI/CLI.hpp>
 #include <algorithm>
 #include <array>
-#include <cstdint>
 #include <cctype>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
@@ -18,6 +18,7 @@
 #include <iostream>
 #include <iterator>
 #include <memory>
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <string_view>
@@ -404,6 +405,11 @@ CliOptions parse_cli(int argc, char **argv) {
       options.demo_tui = true;
       continue;
     }
+    if (arg == "--mcp-server") {
+      options.mcp_server_enabled = true;
+      options.mcp_server_explicit = true;
+      continue;
+    }
     if (arg == "--enable-hotkeys" || arg == "-E") {
       options.hotkeys_enabled = true;
       options.hotkeys_explicit = true;
@@ -536,7 +542,8 @@ CliOptions parse_cli(int argc, char **argv) {
          "--hook-header",
          [&options](const std::string &value) {
            auto pos = value.find('=');
-           if (pos == std::string::npos || pos == 0 || pos + 1 >= value.size()) {
+           if (pos == std::string::npos || pos == 0 ||
+               pos + 1 >= value.size()) {
              throw CLI::ValidationError("--hook-header",
                                         "expected NAME=VALUE format");
            }
@@ -684,6 +691,42 @@ CliOptions parse_cli(int argc, char **argv) {
                  "Personal access token value used with --save-pat")
       ->type_name("TOKEN")
       ->group("Authentication");
+  CLI::Option *mcp_bind_option = nullptr;
+  CLI::Option *mcp_port_option = nullptr;
+  CLI::Option *mcp_backlog_option = nullptr;
+  CLI::Option *mcp_max_clients_option = nullptr;
+  CLI::Option *mcp_caddy_flag = nullptr;
+  app.add_flag("--mcp-server",
+               "Enable the Model Context Protocol (MCP) server for "
+               "automation integrations")
+      ->group("Integrations");
+  mcp_bind_option =
+      app.add_option("--mcp-server-bind", options.mcp_server_bind_address,
+                     "Bind address for the MCP server listener")
+          ->type_name("ADDR")
+          ->group("Integrations");
+  mcp_port_option =
+      app.add_option("--mcp-server-port", options.mcp_server_port,
+                     "TCP port used by the MCP server")
+          ->type_name("PORT")
+          ->check(CLI::Range(1, std::numeric_limits<int>::max()))
+          ->group("Integrations");
+  mcp_backlog_option =
+      app.add_option("--mcp-server-backlog", options.mcp_server_backlog,
+                     "Pending connection backlog for the MCP listener")
+          ->type_name("N")
+          ->check(CLI::Range(1, std::numeric_limits<int>::max()))
+          ->group("Integrations");
+  mcp_max_clients_option = app.add_option(
+      "--mcp-server-max-clients", options.mcp_server_max_clients,
+      "Maximum clients served per activation (0 = unlimited)")
+                                ->type_name("N")
+                                ->check(CLI::Range(0, std::numeric_limits<int>::max()))
+                                ->group("Integrations");
+  mcp_caddy_flag = app.add_flag(
+      "--mcp-caddy-window", options.mcp_caddy_window,
+      "Show a dedicated window with MCP server activity and statistics")
+                       ->group("Integrations");
   app.add_option("-A,--api-base", options.api_base,
                  "Base URL for GitHub API (default: https://api.github.com)")
       ->type_name("URL")
@@ -846,20 +889,19 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("-2,--only-poll-stray", options.only_poll_stray,
                "Only poll stray branches")
       ->group("Branch Management");
-  app
-      .add_option_function<std::string>(
-          "--stray-detection-engine",
-          [&options](const std::string &value) {
-            auto mode = stray_detection_mode_from_string(value);
-            if (!mode) {
-              throw CLI::ValidationError(
-                  "--stray-detection-engine",
-                  "must be one of: rule, heuristic, both");
-            }
-            options.stray_detection_mode = *mode;
-            options.stray_detection_mode_explicit = true;
-          },
-          "Select stray branch detection engine (rule, heuristic, both)")
+  app.add_option_function<std::string>(
+         "--stray-detection-engine",
+         [&options](const std::string &value) {
+           auto mode = stray_detection_mode_from_string(value);
+           if (!mode) {
+             throw CLI::ValidationError(
+                 "--stray-detection-engine",
+                 "must be one of: rule, heuristic, both");
+           }
+           options.stray_detection_mode = *mode;
+           options.stray_detection_mode_explicit = true;
+         },
+         "Select stray branch detection engine (rule, heuristic, both)")
       ->type_name("MODE")
       ->group("Branch Management");
   app.add_flag_function(
@@ -913,6 +955,22 @@ CliOptions parse_cli(int argc, char **argv) {
   } catch (const CLI::ParseError &e) {
     int exit_code = app.exit(e);
     throw CliParseExit(exit_code);
+  }
+  if (mcp_bind_option != nullptr && mcp_bind_option->count() > 0U) {
+    options.mcp_server_bind_explicit = true;
+  }
+  if (mcp_port_option != nullptr && mcp_port_option->count() > 0U) {
+    options.mcp_server_port_explicit = true;
+  }
+  if (mcp_backlog_option != nullptr && mcp_backlog_option->count() > 0U) {
+    options.mcp_server_backlog_explicit = true;
+  }
+  if (mcp_max_clients_option != nullptr &&
+      mcp_max_clients_option->count() > 0U) {
+    options.mcp_server_max_clients_explicit = true;
+  }
+  if (mcp_caddy_flag != nullptr && mcp_caddy_flag->count() > 0U) {
+    options.mcp_caddy_explicit = true;
   }
   if (retry_rate_limit_flag != nullptr && retry_rate_limit_flag->count() > 0U) {
     options.retry_rate_limit_endpoint_explicit = true;

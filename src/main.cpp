@@ -2,13 +2,15 @@
 #include "demo_tui.hpp"
 #include "github_client.hpp"
 #include "github_poller.hpp"
-#include "hook.hpp"
 #include "history.hpp"
+#include "hook.hpp"
 #include "log.hpp"
+#include "mcp_server.hpp"
 #include "repo_discovery.hpp"
 #include "tui.hpp"
 
 #include <algorithm>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <spdlog/spdlog.h>
@@ -165,8 +167,8 @@ int main(int argc, char **argv) {
       agpm::HookAction http_action;
       http_action.type = agpm::HookActionType::Http;
       http_action.endpoint = opts.hook_endpoint;
-      http_action.method = opts.hook_method.empty() ? std::string{"POST"}
-                                                   : opts.hook_method;
+      http_action.method =
+          opts.hook_method.empty() ? std::string{"POST"} : opts.hook_method;
       for (const auto &header : opts.hook_headers) {
         http_action.headers.emplace_back(header.first, header.second);
       }
@@ -225,8 +227,7 @@ int main(int argc, char **argv) {
 
   bool only_poll_prs = opts.only_poll_prs || cfg.only_poll_prs();
   bool only_poll_stray = opts.only_poll_stray || cfg.only_poll_stray();
-  agpm::StrayDetectionMode stray_detection_mode =
-      cfg.stray_detection_mode();
+  agpm::StrayDetectionMode stray_detection_mode = cfg.stray_detection_mode();
   if (opts.stray_detection_mode_explicit) {
     stray_detection_mode = opts.stray_detection_mode;
   }
@@ -366,7 +367,52 @@ int main(int argc, char **argv) {
       }
     });
   }
-  agpm::Tui ui(client, poller, opts.log_limit, opts.log_sidecar);
+  std::unique_ptr<agpm::GitHubMcpBackend> mcp_backend;
+  std::unique_ptr<agpm::McpServer> mcp_server;
+  std::unique_ptr<agpm::McpServerRunner> mcp_runner;
+  agpm::McpServerOptions mcp_options;
+  if (opts.mcp_server_enabled) {
+    mcp_options.bind_address = !opts.mcp_server_bind_address.empty()
+                                   ? opts.mcp_server_bind_address
+                                   : cfg.mcp_server_bind_address();
+    mcp_options.port = opts.mcp_server_port > 0 ? opts.mcp_server_port
+                                                : cfg.mcp_server_port();
+    mcp_options.backlog = opts.mcp_server_backlog > 0
+                              ? opts.mcp_server_backlog
+                              : cfg.mcp_server_backlog();
+    mcp_options.max_clients = opts.mcp_server_max_clients >= 0
+                                  ? opts.mcp_server_max_clients
+                                  : cfg.mcp_server_max_clients();
+    mcp_backend = std::make_unique<agpm::GitHubMcpBackend>(
+        client, repos, protected_branches, protected_branch_excludes);
+    mcp_server = std::make_unique<agpm::McpServer>(*mcp_backend);
+    std::string listen_host =
+        mcp_options.bind_address.empty() ? std::string{"0.0.0.0"}
+                                         : mcp_options.bind_address;
+    std::string max_clients_desc =
+        mcp_options.max_clients == 0
+            ? std::string{"unlimited"}
+            : std::to_string(mcp_options.max_clients);
+    main_log()->info(
+        "Starting MCP server on {}:{} (backlog {}, max clients {})",
+        listen_host, mcp_options.port, mcp_options.backlog, max_clients_desc);
+  }
+  agpm::Tui ui(client, poller, opts.log_limit, opts.log_sidecar,
+               opts.mcp_caddy_window);
+  std::function<void(const std::string &)> mcp_event_sink;
+  if (opts.mcp_caddy_window) {
+    mcp_event_sink = [&ui](const std::string &msg) { ui.add_mcp_event(msg); };
+  }
+  if (mcp_server) {
+    if (mcp_event_sink) {
+      mcp_server->set_event_callback(mcp_event_sink);
+    }
+    mcp_runner =
+        std::make_unique<agpm::McpServerRunner>(*mcp_server, mcp_options);
+    if (mcp_event_sink) {
+      mcp_runner->set_event_sink(mcp_event_sink);
+    }
+  }
   bool hotkeys_enabled = cfg.hotkeys_enabled();
   if (opts.hotkeys_explicit) {
     hotkeys_enabled = opts.hotkeys_enabled;
@@ -379,11 +425,20 @@ int main(int argc, char **argv) {
   poller.start();
   try {
     ui.init();
+    if (mcp_runner) {
+      mcp_runner->start();
+    }
     ui.run();
   } catch (...) {
+    if (mcp_runner) {
+      mcp_runner->stop();
+    }
     poller.stop();
     ui.cleanup();
     throw;
+  }
+  if (mcp_runner) {
+    mcp_runner->stop();
   }
   poller.stop();
   ui.cleanup();

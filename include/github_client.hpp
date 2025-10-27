@@ -352,6 +352,22 @@ public:
   bool close_pull_request(const std::string &owner, const std::string &repo,
                           int pr_number);
 
+  /**
+   * Delete a branch ref from a repository.
+   *
+   * @param owner Repository owner.
+   * @param repo Repository name.
+   * @param branch Branch ref to delete.
+   * @param protected_branches Patterns that must not be deleted.
+   * @param protected_branch_excludes Patterns overriding protections.
+   * @return `true` when the branch was deleted or simulated successfully.
+   */
+  bool delete_branch(const std::string &owner, const std::string &repo,
+                     const std::string &branch,
+                     const std::vector<std::string> &protected_branches = {},
+                     const std::vector<std::string> &protected_branch_excludes =
+                         {});
+
   /// Fetch metadata describing a pull request's current state.
   std::optional<PullRequestMetadata>
   pull_request_metadata(const std::string &owner, const std::string &repo,

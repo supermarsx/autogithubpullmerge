@@ -172,6 +172,39 @@ int App::run(int argc, char **argv) {
   } else {
     config_.set_hook_branch_threshold(options_.hook_branch_threshold);
   }
+  if (!options_.mcp_server_explicit) {
+    options_.mcp_server_enabled = config_.mcp_server_enabled();
+  } else {
+    config_.set_mcp_server_enabled(options_.mcp_server_enabled);
+  }
+  if (!options_.mcp_server_bind_explicit) {
+    if (options_.mcp_server_bind_address.empty()) {
+      options_.mcp_server_bind_address = config_.mcp_server_bind_address();
+    }
+  } else {
+    config_.set_mcp_server_bind_address(options_.mcp_server_bind_address);
+  }
+  if (!options_.mcp_server_port_explicit || options_.mcp_server_port <= 0) {
+    options_.mcp_server_port = config_.mcp_server_port();
+  } else {
+    config_.set_mcp_server_port(options_.mcp_server_port);
+  }
+  if (!options_.mcp_server_backlog_explicit || options_.mcp_server_backlog <= 0) {
+    options_.mcp_server_backlog = config_.mcp_server_backlog();
+  } else {
+    config_.set_mcp_server_backlog(options_.mcp_server_backlog);
+  }
+  if (!options_.mcp_server_max_clients_explicit ||
+      options_.mcp_server_max_clients < 0) {
+    options_.mcp_server_max_clients = config_.mcp_server_max_clients();
+  } else {
+    config_.set_mcp_server_max_clients(options_.mcp_server_max_clients);
+  }
+  if (!options_.mcp_caddy_explicit) {
+    options_.mcp_caddy_window = config_.mcp_server_caddy_window();
+  } else {
+    config_.set_mcp_server_caddy_window(options_.mcp_caddy_window);
+  }
   if (options_.export_csv.empty()) {
     options_.export_csv = config_.export_csv();
   }

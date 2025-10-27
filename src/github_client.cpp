@@ -1242,6 +1242,64 @@ bool GitHubClient::close_pull_request(const std::string &owner,
   }
 }
 
+bool GitHubClient::delete_branch(
+    const std::string &owner, const std::string &repo,
+    const std::string &branch,
+    const std::vector<std::string> &protected_branches,
+    const std::vector<std::string> &protected_branch_excludes) {
+  if (!repo_allowed(owner, repo)) {
+    github_client_log()->debug(
+        "Skipping branch delete for disallowed repo {}/{}", owner, repo);
+    return false;
+  }
+  if (branch.empty()) {
+    github_client_log()->warn("Refusing to delete empty branch name in {}/{}",
+                              owner, repo);
+    return false;
+  }
+  if (!allow_delete_base_branch_ && is_base_branch_name(branch)) {
+    github_client_log()->warn(
+        "Refusing to delete protected base branch {} in {}/{}", branch, owner,
+        repo);
+    return false;
+  }
+  if (is_protected_branch(branch, protected_branches,
+                          protected_branch_excludes)) {
+    github_client_log()->warn(
+        "Branch {} in {}/{} matches a protected pattern; skipping deletion",
+        branch, owner, repo);
+    return false;
+  }
+
+  std::vector<std::string> headers;
+  if (!tokens_.empty()) {
+    headers.push_back("Authorization: token " + tokens_[token_index_]);
+  }
+  headers.push_back("Accept: application/vnd.github+json");
+
+  std::string url =
+      api_base_ + "/repos/" + owner + "/" + repo + "/git/refs/heads/" + branch;
+  github_client_log()->info("Attempting to delete branch {} from {}/{}", branch,
+                            owner, repo);
+  if (dry_run_) {
+    github_client_log()->info("[dry-run] Would delete branch {} from {}/{}",
+                              branch, owner, repo);
+    return true;
+  }
+
+  enforce_delay();
+  try {
+    http_->del(url, headers);
+    github_client_log()->info("Deleted branch {} from {}/{}", branch, owner,
+                              repo);
+    return true;
+  } catch (const std::exception &e) {
+    github_client_log()->error("Failed to delete branch {} in {}/{}: {}",
+                               branch, owner, repo, e.what());
+    return false;
+  }
+}
+
 /// @copydoc GitHubClient::list_branches
 std::vector<std::string>
 GitHubClient::list_branches(const std::string &owner, const std::string &repo,

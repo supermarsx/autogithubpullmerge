@@ -53,6 +53,21 @@ For example, `-C` maps to `--config` and `-1` toggles `--only-poll-prs`.
 - `--hook-branch-threshold N` - emit a hook event when the aggregated branch
   count exceeds `N`.
 
+### Integrations
+
+- `--mcp-server` - start the Model Context Protocol (MCP) server on a
+  background thread so external tools can query repositories, pull requests, and
+  branches or trigger merges and cleanups.
+- `--mcp-server-bind ADDR` - bind the MCP listener to `ADDR` (default
+  `127.0.0.1`).
+- `--mcp-server-port PORT` - listen on TCP `PORT` (default `7332`).
+- `--mcp-server-backlog N` - allow up to `N` pending connections (default
+  `16`).
+- `--mcp-server-max-clients N` - serve at most `N` clients before recycling the
+  listener (`0` = unlimited).
+- `--mcp-caddy-window` - display a sidecar window streaming MCP requests and
+  responses in the TUI.
+
 ### Repository Filters
 
 - `--include`/`--exclude` - repeatable repository include/exclude filters (format `OWNER/REPO`).
@@ -284,6 +299,13 @@ YAML:
 core:
   verbose: true
   poll_interval: 60
+mcp:
+  enabled: true
+  bind_address: 0.0.0.0
+  port: 7332
+  backlog: 32
+  max_clients: 8
+  caddy_window: true
 rate_limits:
   max_request_rate: 100
 ```
@@ -294,6 +316,14 @@ JSON:
   "core": {
     "verbose": false,
     "poll_interval": 30
+  },
+  "mcp": {
+    "enabled": true,
+    "bind_address": "0.0.0.0",
+    "port": 7332,
+    "backlog": 32,
+    "max_clients": 8,
+    "caddy_window": true
   },
   "rate_limits": {
     "max_request_rate": 50
