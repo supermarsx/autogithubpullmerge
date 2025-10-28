@@ -130,14 +130,15 @@ public:
     if (calls == 1) {
       std::string body =
           "[{\"number\":1,\"title\":\"Old\",\"created_at\":\"" + old_ts +
-          "\"},{\"number\":2,\"title\":\"New\",\"created_at\":\"" + recent1_ts +
-          "\"}]";
+          "\",\"updated_at\":\"" + old_ts +
+          "\"},{\"number\":2,\"title\":\"New\",\"created_at\":\"" + old_ts +
+          "\",\"updated_at\":\"" + recent1_ts + "\"}]";
       std::string next =
           url + (url.find('?') == std::string::npos ? "?" : "&") + "page=2";
       return {body, {"Link: <" + next + ">; rel=\"next\""}, 200};
     }
     std::string body = "[{\"number\":3,\"title\":\"Newer\",\"created_at\":\"" +
-                       recent2_ts + "\"}]";
+                       recent2_ts + "\",\"updated_at\":\"" + recent2_ts + "\"}]";
     return {body, {}, 200};
   }
 
