@@ -173,6 +173,16 @@ TEST_CASE("main invalid option", "[cli]") {
   REQUIRE(bad_app.run(2, args_err) != 0);
 }
 
+TEST_CASE("app rejects disabled discovery without includes", "[cli]") {
+  agpm::App app;
+  char prog[] = "tests";
+  char repo_disc_flag[] = "--repo-discovery";
+  char repo_disc_disabled[] = "disabled";
+  char *argv[] = {prog, repo_disc_flag, repo_disc_disabled};
+  REQUIRE(app.run(3, argv) != 0);
+  REQUIRE(app.should_exit());
+}
+
 TEST_CASE("main auto-merge cancel", "[cli]") {
   agpm::App cancel_app;
   std::istringstream input("n\n");

@@ -1,3 +1,5 @@
+#include "cli.hpp"
+#include "config.hpp"
 #include "repo_discovery.hpp"
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
@@ -82,4 +84,11 @@ TEST_CASE("filesystem repo discovery parses git remotes") {
   REQUIRE(repos.size() == 1);
   REQUIRE(repos[0].first == "example");
   REQUIRE(repos[0].second == "sample");
+}
+
+TEST_CASE("repo discovery defaults to token discovery") {
+  agpm::CliOptions cli_opts;
+  REQUIRE(cli_opts.repo_discovery_mode == agpm::RepoDiscoveryMode::All);
+  agpm::Config cfg;
+  REQUIRE(cfg.repo_discovery_mode() == agpm::RepoDiscoveryMode::All);
 }
