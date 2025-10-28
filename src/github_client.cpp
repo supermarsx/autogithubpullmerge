@@ -997,9 +997,22 @@ GitHubClient::list_pull_requests(const std::string &owner,
       break;
     }
     for (const auto &item : j) {
+      auto read_timestamp = [](const nlohmann::json &object,
+                               const char *field) -> std::optional<std::string> {
+        if (object.contains(field) && object[field].is_string()) {
+          std::string value = object[field].get<std::string>();
+          if (!value.empty()) {
+            return value;
+          }
+        }
+        return std::nullopt;
+      };
       std::string ts;
-      if (item.contains("created_at"))
-        ts = item["created_at"].get<std::string>();
+      if (auto updated = read_timestamp(item, "updated_at")) {
+        ts = *updated;
+      } else if (auto created = read_timestamp(item, "created_at")) {
+        ts = *created;
+      }
       std::tm tm{};
       std::chrono::system_clock::time_point created =
           std::chrono::system_clock::now();

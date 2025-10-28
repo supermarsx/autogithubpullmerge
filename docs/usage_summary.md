@@ -117,7 +117,8 @@ In configuration files, use the `repo_discovery_mode` key with values
   when `--retry-rate-limit-endpoint` is supplied (default `3`).
 - `--pr-limit` - limit how many pull requests to fetch when listing.
 - `--pr-since` - only list pull requests newer than the given duration
-  (e.g. `30m`, `2h`, `1d`).
+  (e.g. `30m`, `2h`, `1d`). The comparison uses each pull request's
+  `updated_at` timestamp when available and falls back to `created_at`.
 - `--only-poll-prs` - only poll pull requests.
 - `--only-poll-stray` - only poll stray branches.
 - `--stray-detection-engine` - select `rule`, `heuristic`, or `both` for stray

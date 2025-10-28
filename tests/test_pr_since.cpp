@@ -33,20 +33,21 @@ public:
 TEST_CASE("test pr since") {
   using namespace std::chrono;
   auto now = system_clock::now();
-  auto recent = now - minutes(30);
+  auto recent_update = now - minutes(30);
   auto old = now - hours(5);
-  auto recent_t = system_clock::to_time_t(recent);
+  auto recent_update_t = system_clock::to_time_t(recent_update);
   auto old_t = system_clock::to_time_t(old);
-  char recent_buf[32];
+  char recent_update_buf[32];
   char old_buf[32];
-  std::strftime(recent_buf, sizeof(recent_buf), "%Y-%m-%dT%H:%M:%SZ",
-                std::gmtime(&recent_t));
+  std::strftime(recent_update_buf, sizeof(recent_update_buf),
+                "%Y-%m-%dT%H:%M:%SZ", std::gmtime(&recent_update_t));
   std::strftime(old_buf, sizeof(old_buf), "%Y-%m-%dT%H:%M:%SZ",
                 std::gmtime(&old_t));
   std::string resp =
       std::string("[{\"number\":1,\"title\":\"Old\",\"created_at\":\"") +
-      old_buf + "\"},{\"number\":2,\"title\":\"New\",\"created_at\":\"" +
-      recent_buf + "\"}]";
+      old_buf +
+      "\"},{\"number\":2,\"title\":\"Reopened\",\"created_at\":\"" +
+      old_buf + "\",\"updated_at\":\"" + recent_update_buf + "\"}]";
   auto http = std::make_unique<TimeHttpClient>();
   http->response = resp;
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
