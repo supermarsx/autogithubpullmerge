@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 using namespace agpm;
 
@@ -83,4 +84,39 @@ TEST_CASE("dirty branches excluded from protection are purged") {
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
   client.close_dirty_branches("me", "repo", {"tmp/.*"}, {"tmp/remove"});
   REQUIRE(raw->last_deleted == base + "/git/refs/heads/tmp%2Fremove");
+}
+
+TEST_CASE("literal protected branch patterns require exact match") {
+  auto http = std::make_unique<ProtectCleanupHttpClient>();
+  auto *raw = http.get();
+  GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+
+  std::vector<std::string> literal_pattern{"release/1.2.3"};
+  REQUIRE_FALSE(client.delete_branch("me", "repo", "release/1.2.3",
+                                    literal_pattern, {}));
+  REQUIRE(raw->last_deleted.empty());
+
+  raw->last_deleted.clear();
+  REQUIRE(client.delete_branch("me", "repo", "release/1.2.30",
+                               literal_pattern, {}));
+  REQUIRE(raw->last_deleted ==
+          "https://api.github.com/repos/me/repo/git/refs/heads/release%2F1.2.30");
+}
+
+TEST_CASE("regex protected branch patterns retain regex semantics") {
+  auto http = std::make_unique<ProtectCleanupHttpClient>();
+  auto *raw = http.get();
+  GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
+
+  std::vector<std::string> regex_pattern{
+      "regex:^release/[0-9]+\\.[0-9]+\\.[0-9]+$"};
+  REQUIRE_FALSE(client.delete_branch("me", "repo", "release/1.2.3",
+                                    regex_pattern, {}));
+  REQUIRE(raw->last_deleted.empty());
+
+  raw->last_deleted.clear();
+  REQUIRE(client.delete_branch("me", "repo", "release/v1.2.3",
+                               regex_pattern, {}));
+  REQUIRE(raw->last_deleted ==
+          "https://api.github.com/repos/me/repo/git/refs/heads/release%2Fv1.2.3");
 }

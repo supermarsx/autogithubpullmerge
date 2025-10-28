@@ -223,14 +223,14 @@ bool matches_pattern(const std::string &name,
           // Unknown tag: fall through to default handling using the raw
           // pattern.
         }
-        try {
-          if (raw.find_first_of("*?") != std::string::npos) {
+        if (raw.find_first_of("*?") != std::string::npos) {
+          try {
             return std::regex_match(name, glob_to_regex(raw));
+          } catch (const std::regex_error &) {
+            return false;
           }
-          return std::regex_match(name, std::regex(raw));
-        } catch (const std::regex_error &) {
-          return name == raw;
         }
+        return name == raw;
       });
 }
 
