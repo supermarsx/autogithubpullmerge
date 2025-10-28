@@ -644,8 +644,8 @@ CliOptions parse_cli(int argc, char **argv) {
                                         e.what());
            }
          },
-         "Control repository discovery (disabled/all/filesystem/both)")
-      ->type_name("disabled|all|filesystem|both")
+         "Control repository discovery (default: all; choose from all/filesystem/both/disabled)")
+      ->type_name("all|filesystem|both|disabled")
       ->group("Repositories");
   app.add_option("--repo-discovery-root", options.repo_discovery_roots,
                  "Directory to scan for git repositories; repeatable")

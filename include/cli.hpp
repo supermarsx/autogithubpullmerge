@@ -78,7 +78,7 @@ struct CliOptions {
   std::vector<std::string>
       repo_discovery_roots; ///< Roots to scan for local repositories
   RepoDiscoveryMode repo_discovery_mode{
-      RepoDiscoveryMode::Disabled};    ///< Repo discovery behaviour
+      RepoDiscoveryMode::All};         ///< Repo discovery behaviour
   bool repo_discovery_explicit{false}; ///< True if CLI set repo discovery mode
   std::vector<std::string> api_keys;   ///< Personal access tokens
   bool api_key_from_stream = false;    ///< Read tokens from stdin

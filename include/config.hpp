@@ -707,7 +707,7 @@ private:
   std::vector<std::string> protected_branches_;
   std::vector<std::string> protected_branch_excludes_;
   bool include_merged_ = false;
-  RepoDiscoveryMode repo_discovery_mode_ = RepoDiscoveryMode::Disabled;
+  RepoDiscoveryMode repo_discovery_mode_ = RepoDiscoveryMode::All;
   std::vector<std::string> repo_discovery_roots_;
   std::vector<std::string> api_keys_;
   bool api_key_from_stream_ = false;

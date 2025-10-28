@@ -169,6 +169,8 @@ TEST_CASE("test cli", "[cli]") {
   REQUIRE(opts5.log_level == "info");
   REQUIRE(!opts5.include_merged);
   REQUIRE(opts5.log_limit == 200);
+  REQUIRE(opts5.repo_discovery_mode == agpm::RepoDiscoveryMode::All);
+  REQUIRE_FALSE(opts5.repo_discovery_explicit);
 
   char include_flag[] = "--include";
   char repo_a[] = "repoA";

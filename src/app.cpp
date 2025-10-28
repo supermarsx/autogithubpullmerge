@@ -222,6 +222,16 @@ int App::run(int argc, char **argv) {
   if (options_.single_branches_repo.empty()) {
     options_.single_branches_repo = config_.single_branches_repo();
   }
+  const std::vector<std::string> &combined_include =
+      !options_.include_repos.empty() ? options_.include_repos
+                                      : config_.include_repos();
+  if (options_.repo_discovery_mode == RepoDiscoveryMode::Disabled &&
+      combined_include.empty()) {
+    app_log()->error(
+        "Repository discovery disabled but no repositories specified via --include or config");
+    should_exit_ = true;
+    return 1;
+  }
   bool destructive =
       (options_.reject_dirty || options_.delete_stray ||
        options_.allow_delete_base_branch || options_.auto_merge ||
