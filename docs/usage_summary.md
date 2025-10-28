@@ -241,6 +241,7 @@ Supported helpers:
 - `prefix:<value>` (literal prefix match)
 - `suffix:<value>` (literal suffix match)
 - `contains:<value>` (literal substring match)
+- plain entries without wildcards match literal names exactly
 - `glob:<value>` or plain `*`/`?` wildcards
 - `regex:<value>` (ECMAScript regex)
 - `mixed:<value>` (wildcards plus regex tokens, e.g. `mixed:^release-*rc$`)
