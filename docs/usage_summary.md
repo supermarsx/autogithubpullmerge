@@ -34,6 +34,7 @@ For example, `-C` maps to `--config` and `-1` toggles `--only-poll-prs`.
 - `--log-rotate N` - retain `N` rotated log files (default `3`, `0` disables rotation).
 - `--log-compress` - enable gzip compression for rotated log files (disabled by default).
 - `--log-sidecar` - open a dedicated log window alongside pull request details.
+- `--tui-refresh-interval MS` - control the TUI auto-refresh cadence (default 500ms).
 - `--request-caddy-window` - display request queue status, latency, and budget
   projections in a sidecar window.
 - `--log-category NAME[=LEVEL]` - enable a logging category with an optional level override (defaults to `debug`). Repeat to
@@ -435,12 +436,13 @@ Logging is controlled via `--log-level`. Valid levels are `trace`, `debug`,
 
 ## TUI Features
 
-A curses-based TUI (`agpm::Tui`) displays active pull requests and recent log
-messages. It uses ncurses on Linux and macOS and PDCurses on Windows, enabling
-basic color output. The interface supports the following hotkeys:
+A curses-based TUI (`agpm::Tui`) displays active pull requests alongside the latest branch maintenance candidates and recent log messages. It uses ncurses on Linux and macOS and PDCurses on Windows, enabling basic color output. The layout refreshes automatically every 500ms (configurable via `--tui-refresh-interval`). Hotkeys include:
 
-- **↑/↓** – navigate pull requests
-- **r** – refresh the list immediately
+- **Tab** – switch focus between pull requests and branches
+- **↑/↓** – navigate within the focused list
+- **o** – open the selected pull request in a browser
+- **ENTER/d** – toggle details for the selected pull request
+- **r** – trigger an immediate poll
 - **m** – merge the selected pull request
 - **q** – quit the interface
 

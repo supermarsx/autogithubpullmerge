@@ -492,6 +492,11 @@ int main(int argc, char **argv) {
   if (!hotkey_overrides.empty()) {
     ui.configure_hotkeys(hotkey_overrides);
   }
+  int tui_refresh_ms = cfg.tui_refresh_interval_ms();
+  if (opts.tui_refresh_interval_explicit) {
+    tui_refresh_ms = opts.tui_refresh_interval_ms;
+  }
+  ui.set_refresh_interval(std::chrono::milliseconds(tui_refresh_ms));
   poller.start();
   try {
     ui.init();

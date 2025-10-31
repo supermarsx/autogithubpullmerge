@@ -11,6 +11,7 @@
 #include <memory>
 #include <sstream>
 #include <stdexcept>
+#include <vector>
 
 namespace agpm {
 
@@ -22,6 +23,22 @@ std::shared_ptr<spdlog::logger> hook_log() {
     return category_logger("hooks");
   }();
   return logger;
+}
+
+std::string parameter_env_name(const std::string &name) {
+  std::string upper;
+  upper.reserve(name.size());
+  for (unsigned char ch : name) {
+    if (std::isalnum(ch)) {
+      upper.push_back(static_cast<char>(std::toupper(ch)));
+    } else {
+      upper.push_back('_');
+    }
+  }
+  if (upper.empty()) {
+    upper = "PARAM";
+  }
+  return "AGPM_HOOK_PARAM_" + upper;
 }
 
 std::string iso_timestamp(std::chrono::system_clock::time_point tp) {
@@ -191,9 +208,17 @@ void HookDispatcher::dispatch(const HookEvent &event) {
     hook_log()->debug("No hook actions configured for event '{}'", event.name);
     return;
   }
-  const std::string payload_str = payload.dump();
   const auto &actions = *actions_ptr;
   for (const auto &action : actions) {
+    nlohmann::json action_payload = payload;
+    if (!action.parameters.empty()) {
+      nlohmann::json params = nlohmann::json::object();
+      for (const auto &[key, value] : action.parameters) {
+        params[key] = value;
+      }
+      action_payload["parameters"] = std::move(params);
+    }
+    const std::string payload_str = action_payload.dump();
     switch (action.type) {
     case HookActionType::Command:
       execute_command(action, event, payload_str);
@@ -214,6 +239,12 @@ void HookDispatcher::execute_command(const HookAction &action,
       ScopedEnvVar event_name{"AGPM_HOOK_EVENT", evt.name};
       ScopedEnvVar payload_env{"AGPM_HOOK_PAYLOAD", body};
       ScopedEnvVar command_env{"AGPM_HOOK_COMMAND", hook_action.command};
+      std::vector<std::unique_ptr<ScopedEnvVar>> parameter_envs;
+      parameter_envs.reserve(hook_action.parameters.size());
+      for (const auto &param : hook_action.parameters) {
+        parameter_envs.push_back(std::make_unique<ScopedEnvVar>(
+            parameter_env_name(param.first), param.second));
+      }
       int rc = std::system(hook_action.command.c_str());
       return rc;
     };

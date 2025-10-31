@@ -324,6 +324,27 @@ std::optional<HookAction> parse_hook_action(const nlohmann::json &value,
                        context);
     return std::nullopt;
   }
+  if (value.contains("parameters")) {
+    const auto &params = value["parameters"];
+    if (!params.is_object()) {
+      config_log()->warn(
+          "Hook action parameters for '{}' must be an object", context);
+    } else {
+      for (const auto &[pkey, pvalue] : params.items()) {
+        std::string rendered;
+        if (pvalue.is_string()) {
+          rendered = pvalue.get<std::string>();
+        } else if (pvalue.is_number() || pvalue.is_boolean()) {
+          rendered = pvalue.dump();
+        } else if (pvalue.is_null()) {
+          rendered.clear();
+        } else {
+          rendered = pvalue.dump();
+        }
+        action.parameters.emplace_back(pkey, std::move(rendered));
+      }
+    }
+  }
   return action;
 }
 
@@ -551,6 +572,12 @@ void Config::load_json(const nlohmann::json &j) {
   }
   if (cfg.contains("request_caddy_window")) {
     set_request_caddy_window(cfg["request_caddy_window"].get<bool>());
+  }
+  if (cfg.contains("tui_refresh_interval")) {
+    set_tui_refresh_interval_ms(cfg["tui_refresh_interval"].get<int>());
+  }
+  if (cfg.contains("tui_refresh_interval_ms")) {
+    set_tui_refresh_interval_ms(cfg["tui_refresh_interval_ms"].get<int>());
   }
   if (cfg.contains("log_categories")) {
     std::unordered_map<std::string, std::string> categories;

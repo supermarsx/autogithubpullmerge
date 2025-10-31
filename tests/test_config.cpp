@@ -91,6 +91,7 @@ TEST_CASE("test config") {
     f << "        - r\n";
     f << "      merge: null\n";
     f << "      details: \"enter|d\"\n";
+    f << "  tui_refresh_interval: 650\n";
     f.close();
   }
   agpm::Config yaml_cfg = agpm::Config::from_file("cfg.yaml");
@@ -157,6 +158,7 @@ TEST_CASE("test config") {
   REQUIRE(yaml_cfg.hotkey_bindings().at("refresh") == "Ctrl+R,r");
   REQUIRE(yaml_cfg.hotkey_bindings().at("merge").empty());
   REQUIRE(yaml_cfg.hotkey_bindings().at("details") == "enter|d");
+  REQUIRE(yaml_cfg.tui_refresh_interval_ms() == 650);
 
   // JSON config with extended options
   {
@@ -230,6 +232,7 @@ TEST_CASE("test config") {
         {"enabled", true},
         {"bindings",
          {{"open", "o"}, {"quit", nlohmann::json::array({"Ctrl+Q", "q"})}}}};
+    ui["tui_refresh_interval_ms"] = 720;
 
     auto &hooks = doc["hooks"];
     hooks["enabled"] = true;
@@ -296,6 +299,7 @@ TEST_CASE("test config") {
   REQUIRE(json_cfg.hotkeys_enabled());
   REQUIRE(json_cfg.hotkey_bindings().at("open") == "o");
   REQUIRE(json_cfg.hotkey_bindings().at("quit") == "Ctrl+Q,q");
+  REQUIRE(json_cfg.tui_refresh_interval_ms() == 720);
   REQUIRE(json_cfg.hooks_enabled());
   REQUIRE(json_cfg.hook_command() == "json_cmd");
   REQUIRE(json_cfg.hook_endpoint() == "https://json.example/hook");
@@ -352,7 +356,10 @@ TEST_CASE("test config") {
     f << "max_download = 1700\n";
     f << "max_upload = 1800\n";
     f << "http_timeout = 45\n";
-    f << "http_retries = 6\n";
+    f << "http_retries = 6\n\n";
+
+    f << "[ui]\n";
+    f << "tui_refresh_interval = 900\n";
     f.close();
   }
   agpm::Config toml_cfg = agpm::Config::from_file("cfg.toml");
@@ -381,6 +388,7 @@ TEST_CASE("test config") {
   REQUIRE(toml_cfg.pr_limit() == 15);
   REQUIRE(toml_cfg.pr_since() == std::chrono::minutes(45));
   REQUIRE(toml_cfg.sort_mode() == "reverse-alphanum");
+  REQUIRE(toml_cfg.tui_refresh_interval_ms() == 900);
   REQUIRE(toml_cfg.download_limit() == 1500);
   REQUIRE(toml_cfg.upload_limit() == 1600);
   REQUIRE(toml_cfg.max_download() == 1700);

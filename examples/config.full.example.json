@@ -46,6 +46,11 @@
 
   "workflow": {
     "_comment": "Branch management and stray detection",
-    "stray_detection_engine": "rule"
+    "stray_detection_engine": "rule",
+    "dry_run": true
+  },
+
+  "ui": {
+    "tui_refresh_interval": 650
   }
 }

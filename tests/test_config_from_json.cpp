@@ -63,6 +63,7 @@ TEST_CASE("test config from json") {
                     {{"refresh", nlohmann::json::array({"Ctrl+R", "r"})},
                      {"merge", nullptr},
                      {"details", "enter"}}}};
+  ui["tui_refresh_interval"] = 750;
 
   auto &hooks = j["hooks"];
   hooks["enabled"] = true;
@@ -82,7 +83,7 @@ TEST_CASE("test config from json") {
   octo["hooks"]["event_actions"]["pull_request.merged"] =
       nlohmann::json::array(
           {{{"type", "http"}, {"endpoint", "https://example.com"},
-            {"method", "PUT"}}});
+            {"method", "PUT"}, {"parameters", {{"reason", "cleanup"}}}}});
   auto &regex_override = repo_overrides["regex:^agpm/.+$"];
   regex_override["auto_merge"] = true;
 
@@ -126,6 +127,7 @@ TEST_CASE("test config from json") {
   REQUIRE(cfg.hotkey_bindings().at("refresh") == "Ctrl+R,r");
   REQUIRE(cfg.hotkey_bindings().at("merge").empty());
   REQUIRE(cfg.hotkey_bindings().at("details") == "enter");
+  REQUIRE(cfg.tui_refresh_interval_ms() == 750);
   REQUIRE(cfg.hooks_enabled());
   REQUIRE(cfg.hook_command() == "hook_cmd");
   REQUIRE(cfg.hook_endpoint() == "https://hooks.example/json");
@@ -159,6 +161,9 @@ TEST_CASE("test config from json") {
   REQUIRE(merged_actions.front().type == agpm::HookActionType::Http);
   REQUIRE(merged_actions.front().endpoint == "https://example.com");
   REQUIRE(merged_actions.front().method == "PUT");
+  REQUIRE(merged_actions.front().parameters.size() == 1);
+  REQUIRE(merged_actions.front().parameters.front().first == "reason");
+  REQUIRE(merged_actions.front().parameters.front().second == "cleanup");
   auto regex_it = std::find_if(overrides.begin(), overrides.end(),
                                [](const agpm::Config::RepositoryOverride &entry) {
                                  return entry.pattern == "regex:^agpm/.+$";

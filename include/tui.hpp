@@ -20,6 +20,7 @@ using WINDOW = _win_st;
 #include "github_client.hpp"
 #include "github_poller.hpp"
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <mutex>
@@ -65,6 +66,13 @@ public:
    * @param prs Latest list of pull requests to render.
    */
   void update_prs(const std::vector<PullRequest> &prs);
+
+  /**
+   * Update the displayed branch inventory.
+   *
+   * @param branches Latest list of branches to render.
+   */
+  void update_branches(const std::vector<StrayBranch> &branches);
 
   /// Draw the interface once.
   void draw();
@@ -123,6 +131,12 @@ public:
   /// Append an MCP server event to the activity log.
   void add_mcp_event(const std::string &event);
 
+  /// Access the branch window (primarily for tests).
+  WINDOW *branch_win() const { return branch_win_; }
+
+  /// Configure the refresh cadence.
+  void set_refresh_interval(std::chrono::milliseconds interval);
+
   /**
    * Override the configured hotkey bindings.
    *
@@ -149,12 +163,15 @@ private:
   GitHubClient &client_;
   GitHubPoller &poller_;
   std::vector<PullRequest> prs_;
+  std::vector<StrayBranch> branches_;
   std::vector<std::string> logs_;
   std::size_t log_limit_;
   std::vector<std::string> mcp_events_;
   std::size_t mcp_event_limit_{0};
   int selected_{0};
+  int branch_selected_{0};
   WINDOW *pr_win_{nullptr};
+  WINDOW *branch_win_{nullptr};
   WINDOW *log_win_{nullptr};
   WINDOW *help_win_{nullptr};
   WINDOW *mcp_win_{nullptr};
@@ -171,6 +188,7 @@ private:
   bool log_sidecar_{false};
   bool mcp_caddy_window_{false};
   bool request_caddy_window_{false};
+  bool focus_branches_{false};
   mutable std::mutex mcp_mutex_;
   mutable std::mutex request_mutex_;
   Poller::RequestQueueSnapshot request_snapshot_;
@@ -180,6 +198,8 @@ private:
   std::vector<std::string> hotkey_help_order_;
   std::unordered_map<std::string, std::vector<HotkeyBinding>> action_bindings_;
   std::unordered_map<int, std::string> key_to_action_;
+  std::chrono::milliseconds refresh_interval_{std::chrono::milliseconds(500)};
+  std::atomic<bool> redraw_requested_{false};
 };
 
 } // namespace agpm

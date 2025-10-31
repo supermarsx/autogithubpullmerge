@@ -261,14 +261,17 @@ The exports reflect the state captured at the end of each poll interval.
 
 ## TUI Hotkeys
 
+The terminal interface shows pull requests alongside stray and purge candidates. Use the focus toggle to switch between the panes while navigating.
+
 The terminal interface supports the following key bindings:
 
 - `r` refreshes the pull request list.
 - `o` opens the selected pull request in a browser.
 - `m` merges the selected pull request.
 - `ENTER` or `d` shows details for the selected pull request.
+- `Tab` switches focus between the pull request and branch panes.
 - `q` quits the interface.
-- Arrow keys navigate between pull requests.
+- Arrow keys navigate within the focused pane.
 
 ## CI Status
 
@@ -359,6 +362,7 @@ Logging
 - `--log-level LEVEL` Set logging level: `trace|debug|info|warn|error|critical|off` (default `info`).
 - `--log-file FILE` Path to the on-disk rotating log.
 - `--log-limit N` Max number of in-memory log messages shown in the TUI (default `200`).
+- `--tui-refresh-interval MS` Refresh cadence for the TUI in milliseconds (default `500`).
 - `--log-rotate N` Number of rotated log files to retain (default `3`, `0` disables rotation).
 - `--log-compress` Enable gzip compression for rotated log files (disabled by default).
 - `--log-sidecar` Show logs in a dedicated sidecar window beside the pull request list.

@@ -30,6 +30,8 @@ struct HookAction {
   std::string endpoint; ///< Endpoint to call when @ref type is Http
   std::string method{"POST"}; ///< HTTP method for Http actions
   std::vector<std::pair<std::string, std::string>> headers; ///< Extra HTTP headers
+  std::vector<std::pair<std::string, std::string>>
+      parameters; ///< Additional parameter key/value pairs
 };
 
 /** \brief Event payload delivered to hook actions. */

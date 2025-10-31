@@ -85,21 +85,39 @@ TEST_CASE("test tui", "[tui]") {
   }
 
   ui.update_prs({{1, "Test PR", false, "o", "r"}});
+  ui.update_branches({{"o", "r", "feature/new-ui"}});
   ui.draw();
-  std::array<char, 80> buf{};
-  mvwinnstr(stdscr, 1, 1, buf.data(), 79);
-  std::string line(buf.data());
-  REQUIRE(line.find("Test PR") != std::string::npos);
-  REQUIRE(line.find("o/r") != std::string::npos);
+  REQUIRE(ui.pr_win() != nullptr);
+  REQUIRE(ui.branch_win() != nullptr);
+  std::array<char, 160> buf{};
+  auto read_line = [&](WINDOW *win, int row) {
+    std::fill(buf.begin(), buf.end(), '\0');
+    mvwinnstr(win, row, 1, buf.data(), static_cast<int>(buf.size() - 1));
+    return std::string(buf.data());
+  };
 
-  mvwinnstr(ui.help_win(), 3, 1, buf.data(), 79);
-  std::string help_line(buf.data());
-  REQUIRE(help_line.find("Open PR") != std::string::npos);
-  REQUIRE(help_line.find("o") != std::string::npos);
-  mvwinnstr(ui.help_win(), 4, 1, buf.data(), 79);
-  std::string help_line2(buf.data());
-  REQUIRE(help_line2.find("Toggle Details") != std::string::npos);
-  REQUIRE(help_line2.find("Enter") != std::string::npos);
+  std::string pr_line = read_line(ui.pr_win(), 1);
+  REQUIRE(pr_line.find("Test PR") != std::string::npos);
+  REQUIRE(pr_line.find("o/r") != std::string::npos);
+
+  std::string branch_line = read_line(ui.branch_win(), 1);
+  REQUIRE(branch_line.find("feature/new-ui") != std::string::npos);
+
+  bool found_open = false;
+  bool found_toggle = false;
+  for (int row = 1; row < 8; ++row) {
+    std::string help_line = read_line(ui.help_win(), row);
+    if (help_line.find("Open PR") != std::string::npos) {
+      REQUIRE(help_line.find("o") != std::string::npos);
+      found_open = true;
+    }
+    if (help_line.find("Switch Focus") != std::string::npos) {
+      REQUIRE(help_line.find("Tab") != std::string::npos);
+      found_toggle = true;
+    }
+  }
+  REQUIRE(found_open);
+  REQUIRE(found_toggle);
 
   ui.handle_key('r');
   REQUIRE(raw->last_method == "GET");

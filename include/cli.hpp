@@ -68,6 +68,8 @@ struct CliOptions {
   bool log_sidecar_explicit{false};    ///< True if CLI toggled log sidecar
   bool assume_yes{false};              ///< Skip confirmation prompts
   bool dry_run{false};                 ///< Simulate operations without changes
+  int tui_refresh_interval_ms{0};      ///< Custom UI refresh cadence (ms)
+  bool tui_refresh_interval_explicit{false}; ///< True if CLI set refresh rate
   std::vector<std::string> include_repos; ///< Repositories to include
   std::vector<std::string> exclude_repos; ///< Repositories to exclude
   std::vector<std::string>

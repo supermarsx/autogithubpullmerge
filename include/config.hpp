@@ -186,6 +186,17 @@ public:
   /// Enable or disable the request queue caddy window.
   void set_request_caddy_window(bool enable) { request_caddy_window_ = enable; }
 
+  /// Refresh cadence for the TUI in milliseconds.
+  int tui_refresh_interval_ms() const { return tui_refresh_interval_ms_; }
+
+  /// Configure the TUI refresh cadence.
+  void set_tui_refresh_interval_ms(int interval) {
+    if (interval < 100) {
+      interval = 100;
+    }
+    tui_refresh_interval_ms_ = interval;
+  }
+
   /// Retrieve configured log category overrides.
   const std::unordered_map<std::string, std::string> &log_categories() const {
     return log_categories_;
@@ -690,6 +701,7 @@ public:
 private:
   bool verbose_ = false;
   int poll_interval_ = 0;
+  int tui_refresh_interval_ms_{500};
   int max_request_rate_ = 60;
   int max_hourly_requests_ = 0;
   int workers_ = 4; ///< Default number of worker threads

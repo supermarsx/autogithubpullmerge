@@ -43,3 +43,8 @@ use_graphql = true                   # Prefer GraphQL API for pull request listi
 # --- Branch management ------------------------------------------------------
 [workflow]
 stray_detection_engine = "rule"      # Choose rule, heuristic, or both (defaults to rule)
+dry_run = true                       # Simulate operations without applying changes
+
+# --- UI behaviour ---------------------------------------------------------
+[ui]
+tui_refresh_interval = 650            # Refresh cadence for the TUI in milliseconds

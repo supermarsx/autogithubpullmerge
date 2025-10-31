@@ -471,6 +471,19 @@ CliOptions parse_cli(int argc, char **argv) {
       "--no-request-caddy-window",
       "Disable the request queue sidecar window")
                                    ->group("UI");
+  app.add_option_function<int>(
+         "--tui-refresh-interval",
+         [&options](int value) {
+           if (value < 100) {
+             throw CLI::ValidationError("--tui-refresh-interval",
+                                        "refresh interval must be at least 100ms");
+           }
+           options.tui_refresh_interval_ms = value;
+           options.tui_refresh_interval_explicit = true;
+         },
+         "Refresh cadence for the TUI in milliseconds (min 100)")
+      ->type_name("MS")
+      ->group("UI");
   app.add_option_function<std::string>(
          "--log-category",
          [&options](const std::string &value) {

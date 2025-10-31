@@ -57,3 +57,5 @@ Common events include:
 Use `--hook-header` to add HTTP headers such as authentication tokens, and the
 threshold flags to trigger alerts when repositories accumulate excessive pull
 requests or stray branches.
+
+Additional context can be provided to individual hook actions by defining a `parameters` object in the configuration. Parameter values are exposed via the JSON payload under `parameters` and, for command actions, through uppercased environment variables named `AGPM_HOOK_PARAM_<NAME>`.

@@ -13,6 +13,7 @@ TEST_CASE("hook dispatcher sends command events") {
   agpm::HookAction action;
   action.type = agpm::HookActionType::Command;
   action.command = "echo";
+  action.parameters.emplace_back("branch", "feature");
   settings.default_actions.push_back(action);
 
   std::mutex mutex;
@@ -27,6 +28,9 @@ TEST_CASE("hook dispatcher sends command events") {
         std::unique_lock<std::mutex> lock(mutex);
         payload = nlohmann::json::parse(body);
         REQUIRE(act.command == "echo");
+        REQUIRE(act.parameters.size() == 1);
+        REQUIRE(act.parameters.front().first == "branch");
+        REQUIRE(payload["parameters"]["branch"] == "feature");
         REQUIRE(evt.name == "pull_request.merged");
         received = true;
         cv.notify_one();
@@ -51,6 +55,7 @@ TEST_CASE("hook dispatcher sends http events") {
   action.type = agpm::HookActionType::Http;
   action.endpoint = "https://example.test/hook";
   action.method = "POST";
+  action.parameters.emplace_back("severity", "warning");
   settings.default_actions.push_back(action);
 
   std::mutex mutex;
@@ -67,7 +72,10 @@ TEST_CASE("hook dispatcher sends http events") {
         std::unique_lock<std::mutex> lock(mutex);
         REQUIRE(evt.name == "poll.branch_threshold");
         last_endpoint = act.endpoint;
+        REQUIRE(act.parameters.size() == 1);
         payload = nlohmann::json::parse(body);
+        REQUIRE(payload.contains("parameters"));
+        REQUIRE(payload["parameters"]["severity"] == "warning");
         received = true;
         cv.notify_one();
         return 202L;
