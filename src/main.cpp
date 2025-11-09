@@ -1,3 +1,11 @@
+/**
+ * @file main.cpp
+ * @brief Program entry point for autogithubpullmerge.
+ *
+ * This file contains the main() function, which orchestrates configuration
+ * loading, client and poller setup, UI initialization, and the main event loop
+ * for the application.
+ */
 #include "app.hpp"
 #include "demo_tui.hpp"
 #include "github_client.hpp"
@@ -445,8 +453,8 @@ int main(int argc, char **argv) {
     mcp_options.bind_address = !opts.mcp_server_bind_address.empty()
                                    ? opts.mcp_server_bind_address
                                    : cfg.mcp_server_bind_address();
-    mcp_options.port = opts.mcp_server_port > 0 ? opts.mcp_server_port
-                                                : cfg.mcp_server_port();
+    mcp_options.port =
+        opts.mcp_server_port > 0 ? opts.mcp_server_port : cfg.mcp_server_port();
     mcp_options.backlog = opts.mcp_server_backlog > 0
                               ? opts.mcp_server_backlog
                               : cfg.mcp_server_backlog();
@@ -456,13 +464,12 @@ int main(int argc, char **argv) {
     mcp_backend = std::make_unique<agpm::GitHubMcpBackend>(
         client, repos, protected_branches, protected_branch_excludes);
     mcp_server = std::make_unique<agpm::McpServer>(*mcp_backend);
-    std::string listen_host =
-        mcp_options.bind_address.empty() ? std::string{"0.0.0.0"}
-                                         : mcp_options.bind_address;
+    std::string listen_host = mcp_options.bind_address.empty()
+                                  ? std::string{"0.0.0.0"}
+                                  : mcp_options.bind_address;
     std::string max_clients_desc =
-        mcp_options.max_clients == 0
-            ? std::string{"unlimited"}
-            : std::to_string(mcp_options.max_clients);
+        mcp_options.max_clients == 0 ? std::string{"unlimited"}
+                                     : std::to_string(mcp_options.max_clients);
     main_log()->info(
         "Starting MCP server on {}:{} (backlog {}, max clients {})",
         listen_host, mcp_options.port, mcp_options.backlog, max_clients_desc);

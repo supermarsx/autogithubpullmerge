@@ -1,3 +1,9 @@
+/**
+ * @file token_loader.cpp
+ * @brief Implements loading of personal access tokens from YAML, JSON, or TOML
+ * files for AGPM.
+ */
+
 #include "token_loader.hpp"
 
 #include <algorithm>
@@ -25,8 +31,9 @@ std::vector<std::string> load_tokens_from_file(const std::string &path) {
     throw std::runtime_error("Unknown token file extension");
   }
   std::string ext = path.substr(pos + 1);
-  std::transform(ext.begin(), ext.end(), ext.begin(),
-                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) {
+    return static_cast<char>(std::tolower(c));
+  });
 
   std::vector<std::string> tokens;
   if (ext == "yaml" || ext == "yml") {
@@ -60,10 +67,9 @@ std::vector<std::string> load_tokens_from_file(const std::string &path) {
     f >> j;
     if (j.is_array()) {
       tokens.reserve(tokens.size() + j.size());
-      std::transform(j.begin(), j.end(), std::back_inserter(tokens),
-                     [](const nlohmann::json &item) {
-                       return item.get<std::string>();
-                     });
+      std::transform(
+          j.begin(), j.end(), std::back_inserter(tokens),
+          [](const nlohmann::json &item) { return item.get<std::string>(); });
     } else if (j.is_object()) {
       if (j.contains("token")) {
         tokens.push_back(j["token"].get<std::string>());
@@ -74,10 +80,9 @@ std::vector<std::string> load_tokens_from_file(const std::string &path) {
           throw std::runtime_error("JSON tokens entry must be an array");
         }
         tokens.reserve(tokens.size() + array.size());
-        std::transform(array.begin(), array.end(), std::back_inserter(tokens),
-                       [](const nlohmann::json &item) {
-                         return item.get<std::string>();
-                       });
+        std::transform(
+            array.begin(), array.end(), std::back_inserter(tokens),
+            [](const nlohmann::json &item) { return item.get<std::string>(); });
       }
     } else if (j.is_string()) {
       tokens.push_back(j.get<std::string>());

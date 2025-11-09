@@ -2,7 +2,8 @@
  * @file cli.cpp
  * @brief Command line interface parsing and helpers for autogithubpullmerge.
  *
- * Implements CLI parsing, option normalization, and related helpers for the tool.
+ * Implements CLI parsing, option normalization, and related helpers for the
+ * tool.
  */
 
 #include "cli.hpp"
@@ -24,8 +25,8 @@
 #include <iomanip>
 #include <iostream>
 #include <iterator>
-#include <memory>
 #include <limits>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string_view>
@@ -37,6 +38,10 @@
 namespace agpm {
 
 namespace {
+/**
+ * @brief Get the logger instance for CLI operations.
+ * @return Shared pointer to the CLI logger.
+ */
 std::shared_ptr<spdlog::logger> cli_log() {
   static auto logger = [] {
     ensure_default_logger();
@@ -470,20 +475,22 @@ CliOptions parse_cli(int argc, char **argv) {
   app.add_flag("--no-log-sidecar",
                "Disable the logger sidecar and use the default layout")
       ->group("Logging");
-  request_caddy_flag = app.add_flag(
-      "--request-caddy-window", options.request_caddy_window,
-      "Show a sidecar window with request queue status and statistics")
-                            ->group("UI");
-  request_caddy_disable_flag = app.add_flag(
-      "--no-request-caddy-window",
-      "Disable the request queue sidecar window")
-                                   ->group("UI");
+  request_caddy_flag =
+      app.add_flag(
+             "--request-caddy-window", options.request_caddy_window,
+             "Show a sidecar window with request queue status and statistics")
+          ->group("UI");
+  request_caddy_disable_flag =
+      app.add_flag("--no-request-caddy-window",
+                   "Disable the request queue sidecar window")
+          ->group("UI");
   app.add_option_function<int>(
          "--tui-refresh-interval",
          [&options](int value) {
            if (value < 100) {
-             throw CLI::ValidationError("--tui-refresh-interval",
-                                        "refresh interval must be at least 100ms");
+             throw CLI::ValidationError(
+                 "--tui-refresh-interval",
+                 "refresh interval must be at least 100ms");
            }
            options.tui_refresh_interval_ms = value;
            options.tui_refresh_interval_explicit = true;
@@ -664,7 +671,8 @@ CliOptions parse_cli(int argc, char **argv) {
                                         e.what());
            }
          },
-         "Control repository discovery (default: all; choose from all/filesystem/both/disabled)")
+         "Control repository discovery (default: all; choose from "
+         "all/filesystem/both/disabled)")
       ->type_name("all|filesystem|both|disabled")
       ->group("Repositories");
   app.add_option("--repo-discovery-root", options.repo_discovery_roots,
@@ -745,28 +753,28 @@ CliOptions parse_cli(int argc, char **argv) {
                      "Bind address for the MCP server listener")
           ->type_name("ADDR")
           ->group("Integrations");
-  mcp_port_option =
-      app.add_option("--mcp-server-port", options.mcp_server_port,
-                     "TCP port used by the MCP server")
-          ->type_name("PORT")
-          ->check(CLI::Range(1, std::numeric_limits<int>::max()))
-          ->group("Integrations");
+  mcp_port_option = app.add_option("--mcp-server-port", options.mcp_server_port,
+                                   "TCP port used by the MCP server")
+                        ->type_name("PORT")
+                        ->check(CLI::Range(1, std::numeric_limits<int>::max()))
+                        ->group("Integrations");
   mcp_backlog_option =
       app.add_option("--mcp-server-backlog", options.mcp_server_backlog,
                      "Pending connection backlog for the MCP listener")
           ->type_name("N")
           ->check(CLI::Range(1, std::numeric_limits<int>::max()))
           ->group("Integrations");
-  mcp_max_clients_option = app.add_option(
-      "--mcp-server-max-clients", options.mcp_server_max_clients,
-      "Maximum clients served per activation (0 = unlimited)")
-                                ->type_name("N")
-                                ->check(CLI::Range(0, std::numeric_limits<int>::max()))
-                                ->group("Integrations");
-  mcp_caddy_flag = app.add_flag(
-      "--mcp-caddy-window", options.mcp_caddy_window,
-      "Show a dedicated window with MCP server activity and statistics")
-                       ->group("Integrations");
+  mcp_max_clients_option =
+      app.add_option("--mcp-server-max-clients", options.mcp_server_max_clients,
+                     "Maximum clients served per activation (0 = unlimited)")
+          ->type_name("N")
+          ->check(CLI::Range(0, std::numeric_limits<int>::max()))
+          ->group("Integrations");
+  mcp_caddy_flag =
+      app.add_flag(
+             "--mcp-caddy-window", options.mcp_caddy_window,
+             "Show a dedicated window with MCP server activity and statistics")
+          ->group("Integrations");
   app.add_option("-A,--api-base", options.api_base,
                  "Base URL for GitHub API (default: https://api.github.com)")
       ->type_name("URL")

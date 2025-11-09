@@ -1,3 +1,11 @@
+/**
+ * @file poller.cpp
+ * @brief Implements the generic worker pool and rate-limited job scheduler.
+ *
+ * This file defines the Poller class, which manages a thread pool, job queue,
+ * rate limiting, backlog alerts, and execution statistics for asynchronous
+ * tasks.
+ */
 #include "poller.hpp"
 #include <algorithm>
 #include <cmath>
@@ -401,8 +409,9 @@ void Poller::mark_started(const std::shared_ptr<RequestInfo> &info,
   std::lock_guard<std::mutex> lock(mutex_);
   info->started_at = start;
   info->state = RequestState::Running;
-  auto it = std::find_if(pending_infos_.begin(), pending_infos_.end(),
-                         [&](const auto &ptr) { return ptr.get() == info.get(); });
+  auto it =
+      std::find_if(pending_infos_.begin(), pending_infos_.end(),
+                   [&](const auto &ptr) { return ptr.get() == info.get(); });
   if (it != pending_infos_.end()) {
     pending_infos_.erase(it);
   }
@@ -421,8 +430,9 @@ void Poller::mark_finished(const std::shared_ptr<RequestInfo> &info,
   }
   info->state = state;
   info->error = std::move(error);
-  auto it = std::find_if(active_infos_.begin(), active_infos_.end(),
-                         [&](const auto &ptr) { return ptr.get() == info.get(); });
+  auto it =
+      std::find_if(active_infos_.begin(), active_infos_.end(),
+                   [&](const auto &ptr) { return ptr.get() == info.get(); });
   if (it != active_infos_.end()) {
     active_infos_.erase(it);
   }
@@ -437,8 +447,9 @@ void Poller::mark_finished(const std::shared_ptr<RequestInfo> &info,
 
 void Poller::mark_cancelled(const std::shared_ptr<RequestInfo> &info) {
   std::lock_guard<std::mutex> lock(mutex_);
-  auto it = std::find_if(pending_infos_.begin(), pending_infos_.end(),
-                         [&](const auto &ptr) { return ptr.get() == info.get(); });
+  auto it =
+      std::find_if(pending_infos_.begin(), pending_infos_.end(),
+                   [&](const auto &ptr) { return ptr.get() == info.get(); });
   if (it != pending_infos_.end()) {
     pending_infos_.erase(it);
   }
@@ -465,7 +476,8 @@ Poller::RequestQueueSnapshot Poller::request_snapshot() const {
     if (latency_samples_ > 0) {
       auto avg = total_latency_ / latency_samples_;
       snapshot.average_latency_ms =
-          std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(avg)
+          std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(
+              avg)
               .count();
     }
     auto copy_entries = [](const auto &source) {

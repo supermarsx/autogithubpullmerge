@@ -1,9 +1,10 @@
 /**
  * @file app.cpp
- * @brief Main application logic and entry point implementation for autogithubpullmerge.
+ * @brief Main application logic and entry point implementation for
+ * autogithubpullmerge.
  *
- * Implements the App class methods, including application flow, configuration loading,
- * and CLI parsing for the autogithubpullmerge tool.
+ * Implements the App class methods, including application flow, configuration
+ * loading, and CLI parsing for the autogithubpullmerge tool.
  */
 
 #include "app.hpp"
@@ -202,7 +203,8 @@ int App::run(int argc, char **argv) {
   } else {
     config_.set_mcp_server_port(options_.mcp_server_port);
   }
-  if (!options_.mcp_server_backlog_explicit || options_.mcp_server_backlog <= 0) {
+  if (!options_.mcp_server_backlog_explicit ||
+      options_.mcp_server_backlog <= 0) {
     options_.mcp_server_backlog = config_.mcp_server_backlog();
   } else {
     config_.set_mcp_server_backlog(options_.mcp_server_backlog);
@@ -235,8 +237,8 @@ int App::run(int argc, char **argv) {
                                       : config_.include_repos();
   if (options_.repo_discovery_mode == RepoDiscoveryMode::Disabled &&
       combined_include.empty()) {
-    app_log()->error(
-        "Repository discovery disabled but no repositories specified via --include or config");
+    app_log()->error("Repository discovery disabled but no repositories "
+                     "specified via --include or config");
     should_exit_ = true;
     return 1;
   }

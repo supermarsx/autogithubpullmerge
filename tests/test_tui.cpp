@@ -124,9 +124,8 @@ TEST_CASE("test tui", "[tui]") {
   REQUIRE(raw->get_count >= 1);
 
   const int refresh_count = raw->get_count;
-  std::unordered_map<std::string, std::string> overrides{
-      {"refresh", "Ctrl+R"},
-      {"quit", "Ctrl+Q"}};
+  std::unordered_map<std::string, std::string> overrides{{"refresh", "Ctrl+R"},
+                                                         {"quit", "Ctrl+Q"}};
   ui.configure_hotkeys(overrides);
   ui.handle_key('r');
   REQUIRE(raw->get_count == refresh_count);

@@ -21,25 +21,24 @@ TEST_CASE("hook dispatcher sends command events") {
   bool received = false;
   nlohmann::json payload;
 
-  agpm::HookDispatcher dispatcher(
-      settings,
-      [&](const agpm::HookAction &act, const agpm::HookEvent &evt,
-          const std::string &body) {
-        std::unique_lock<std::mutex> lock(mutex);
-        payload = nlohmann::json::parse(body);
-        REQUIRE(act.command == "echo");
-        REQUIRE(act.parameters.size() == 1);
-        REQUIRE(act.parameters.front().first == "branch");
-        REQUIRE(payload["parameters"]["branch"] == "feature");
-        REQUIRE(evt.name == "pull_request.merged");
-        received = true;
-        cv.notify_one();
-        return 0;
-      });
+  agpm::HookDispatcher dispatcher(settings, [&](const agpm::HookAction &act,
+                                                const agpm::HookEvent &evt,
+                                                const std::string &body) {
+    std::unique_lock<std::mutex> lock(mutex);
+    payload = nlohmann::json::parse(body);
+    REQUIRE(act.command == "echo");
+    REQUIRE(act.parameters.size() == 1);
+    REQUIRE(act.parameters.front().first == "branch");
+    REQUIRE(payload["parameters"]["branch"] == "feature");
+    REQUIRE(evt.name == "pull_request.merged");
+    received = true;
+    cv.notify_one();
+    return 0;
+  });
 
   dispatcher.enqueue(agpm::HookEvent{
       "pull_request.merged",
-      { {"number", 7}, {"owner", "octocat"}, {"repo", "hello"} }});
+      {{"number", 7}, {"owner", "octocat"}, {"repo", "hello"}}});
 
   std::unique_lock<std::mutex> lock(mutex);
   REQUIRE(cv.wait_for(lock, 500ms, [&] { return received; }));
@@ -65,8 +64,7 @@ TEST_CASE("hook dispatcher sends http events") {
   nlohmann::json payload;
 
   agpm::HookDispatcher dispatcher(
-      settings,
-      agpm::HookDispatcher::CommandExecutor{},
+      settings, agpm::HookDispatcher::CommandExecutor{},
       [&](const agpm::HookAction &act, const agpm::HookEvent &evt,
           const std::string &body) {
         std::unique_lock<std::mutex> lock(mutex);
@@ -82,8 +80,7 @@ TEST_CASE("hook dispatcher sends http events") {
       });
 
   dispatcher.enqueue(agpm::HookEvent{
-      "poll.branch_threshold",
-      { {"total_branches", 42}, {"threshold", 10} }});
+      "poll.branch_threshold", {{"total_branches", 42}, {"threshold", 10}}});
 
   std::unique_lock<std::mutex> lock(mutex);
   REQUIRE(cv.wait_for(lock, 500ms, [&] { return received; }));

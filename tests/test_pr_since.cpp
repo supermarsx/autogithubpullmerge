@@ -45,8 +45,7 @@ TEST_CASE("test pr since") {
                 std::gmtime(&old_t));
   std::string resp =
       std::string("[{\"number\":1,\"title\":\"Old\",\"created_at\":\"") +
-      old_buf +
-      "\"},{\"number\":2,\"title\":\"Reopened\",\"created_at\":\"" +
+      old_buf + "\"},{\"number\":2,\"title\":\"Reopened\",\"created_at\":\"" +
       old_buf + "\",\"updated_at\":\"" + recent_update_buf + "\"}]";
   auto http = std::make_unique<TimeHttpClient>();
   http->response = resp;

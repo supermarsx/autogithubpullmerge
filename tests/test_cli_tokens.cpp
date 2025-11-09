@@ -64,8 +64,9 @@ TEST_CASE("test cli tokens", "[cli]") {
   if (ec) {
     expected = std::filesystem::absolute(autodetect_path);
   }
-  std::unordered_set<std::string> detected(auto_opts.auto_detected_api_key_files.begin(),
-                                           auto_opts.auto_detected_api_key_files.end());
+  std::unordered_set<std::string> detected(
+      auto_opts.auto_detected_api_key_files.begin(),
+      auto_opts.auto_detected_api_key_files.end());
   REQUIRE(detected.count(expected.string()) == 1);
   std::filesystem::remove(autodetect_path);
 

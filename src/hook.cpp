@@ -1,13 +1,23 @@
+/**
+ * @file hook.cpp
+ * @brief Implements the hook dispatching system for executing commands and HTTP
+ * requests in response to repository events.
+ *
+ * This file defines the HookDispatcher class, which manages asynchronous
+ * execution of user-defined hooks (commands or HTTP requests) based on
+ * repository events, with support for per-repository overrides and environment
+ * variable injection.
+ */
 #include "hook.hpp"
 #include "log.hpp"
 
 #include <algorithm>
-#include <chrono>
 #include <cctype>
+#include <chrono>
 #include <cstdlib>
+#include <ctime>
 #include <curl/curl.h>
 #include <iomanip>
-#include <ctime>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -59,9 +69,7 @@ void set_env(const std::string &name, const std::string &value) {
   _putenv_s(name.c_str(), value.c_str());
 }
 
-void unset_env(const std::string &name) {
-  _putenv_s(name.c_str(), "");
-}
+void unset_env(const std::string &name) { _putenv_s(name.c_str(), ""); }
 #else
 void set_env(const std::string &name, const std::string &value) {
   setenv(name.c_str(), value.c_str(), 1);
@@ -105,6 +113,16 @@ private:
 
 } // namespace
 
+/**
+ * @brief Construct a HookDispatcher with the given settings and executors.
+ *
+ * Initializes the dispatcher, starts the worker thread if hooks are enabled and
+ * actions are present.
+ *
+ * @param settings Hook configuration settings.
+ * @param command_executor Optional custom command executor.
+ * @param http_executor Optional custom HTTP executor.
+ */
 HookDispatcher::HookDispatcher(HookSettings settings,
                                CommandExecutor command_executor,
                                HttpExecutor http_executor)
@@ -114,7 +132,8 @@ HookDispatcher::HookDispatcher(HookSettings settings,
   repo_overrides_ = std::move(settings_.repository_overrides);
   if (!settings_.enabled || !has_actions()) {
     if (settings_.enabled && !has_actions()) {
-      hook_log()->warn("Hook dispatcher enabled without any configured actions");
+      hook_log()->warn(
+          "Hook dispatcher enabled without any configured actions");
     }
     return;
   }
@@ -122,6 +141,9 @@ HookDispatcher::HookDispatcher(HookSettings settings,
   thread_ = std::thread([this] { worker(); });
 }
 
+/**
+ * @brief Destructor. Stops the worker thread and cleans up resources.
+ */
 HookDispatcher::~HookDispatcher() {
   {
     std::lock_guard<std::mutex> lk(mutex_);
@@ -134,6 +156,11 @@ HookDispatcher::~HookDispatcher() {
   running_ = false;
 }
 
+/**
+ * @brief Enqueue a hook event for asynchronous processing.
+ *
+ * @param event The hook event to process.
+ */
 void HookDispatcher::enqueue(HookEvent event) {
   if (!running_) {
     return;
@@ -168,10 +195,10 @@ void HookDispatcher::worker() {
 }
 
 void HookDispatcher::dispatch(const HookEvent &event) {
-  auto payload = nlohmann::json{{"event", event.name},
-                                {"timestamp", iso_timestamp(
-                                                   std::chrono::system_clock::now())},
-                                {"data", event.data}};
+  auto payload = nlohmann::json{
+      {"event", event.name},
+      {"timestamp", iso_timestamp(std::chrono::system_clock::now())},
+      {"data", event.data}};
   const RepositoryHookSettings *override_settings =
       match_repository_override(event);
   bool enabled = settings_.enabled;
@@ -279,8 +306,9 @@ void HookDispatcher::execute_http(const HookAction &action,
         if (!has_content_type) {
           std::string lower = header.first;
           std::transform(lower.begin(), lower.end(), lower.begin(),
-                         [](unsigned char c) { return static_cast<char>(
-                                                   std::tolower(c)); });
+                         [](unsigned char c) {
+                           return static_cast<char>(std::tolower(c));
+                         });
           if (lower == "content-type") {
             has_content_type = true;
           }
@@ -295,17 +323,17 @@ void HookDispatcher::execute_http(const HookAction &action,
                        static_cast<long>(body.size()));
       std::string method = hook_action.method;
       if (!method.empty()) {
-        std::transform(method.begin(), method.end(), method.begin(),
-                       [](unsigned char c) {
-                         return static_cast<char>(std::toupper(c));
-                       });
+        std::transform(
+            method.begin(), method.end(), method.begin(),
+            [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
       }
       if (method == "GET") {
         curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
       } else if (method == "POST" || method.empty()) {
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
       } else {
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, hook_action.method.c_str());
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST,
+                         hook_action.method.c_str());
       }
       CURLcode res = curl_easy_perform(curl);
       long status = 0;

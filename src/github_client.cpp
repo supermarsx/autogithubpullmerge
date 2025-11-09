@@ -1005,8 +1005,9 @@ GitHubClient::list_pull_requests(const std::string &owner,
       break;
     }
     for (const auto &item : j) {
-      auto read_timestamp = [](const nlohmann::json &object,
-                               const char *field) -> std::optional<std::string> {
+      auto read_timestamp =
+          [](const nlohmann::json &object,
+             const char *field) -> std::optional<std::string> {
         if (object.contains(field) && object[field].is_string()) {
           std::string value = object[field].get<std::string>();
           if (!value.empty()) {

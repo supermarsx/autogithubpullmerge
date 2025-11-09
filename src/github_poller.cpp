@@ -3,8 +3,8 @@
 #include "sort.hpp"
 #include <algorithm>
 #include <atomic>
-#include <cmath>
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <future>
@@ -32,8 +32,9 @@ std::shared_ptr<spdlog::logger> poller_log() {
 }
 
 std::string normalize_rule_state(std::string state) {
-  std::transform(state.begin(), state.end(), state.begin(),
-                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  std::transform(
+      state.begin(), state.end(), state.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return state;
 }
 } // namespace
@@ -608,8 +609,7 @@ void GitHubPoller::poll() {
                     explicit_branch_rule_states_.count(state_key) > 0;
               }
               if (!explicit_rule && metadata.stray) {
-                explicit_rule =
-                    explicit_branch_rule_states_.count("stray") > 0;
+                explicit_rule = explicit_branch_rule_states_.count("stray") > 0;
               }
               if (!explicit_rule) {
                 action = BranchAction::kKeep;

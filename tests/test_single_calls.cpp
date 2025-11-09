@@ -78,8 +78,8 @@ TEST_CASE("poller uses single open PR when rate low") {
   HeadersMockHttp *raw = mock.get();
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(mock.release()));
   std::vector<std::pair<std::string, std::string>> repos = {{"me", "repo"}};
-  GitHubPoller poller(client, repos, 0,
-                      1 /* max_rate <=1 forces single-call */, 0, 1);
+  GitHubPoller poller(client, repos, 0, 1 /* max_rate <=1 forces single-call */,
+                      0, 1);
   std::vector<PullRequest> seen;
   poller.set_pr_callback(
       [&](const std::vector<PullRequest> &prs) { seen = prs; });

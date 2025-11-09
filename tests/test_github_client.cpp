@@ -138,7 +138,8 @@ public:
       return {body, {"Link: <" + next + ">; rel=\"next\""}, 200};
     }
     std::string body = "[{\"number\":3,\"title\":\"Newer\",\"created_at\":\"" +
-                       recent2_ts + "\",\"updated_at\":\"" + recent2_ts + "\"}]";
+                       recent2_ts + "\",\"updated_at\":\"" + recent2_ts +
+                       "\"}]";
     return {body, {}, 200};
   }
 

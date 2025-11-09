@@ -1,3 +1,10 @@
+/**
+ * @file rule_engine.cpp
+ * @brief Implements rule engines for pull request and branch actions.
+ *
+ * This file defines the PullRequestRuleEngine and BranchRuleEngine classes,
+ * which map repository state to merge, wait, ignore, or delete actions.
+ */
 #include "rule_engine.hpp"
 
 #include <algorithm>
@@ -75,7 +82,8 @@ void BranchRuleEngine::set_action(const std::string &state,
   state_actions_[normalize_state(state)] = action;
 }
 
-BranchAction BranchRuleEngine::action_for_state(const std::string &state) const {
+BranchAction
+BranchRuleEngine::action_for_state(const std::string &state) const {
   auto key = normalize_state(state);
   auto it = state_actions_.find(key);
   if (it == state_actions_.end()) {

@@ -1,3 +1,12 @@
+/**
+ * @file log.cpp
+ * @brief Logging initialization and category management for
+ * autogithubpullmerge.
+ *
+ * This file implements logger setup, file rotation, compression, and
+ * category-based logging using spdlog, as well as utility functions for log
+ * configuration.
+ */
 #include "log.hpp"
 #include <filesystem>
 #include <fstream>
@@ -113,8 +122,7 @@ bool compress_rotated_file(const std::string &path) {
       if (written == 0 || written != read) {
         int err = 0;
         const char *msg = gzerror(gz, &err);
-        log->warn("Failed to compress log {}: {}", path,
-                  msg ? msg : "unknown");
+        log->warn("Failed to compress log {}: {}", path, msg ? msg : "unknown");
         gzclose(gz);
         std::error_code ec;
         fs::remove(fs::path(compressed_path_str), ec);

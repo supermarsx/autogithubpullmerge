@@ -92,15 +92,16 @@ TEST_CASE("literal protected branch patterns require exact match") {
   GitHubClient client({"tok"}, std::unique_ptr<HttpClient>(http.release()));
 
   std::vector<std::string> literal_pattern{"release/1.2.3"};
-  REQUIRE_FALSE(client.delete_branch("me", "repo", "release/1.2.3",
-                                    literal_pattern, {}));
+  REQUIRE_FALSE(
+      client.delete_branch("me", "repo", "release/1.2.3", literal_pattern, {}));
   REQUIRE(raw->last_deleted.empty());
 
   raw->last_deleted.clear();
-  REQUIRE(client.delete_branch("me", "repo", "release/1.2.30",
-                               literal_pattern, {}));
-  REQUIRE(raw->last_deleted ==
-          "https://api.github.com/repos/me/repo/git/refs/heads/release%2F1.2.30");
+  REQUIRE(client.delete_branch("me", "repo", "release/1.2.30", literal_pattern,
+                               {}));
+  REQUIRE(
+      raw->last_deleted ==
+      "https://api.github.com/repos/me/repo/git/refs/heads/release%2F1.2.30");
 }
 
 TEST_CASE("regex protected branch patterns retain regex semantics") {
@@ -110,13 +111,14 @@ TEST_CASE("regex protected branch patterns retain regex semantics") {
 
   std::vector<std::string> regex_pattern{
       "regex:^release/[0-9]+\\.[0-9]+\\.[0-9]+$"};
-  REQUIRE_FALSE(client.delete_branch("me", "repo", "release/1.2.3",
-                                    regex_pattern, {}));
+  REQUIRE_FALSE(
+      client.delete_branch("me", "repo", "release/1.2.3", regex_pattern, {}));
   REQUIRE(raw->last_deleted.empty());
 
   raw->last_deleted.clear();
-  REQUIRE(client.delete_branch("me", "repo", "release/v1.2.3",
-                               regex_pattern, {}));
-  REQUIRE(raw->last_deleted ==
-          "https://api.github.com/repos/me/repo/git/refs/heads/release%2Fv1.2.3");
+  REQUIRE(
+      client.delete_branch("me", "repo", "release/v1.2.3", regex_pattern, {}));
+  REQUIRE(
+      raw->last_deleted ==
+      "https://api.github.com/repos/me/repo/git/refs/heads/release%2Fv1.2.3");
 }

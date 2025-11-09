@@ -53,16 +53,13 @@ TEST_CASE("test config loading") {
     nlohmann::json doc;
     doc["core"] = {{"verbose", false}, {"poll_interval", 5}};
     doc["rate_limits"] = {{"max_request_rate", 15},
-                           {"max_hourly_requests", 2500}};
+                          {"max_hourly_requests", 2500}};
     doc["logging"] = {{"log_level", "warn"}};
-    doc["network"] = {{"http_timeout", 50},
-                       {"http_retries", 4},
-                       {"download_limit", 21},
-                       {"upload_limit", 22},
-                       {"max_download", 23},
-                       {"max_upload", 24},
-                       {"http_proxy", "http://proxy"},
-                       {"https_proxy", "http://secureproxy"}};
+    doc["network"] = {
+        {"http_timeout", 50},           {"http_retries", 4},
+        {"download_limit", 21},         {"upload_limit", 22},
+        {"max_download", 23},           {"max_upload", 24},
+        {"http_proxy", "http://proxy"}, {"https_proxy", "http://secureproxy"}};
     doc["features"] = {{"use_graphql", false}};
     std::ofstream f(jpath.string());
     f << doc.dump();

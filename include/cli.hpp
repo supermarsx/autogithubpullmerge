@@ -2,7 +2,8 @@
  * @file cli.hpp
  * @brief Command line interface parsing and options for autogithubpullmerge.
  *
- * Declares CLI parsing helpers, option structures, and related exceptions for the tool.
+ * Declares CLI parsing helpers, option structures, and related exceptions for
+ * the tool.
  */
 
 #ifndef AUTOGITHUBPULLMERGE_CLI_HPP
@@ -77,8 +78,8 @@ struct CliOptions {
   bool dry_run{false};                 ///< Simulate operations without changes
   int tui_refresh_interval_ms{0};      ///< Custom UI refresh cadence (ms)
   bool tui_refresh_interval_explicit{false}; ///< True if CLI set refresh rate
-  std::vector<std::string> include_repos; ///< Repositories to include
-  std::vector<std::string> exclude_repos; ///< Repositories to exclude
+  std::vector<std::string> include_repos;    ///< Repositories to include
+  std::vector<std::string> exclude_repos;    ///< Repositories to exclude
   std::vector<std::string>
       protected_branches; ///< Protected branch patterns to skip
   std::vector<std::string>
@@ -170,18 +171,18 @@ struct CliOptions {
   int hook_branch_threshold{0};
   bool hook_branch_threshold_explicit{false};
 
-  bool mcp_server_enabled{false};  ///< Enable the MCP server integration
-  bool mcp_server_explicit{false}; ///< True if CLI explicitly toggled MCP
-  std::string mcp_server_bind_address; ///< Bind address for the MCP server
+  bool mcp_server_enabled{false};       ///< Enable the MCP server integration
+  bool mcp_server_explicit{false};      ///< True if CLI explicitly toggled MCP
+  std::string mcp_server_bind_address;  ///< Bind address for the MCP server
   bool mcp_server_bind_explicit{false}; ///< True if CLI set bind address
-  int mcp_server_port{0};                ///< TCP port for the MCP server
-  bool mcp_server_port_explicit{false};  ///< True if CLI set MCP port
-  int mcp_server_backlog{0};             ///< Listen backlog for the MCP server
+  int mcp_server_port{0};               ///< TCP port for the MCP server
+  bool mcp_server_port_explicit{false}; ///< True if CLI set MCP port
+  int mcp_server_backlog{0};            ///< Listen backlog for the MCP server
   bool mcp_server_backlog_explicit{false}; ///< True if CLI set backlog
   int mcp_server_max_clients{0};           ///< Max clients handled per session
   bool mcp_server_max_clients_explicit{false}; ///< True if CLI set max clients
-  bool mcp_caddy_window{false}; ///< Enable MCP server event sidecar window
-  bool mcp_caddy_explicit{false}; ///< True if CLI toggled MCP caddy window
+  bool mcp_caddy_window{false};     ///< Enable MCP server event sidecar window
+  bool mcp_caddy_explicit{false};   ///< True if CLI toggled MCP caddy window
   bool request_caddy_window{false}; ///< Enable request queue sidecar window
   bool request_caddy_explicit{false}; ///< True if CLI toggled request caddy
 

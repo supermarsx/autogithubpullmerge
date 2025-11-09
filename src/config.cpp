@@ -1,8 +1,10 @@
 /**
  * @file config.cpp
- * @brief Application configuration model implementation for autogithubpullmerge.
+ * @brief Application configuration model implementation for
+ * autogithubpullmerge.
  *
- * Implements the Config class and helpers for loading/managing YAML, TOML, or JSON config files.
+ * Implements the Config class and helpers for loading/managing YAML, TOML, or
+ * JSON config files.
  */
 
 #include "config.hpp"
@@ -31,6 +33,10 @@ namespace agpm {
 
 namespace {
 
+/**
+ * @brief Get the logger instance for configuration operations.
+ * @return Shared pointer to the config logger.
+ */
 std::shared_ptr<spdlog::logger> config_log() {
   static auto logger = [] {
     ensure_default_logger();
@@ -39,10 +45,15 @@ std::shared_ptr<spdlog::logger> config_log() {
   return logger;
 }
 
+/**
+ * @brief Convert a string to lowercase.
+ * @param value Input string to convert.
+ * @return Lowercase version of the input string.
+ */
 std::string to_lower_copy(std::string value) {
-  std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
-    return static_cast<char>(std::tolower(c));
-  });
+  std::transform(
+      value.begin(), value.end(), value.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return value;
 }
 
@@ -183,6 +194,11 @@ nlohmann::json normalize_config_sections(const nlohmann::json &source) {
   return normalized;
 }
 
+/**
+ * @brief Convert a glob pattern to a regular expression.
+ * @param glob Glob pattern string.
+ * @return Regex object representing the glob pattern.
+ */
 std::regex repo_glob_to_regex(const std::string &glob) {
   std::string rx = "^";
   for (char c : glob) {
@@ -216,6 +232,11 @@ std::regex repo_glob_to_regex(const std::string &glob) {
   return std::regex(rx);
 }
 
+/**
+ * @brief Convert a mixed pattern to a regex string.
+ * @param value Mixed pattern string.
+ * @return Regex string representing the mixed pattern.
+ */
 std::string repo_mixed_to_regex(const std::string &value) {
   std::string out;
   out.reserve(value.size() * 2);
@@ -234,6 +255,12 @@ std::string repo_mixed_to_regex(const std::string &value) {
   return out;
 }
 
+/**
+ * @brief Compile a repository pattern string to a regex, supporting various
+ * prefixes.
+ * @param pattern Pattern string (may be regex:, glob:, mixed:, etc.).
+ * @return Optional regex if compilation succeeds, nullopt otherwise.
+ */
 std::optional<std::regex> compile_repo_pattern(const std::string &pattern) {
   std::string body = pattern;
   if (body.rfind("regex:", 0) == 0) {
@@ -261,12 +288,19 @@ std::optional<std::regex> compile_repo_pattern(const std::string &pattern) {
       return std::nullopt;
     }
   }
-  if (body.find('*') != std::string::npos || body.find('?') != std::string::npos) {
+  if (body.find('*') != std::string::npos ||
+      body.find('?') != std::string::npos) {
     return repo_glob_to_regex(body);
   }
   return std::nullopt;
 }
 
+/**
+ * @brief Parse hook headers from a JSON object.
+ * @param headers JSON object containing header key-value pairs.
+ * @param context Context string for logging.
+ * @return Vector of header key-value pairs.
+ */
 std::vector<std::pair<std::string, std::string>>
 parse_hook_headers(const nlohmann::json &headers, std::string_view context) {
   std::vector<std::pair<std::string, std::string>> parsed;
@@ -276,8 +310,8 @@ parse_hook_headers(const nlohmann::json &headers, std::string_view context) {
   }
   for (const auto &[key, value] : headers.items()) {
     if (!value.is_string()) {
-      config_log()->warn(
-          "Hook header '{}' for '{}' must be a string value", key, context);
+      config_log()->warn("Hook header '{}' for '{}' must be a string value",
+                         key, context);
       continue;
     }
     parsed.emplace_back(key, value.get<std::string>());
@@ -285,6 +319,12 @@ parse_hook_headers(const nlohmann::json &headers, std::string_view context) {
   return parsed;
 }
 
+/**
+ * @brief Parse a hook action from a JSON object.
+ * @param value JSON object describing the hook action.
+ * @param context Context string for logging.
+ * @return Optional HookAction if parsing succeeds, nullopt otherwise.
+ */
 std::optional<HookAction> parse_hook_action(const nlohmann::json &value,
                                             std::string_view context) {
   if (!value.is_object()) {
@@ -314,8 +354,7 @@ std::optional<HookAction> parse_hook_action(const nlohmann::json &value,
     action.command = value["command"].get<std::string>();
   } else if (type == "http" || type == "endpoint") {
     if (!value.contains("endpoint") || !value["endpoint"].is_string()) {
-      config_log()->warn("HTTP hook action for '{}' missing endpoint",
-                         context);
+      config_log()->warn("HTTP hook action for '{}' missing endpoint", context);
       return std::nullopt;
     }
     action.type = HookActionType::Http;
@@ -334,8 +373,8 @@ std::optional<HookAction> parse_hook_action(const nlohmann::json &value,
   if (value.contains("parameters")) {
     const auto &params = value["parameters"];
     if (!params.is_object()) {
-      config_log()->warn(
-          "Hook action parameters for '{}' must be an object", context);
+      config_log()->warn("Hook action parameters for '{}' must be an object",
+                         context);
     } else {
       for (const auto &[pkey, pvalue] : params.items()) {
         std::string rendered;
@@ -355,6 +394,11 @@ std::optional<HookAction> parse_hook_action(const nlohmann::json &value,
   return action;
 }
 
+/**
+ * @brief Parse repository action overrides from a JSON node.
+ * @param node JSON node with action override fields.
+ * @param out Output structure to populate with parsed values.
+ */
 void parse_repository_actions(const nlohmann::json &node,
                               Config::RepositoryActionOverride &out) {
   auto assign_bool = [&](std::string_view key, bool &has_value, bool &value) {
@@ -382,6 +426,12 @@ void parse_repository_actions(const nlohmann::json &node,
   }
 }
 
+/**
+ * @brief Parse repository hook overrides from a JSON node.
+ * @param node JSON node with hook override fields.
+ * @param out Output structure to populate with parsed values.
+ * @param context Context string for logging.
+ */
 void parse_repository_hooks(const nlohmann::json &node,
                             Config::RepositoryHookOverride &out,
                             std::string_view context) {
@@ -396,28 +446,27 @@ void parse_repository_hooks(const nlohmann::json &node,
       out.default_actions.push_back(std::move(action));
     }
   };
-  auto parse_default_http = [&](const nlohmann::json &source,
-                                std::string_view endpoint_field,
-                                std::string_view method_field,
-                                std::string_view headers_field) {
-    auto it = source.find(std::string(endpoint_field));
-    if (it == source.end() || !it->is_string()) {
-      return;
-    }
-    HookAction action;
-    action.type = HookActionType::Http;
-    action.endpoint = it->get<std::string>();
-    auto method_it = source.find(std::string(method_field));
-    if (method_it != source.end() && method_it->is_string()) {
-      action.method = method_it->get<std::string>();
-    }
-    auto headers_it = source.find(std::string(headers_field));
-    if (headers_it != source.end()) {
-      action.headers = parse_hook_headers(*headers_it, context);
-    }
-    out.overrides_default_actions = true;
-    out.default_actions.push_back(std::move(action));
-  };
+  auto parse_default_http =
+      [&](const nlohmann::json &source, std::string_view endpoint_field,
+          std::string_view method_field, std::string_view headers_field) {
+        auto it = source.find(std::string(endpoint_field));
+        if (it == source.end() || !it->is_string()) {
+          return;
+        }
+        HookAction action;
+        action.type = HookActionType::Http;
+        action.endpoint = it->get<std::string>();
+        auto method_it = source.find(std::string(method_field));
+        if (method_it != source.end() && method_it->is_string()) {
+          action.method = method_it->get<std::string>();
+        }
+        auto headers_it = source.find(std::string(headers_field));
+        if (headers_it != source.end()) {
+          action.headers = parse_hook_headers(*headers_it, context);
+        }
+        out.overrides_default_actions = true;
+        out.default_actions.push_back(std::move(action));
+      };
   auto parse_actions_array = [&](const nlohmann::json &arr,
                                  std::vector<HookAction> &dest) {
     for (const auto &entry : arr) {
@@ -487,6 +536,10 @@ void parse_repository_hooks(const nlohmann::json &node,
 
 } // namespace
 
+/**
+ * @brief Set the margin for rate limit calculations.
+ * @param margin Margin value (clamped between 0.0 and 0.95).
+ */
 void Config::set_rate_limit_margin(double margin) {
   rate_limit_margin_ = std::clamp(margin, 0.0, 0.95);
 }
@@ -949,12 +1002,10 @@ void Config::load_json(const nlohmann::json &j) {
     set_mcp_server_backlog(cfg["mcp_server_backlog"].get<int>());
   }
   if (cfg.contains("mcp_server_max_clients")) {
-    set_mcp_server_max_clients(
-        cfg["mcp_server_max_clients"].get<int>());
+    set_mcp_server_max_clients(cfg["mcp_server_max_clients"].get<int>());
   }
   if (cfg.contains("mcp_server_caddy_window")) {
-    set_mcp_server_caddy_window(
-        cfg["mcp_server_caddy_window"].get<bool>());
+    set_mcp_server_caddy_window(cfg["mcp_server_caddy_window"].get<bool>());
   }
   if (cfg.contains("mcp")) {
     const auto &mcp_cfg = cfg["mcp"];
@@ -967,8 +1018,7 @@ void Config::load_json(const nlohmann::json &j) {
       }
       if (mcp_cfg.contains("bind_address") &&
           mcp_cfg["bind_address"].is_string()) {
-        set_mcp_server_bind_address(
-            mcp_cfg["bind_address"].get<std::string>());
+        set_mcp_server_bind_address(mcp_cfg["bind_address"].get<std::string>());
       }
       if (mcp_cfg.contains("port")) {
         set_mcp_server_port(mcp_cfg["port"].get<int>());

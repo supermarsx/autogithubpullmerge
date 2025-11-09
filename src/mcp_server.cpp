@@ -1,3 +1,60 @@
+/**
+ * @file mcp_server.cpp
+ * @brief Implements the MCP server and backend for remote control and
+ * automation.
+ *
+ * This file defines the GitHubMcpBackend, McpServer, and McpServerRunner
+ * classes, which provide a JSON-RPC server for remote repository, branch, and
+ * pull request management, as well as event streaming and socket handling.
+ */
+/**
+ * @file mcp_server.cpp
+ * @brief Implements the MCP server and backend for remote control and
+ * automation.
+ *
+ * This file defines the GitHubMcpBackend, McpServer, and McpServerRunner
+ * classes, which provide a JSON-RPC server for remote repository, branch, and
+ * pull request management, as well as event streaming and socket handling.
+ */
+
+/**
+ * @file mcp_server.cpp
+ * @brief Implements the MCP server and backend for remote control and
+ * automation.
+ *
+ * This file defines the GitHubMcpBackend, McpServer, and McpServerRunner
+ * classes, which provide a JSON-RPC server for remote repository, branch, and
+ * pull request management, as well as event streaming and socket handling.
+ */
+
+/**
+ * @file mcp_server.cpp
+ * @brief Implements the MCP server and backend for remote control and
+ * automation.
+ *
+ * This file defines the GitHubMcpBackend, McpServer, and McpServerRunner
+ * classes, which provide a JSON-RPC server for remote repository, branch, and
+ * pull request management, as well as event streaming and socket handling.
+ */
+/**
+ * @file mcp_server.cpp
+ * @brief Implements the MCP server and backend for remote control and
+ * automation.
+ *
+ * This file defines the GitHubMcpBackend, McpServer, and McpServerRunner
+ * classes, which provide a JSON-RPC server for remote repository, branch, and
+ * pull request management, as well as event streaming and socket handling.
+ */
+/**
+ * @file mcp_server.cpp
+ * @brief Implements the MCP server and backend for remote control and
+ * automation.
+ *
+ * This file defines the GitHubMcpBackend, McpServer, and McpServerRunner
+ * classes, which provide a JSON-RPC server for remote repository, branch, and
+ * pull request management, as well as event streaming and socket handling.
+ */
+
 #include "mcp_server.hpp"
 #include "log.hpp"
 
@@ -15,8 +72,8 @@
 #include <utility>
 
 #if defined(_WIN32)
-#include <winsock2.h>
 #include <Ws2tcpip.h>
+#include <winsock2.h>
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -288,8 +345,8 @@ nlohmann::json McpServer::handle_request(const nlohmann::json &request) {
       if (!ok) {
         return respond_error(-32002, "Branch deletion rejected by backend");
       }
-      emit_event("method=deleteBranch success owner=" + owner + " repo=" +
-                 repo + " branch=" + branch);
+      emit_event("method=deleteBranch success owner=" + owner +
+                 " repo=" + repo + " branch=" + branch);
       if (!has_id) {
         return nlohmann::json{};
       }
@@ -444,15 +501,13 @@ void McpServerRunner::run() {
 #ifdef _WIN32
   listener_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (listener_ == INVALID_SOCKET) {
-    finish("Failed to create MCP socket: " +
-           describe_error(last_error_code()));
+    finish("Failed to create MCP socket: " + describe_error(last_error_code()));
     return;
   }
 #else
   listener_ = ::socket(AF_INET, SOCK_STREAM, 0);
   if (listener_ < 0) {
-    finish("Failed to create MCP socket: " +
-           describe_error(last_error_code()));
+    finish("Failed to create MCP socket: " + describe_error(last_error_code()));
     return;
   }
 #endif
@@ -495,7 +550,8 @@ void McpServerRunner::run() {
     return;
   }
 #else
-  if (::bind(listener_, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
+  if (::bind(listener_, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) <
+      0) {
     finish("Failed to bind MCP socket: " + describe_error(last_error_code()));
     return;
   }
@@ -513,8 +569,8 @@ void McpServerRunner::run() {
     sockaddr_in client_addr{};
     socklen_t client_len = sizeof(client_addr);
 #ifdef _WIN32
-    SOCKET client = accept(listener_, reinterpret_cast<sockaddr *>(&client_addr),
-                           &client_len);
+    SOCKET client = accept(
+        listener_, reinterpret_cast<sockaddr *>(&client_addr), &client_len);
     if (client == INVALID_SOCKET) {
       if (stop_requested_) {
         break;
@@ -541,7 +597,8 @@ void McpServerRunner::run() {
     const char *remote = inet_ntop(AF_INET, &client_addr.sin_addr,
                                    addr_buf.data(), addr_buf.size());
 #endif
-    std::string remote_str = remote != nullptr ? remote : std::string{"unknown"};
+    std::string remote_str =
+        remote != nullptr ? remote : std::string{"unknown"};
     emit("client connected: " + remote_str + ":" +
          std::to_string(ntohs(client_addr.sin_port)));
 
@@ -551,8 +608,8 @@ void McpServerRunner::run() {
     while (client_active && !stop_requested_) {
       std::array<char, 4096> chunk{};
 #ifdef _WIN32
-      int received = recv(client, chunk.data(),
-                          static_cast<int>(chunk.size()), 0);
+      int received =
+          recv(client, chunk.data(), static_cast<int>(chunk.size()), 0);
 #else
       ssize_t received = ::recv(client, chunk.data(), chunk.size(), 0);
 #endif

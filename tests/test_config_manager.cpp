@@ -28,7 +28,7 @@ TEST_CASE("test config manager") {
     nlohmann::json doc;
     doc["core"] = {{"verbose", false}, {"poll_interval", 1}};
     doc["rate_limits"] = {{"max_request_rate", 3},
-                           {"max_hourly_requests", 1600}};
+                          {"max_hourly_requests", 1600}};
     doc["logging"] = {{"log_level", "error"}};
     std::ofstream f("cfg.json");
     f << doc.dump();

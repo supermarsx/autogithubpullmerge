@@ -186,9 +186,8 @@ TEST_CASE("McpServer reports events to callbacks", "[mcp]") {
   backend.repositories = {{"octocat", "hello"}};
   agpm::McpServer server(backend);
   std::vector<std::string> events;
-  server.set_event_callback([&events](const std::string &msg) {
-    events.push_back(msg);
-  });
+  server.set_event_callback(
+      [&events](const std::string &msg) { events.push_back(msg); });
   nlohmann::json request = {
       {"jsonrpc", "2.0"}, {"id", 42}, {"method", "listRepositories"}};
   auto response = server.handle_request(request);

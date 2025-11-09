@@ -41,8 +41,7 @@ struct RepositoryOptions {
   std::string purge_prefix;
 };
 
-using RepositoryOptionsMap =
-    std::unordered_map<std::string, RepositoryOptions>;
+using RepositoryOptionsMap = std::unordered_map<std::string, RepositoryOptions>;
 
 /**
  * Polls GitHub repositories periodically using a token bucket rate limiter.

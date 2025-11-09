@@ -1,9 +1,16 @@
+/**
+ * @file pat.cpp
+ * @brief Utilities for handling GitHub personal access tokens (PATs).
+ *
+ * This file provides functions to open the PAT creation page in a browser and
+ * securely save tokens to disk, with platform-specific implementations.
+ */
 #include "pat.hpp"
 #include "log.hpp"
 
 #include <cerrno>
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -62,7 +69,8 @@ static bool env_flag_enabled(const char *name) {
  * @return `true` on success, otherwise `false`.
  */
 static bool ls_open_url(const std::string &url) {
-  CFStringRef cfstr = CFStringCreateWithCString(kCFAllocatorDefault, url.c_str(), kCFStringEncodingUTF8);
+  CFStringRef cfstr = CFStringCreateWithCString(
+      kCFAllocatorDefault, url.c_str(), kCFStringEncodingUTF8);
   if (!cfstr) {
     pat_log()->warn("CFStringCreateWithCString failed");
     return false;
@@ -73,7 +81,7 @@ static bool ls_open_url(const std::string &url) {
     pat_log()->warn("CFURLCreateWithString failed");
     return false;
   }
-  OSStatus st = LSOpenCFURLRef(cfurl, /*outLaunchedRef*/nullptr);
+  OSStatus st = LSOpenCFURLRef(cfurl, /*outLaunchedRef*/ nullptr);
   CFRelease(cfurl);
   if (st != noErr) {
     pat_log()->warn("LSOpenCFURLRef failed: {}", static_cast<int>(st));
@@ -89,15 +97,18 @@ static bool ls_open_url(const std::string &url) {
  * @return `true` when the process was spawned successfully.
  */
 static bool spawn_detached(const std::vector<std::string> &argv) {
-  std::vector<char*> cargv;
+  std::vector<char *> cargv;
   cargv.reserve(argv.size() + 1);
-  for (const auto &s : argv) cargv.push_back(const_cast<char*>(s.c_str()));
+  for (const auto &s : argv)
+    cargv.push_back(const_cast<char *>(s.c_str()));
   cargv.push_back(nullptr);
 
   pid_t pid = 0;
-  int rc = posix_spawnp(&pid, cargv[0], /*file_actions*/nullptr, /*attrp*/nullptr, cargv.data(), environ);
+  int rc = posix_spawnp(&pid, cargv[0], /*file_actions*/ nullptr,
+                        /*attrp*/ nullptr, cargv.data(), environ);
   if (rc != 0) {
-    pat_log()->warn("posix_spawnp('{}') failed: {} ({})", argv[0], std::strerror(rc), rc);
+    pat_log()->warn("posix_spawnp('{}') failed: {} ({})", argv[0],
+                    std::strerror(rc), rc);
     return false;
   }
   return true; // don't wait; let launchd/OS handle it
@@ -113,8 +124,10 @@ static bool try_open_with_browser_env(const std::string &url) {
   if (const char *br = std::getenv("BROWSER")) {
     std::string browser = br;
     if (!browser.empty()) {
-      // Use "open -a <App> <url>" so users can force a specific browser by name or path.
-      if (spawn_detached({"open", "-a", browser, url})) return true;
+      // Use "open -a <App> <url>" so users can force a specific browser by name
+      // or path.
+      if (spawn_detached({"open", "-a", browser, url}))
+        return true;
     }
   }
   return false;
@@ -128,10 +141,13 @@ static bool try_open_with_browser_env(const std::string &url) {
  */
 static bool try_open_cmds(const std::string &url) {
   // Prefer absolute path first to avoid PATH surprises.
-  if (spawn_detached({"/usr/bin/open", url})) return true;
-  if (spawn_detached({"open", url})) return true;
+  if (spawn_detached({"/usr/bin/open", url}))
+    return true;
+  if (spawn_detached({"open", url}))
+    return true;
   // Last resort: AppleScript (still no shell)
-  return spawn_detached({"osascript", "-e", std::string("open location \"" + url + "\"")});
+  return spawn_detached(
+      {"osascript", "-e", std::string("open location \"" + url + "\"")});
 }
 #endif
 
@@ -148,8 +164,8 @@ bool open_pat_creation_page() {
   }
 
 #if defined(_WIN32)
-  HINSTANCE res =
-      ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+  HINSTANCE res = ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr,
+                                SW_SHOWNORMAL);
   auto code = reinterpret_cast<uintptr_t>(res);
   if (code > 32) {
     return true;
@@ -158,23 +174,30 @@ bool open_pat_creation_page() {
   return false;
 #elif defined(__APPLE__)
   // On macOS, avoid any shell. Order:
-  //   LaunchServices -> $BROWSER via "open -a" -> /usr/bin/open -> PATH "open" -> osascript
-  if (ls_open_url(url)) return true;
-  if (try_open_with_browser_env(url)) return true;
-  if (try_open_cmds(url)) return true;
+  //   LaunchServices -> $BROWSER via "open -a" -> /usr/bin/open -> PATH "open"
+  //   -> osascript
+  if (ls_open_url(url))
+    return true;
+  if (try_open_with_browser_env(url))
+    return true;
+  if (try_open_cmds(url))
+    return true;
 
-  pat_log()->warn("Failed to launch default browser for '{}'. Try: /usr/bin/open {}", url, url);
+  pat_log()->warn(
+      "Failed to launch default browser for '{}'. Try: /usr/bin/open {}", url,
+      url);
   return false;
 #else
-  // Linux/Unix: still rely on xdg-open but keep shell usage minimal in the rest of the codebase.
-  int rc = std::system((std::string("xdg-open \"") + url + "\" >/dev/null 2>&1 &").c_str());
+  // Linux/Unix: still rely on xdg-open but keep shell usage minimal in the rest
+  // of the codebase.
+  int rc = std::system(
+      (std::string("xdg-open \"") + url + "\" >/dev/null 2>&1 &").c_str());
   if (rc != 0) {
     pat_log()->warn("xdg-open command returned {}", rc);
   }
   return rc == 0;
 #endif
 }
-
 
 /**
  * Persist a personal access token to disk with restrictive permissions.
@@ -191,7 +214,7 @@ bool save_pat_to_file(const std::string &path_str, const std::string &pat) {
     fs::create_directories(path.parent_path(), ec);
     if (ec) {
       pat_log()->error("Failed to create directories for {}: {}", path_str,
-                    ec.message());
+                       ec.message());
       return false;
     }
   }

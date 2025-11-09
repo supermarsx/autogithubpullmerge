@@ -1,3 +1,12 @@
+/**
+ * @file notification.cpp
+ * @brief Implements cross-platform desktop notification dispatch for
+ * autogithubpullmerge.
+ *
+ * This file defines the NotifySendNotifier class and helper functions for
+ * sending user notifications using platform-specific utilities (notify-send,
+ * terminal-notifier, osascript, PowerShell/BurntToast).
+ */
 #include "notification.hpp"
 #include <cstdlib>
 #include <utility>

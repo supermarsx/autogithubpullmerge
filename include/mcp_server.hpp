@@ -1,8 +1,10 @@
 /**
  * @file mcp_server.hpp
- * @brief Model Context Protocol (MCP) server and backend for autogithubpullmerge.
+ * @brief Model Context Protocol (MCP) server and backend for
+ * autogithubpullmerge.
  *
- * Declares the MCP server, backend interfaces, and runner for automation integrations.
+ * Declares the MCP server, backend interfaces, and runner for automation
+ * integrations.
  */
 
 #ifndef AUTOGITHUBPULLMERGE_MCP_SERVER_HPP
@@ -106,7 +108,8 @@ public:
   /// Run the server loop, reading JSON objects line-by-line from @p input.
   void run(std::istream &input, std::ostream &output);
 
-  /// Reset the server to an accepting state (used when restarting the listener).
+  /// Reset the server to an accepting state (used when restarting the
+  /// listener).
   void reset();
 
   /// Check whether the server should continue processing requests.
@@ -146,10 +149,25 @@ public:
   McpServerRunner(McpServer &server, McpServerOptions options);
   ~McpServerRunner();
 
+  /**
+   * @brief Start the MCP server runner in a background thread.
+   */
   void start();
+  /**
+   * @brief Stop the MCP server runner and join the background thread.
+   */
   void stop();
+  /**
+   * @brief Check if the MCP server runner is currently running.
+   * @return True if running, false otherwise.
+   */
   bool running() const { return running_; }
 
+  /**
+   * @brief Register a callback to receive event messages from the server
+   * runner.
+   * @param sink Callback function to handle event messages.
+   */
   void set_event_sink(EventSink sink);
 
 private:

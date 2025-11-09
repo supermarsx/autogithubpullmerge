@@ -1,3 +1,11 @@
+/**
+ * @file repo_discovery.cpp
+ * @brief Implements repository discovery from filesystem and remote sources.
+ *
+ * This file provides functions to parse, normalize, and discover GitHub
+ * repositories from local git metadata and configuration, supporting multiple
+ * discovery modes.
+ */
 #include "repo_discovery.hpp"
 #include "log.hpp"
 

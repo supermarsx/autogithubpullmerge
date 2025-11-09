@@ -1,3 +1,8 @@
+/**
+ * @file duration.cpp
+ * @brief Implements parsing of human-readable duration strings for AGPM.
+ */
+
 #include "util/duration.hpp"
 
 #include <cctype>

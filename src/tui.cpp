@@ -16,8 +16,8 @@
 #include <iterator>
 #include <memory>
 #include <optional>
-#include <sstream>
 #include <spdlog/spdlog.h>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -75,10 +75,9 @@ std::string trim_copy(const std::string &s) {
 std::string to_lower_copy(const std::string &s) {
   std::string result;
   result.reserve(s.size());
-  std::transform(s.begin(), s.end(), std::back_inserter(result),
-                 [](unsigned char ch) {
-                   return static_cast<char>(std::tolower(ch));
-                 });
+  std::transform(
+      s.begin(), s.end(), std::back_inserter(result),
+      [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
   return result;
 }
 
@@ -224,8 +223,8 @@ const std::unordered_map<std::string, std::string> &action_descriptions() {
  */
 const std::unordered_set<std::string> &valid_actions() {
   static const std::unordered_set<std::string> actions{
-      "refresh",      "merge",        "open",        "details",
-      "toggle_focus", "quit",         "navigate_up", "navigate_down"};
+      "refresh",      "merge", "open",        "details",
+      "toggle_focus", "quit",  "navigate_up", "navigate_down"};
   return actions;
 }
 
@@ -288,6 +287,10 @@ Tui::Tui(GitHubClient &client, GitHubPoller &poller, std::size_t log_limit,
   };
 }
 
+/**
+ * @brief Enable or disable the log sidecar window.
+ * @param enabled True to enable the log sidecar, false to disable.
+ */
 void Tui::set_log_sidecar(bool enabled) {
   if (log_sidecar_ == enabled)
     return;
@@ -319,6 +322,22 @@ void Tui::set_log_sidecar(bool enabled) {
   redraw_requested_.store(true, std::memory_order_relaxed);
 }
 
+/**
+ * @brief Enable or disable the MCP caddy window.
+ * @param enabled True to enable the MCP caddy, false to disable.
+ */
+/**
+ * @brief Enable or disable the MCP caddy window.
+ * @param enabled True to enable the MCP caddy, false to disable.
+ */
+/**
+ * @brief Enable or disable the MCP caddy window.
+ * @param enabled True to enable the MCP caddy, false to disable.
+ */
+/**
+ * @brief Enable or disable the MCP caddy window.
+ * @param enabled True to enable the MCP caddy, false to disable.
+ */
 void Tui::set_mcp_caddy(bool enabled) {
   if (mcp_caddy_window_ == enabled)
     return;
@@ -377,17 +396,15 @@ void Tui::set_refresh_interval(std::chrono::milliseconds interval) {
  * Populate the default set of hotkey bindings.
  */
 void Tui::initialize_default_hotkeys() {
-  hotkey_help_order_ = {"refresh",      "merge",        "open",
-                        "details",      "toggle_focus", "quit",
-                        "navigate_up",  "navigate_down"};
+  hotkey_help_order_ = {"refresh",     "merge",        "open",
+                        "details",     "toggle_focus", "quit",
+                        "navigate_up", "navigate_down"};
   action_bindings_.clear();
   key_to_action_.clear();
   set_bindings_for_action("refresh",
                           {HotkeyBinding{static_cast<int>('r'), "r"}});
-  set_bindings_for_action("merge",
-                          {HotkeyBinding{static_cast<int>('m'), "m"}});
-  set_bindings_for_action("open",
-                          {HotkeyBinding{static_cast<int>('o'), "o"}});
+  set_bindings_for_action("merge", {HotkeyBinding{static_cast<int>('m'), "m"}});
+  set_bindings_for_action("open", {HotkeyBinding{static_cast<int>('o'), "o"}});
   std::vector<HotkeyBinding> detail_bindings;
   detail_bindings.push_back(
       HotkeyBinding{static_cast<int>('d'), std::string("d")});
@@ -410,8 +427,7 @@ void Tui::initialize_default_hotkeys() {
       HotkeyBinding{static_cast<int>('\t'), "Tab"}};
 #endif
   set_bindings_for_action("toggle_focus", toggle_bindings);
-  set_bindings_for_action("quit",
-                          {HotkeyBinding{static_cast<int>('q'), "q"}});
+  set_bindings_for_action("quit", {HotkeyBinding{static_cast<int>('q'), "q"}});
 #ifdef KEY_UP
   set_bindings_for_action("navigate_up", {HotkeyBinding{KEY_UP, "Up Arrow"}});
 #else
@@ -453,8 +469,8 @@ void Tui::clear_action_bindings(const std::string &action) {
  * @param action Canonical action identifier receiving new bindings.
  * @param bindings Hotkey bindings to assign to the action.
  */
-void Tui::set_bindings_for_action(
-    const std::string &action, const std::vector<HotkeyBinding> &bindings) {
+void Tui::set_bindings_for_action(const std::string &action,
+                                  const std::vector<HotkeyBinding> &bindings) {
   clear_action_bindings(action);
   auto &vec = action_bindings_[action];
   vec.reserve(bindings.size());
@@ -484,7 +500,8 @@ void Tui::configure_hotkeys(
   for (const auto &entry : bindings) {
     std::string canonical = canonicalize_action(entry.first);
     if (valid_actions().count(canonical) == 0) {
-      tui_log()->warn("Unknown hotkey action '{}' in configuration", entry.first);
+      tui_log()->warn("Unknown hotkey action '{}' in configuration",
+                      entry.first);
       continue;
     }
     std::string value = trim_copy(entry.second);
@@ -562,10 +579,9 @@ void Tui::init() {
   poller_.set_pr_callback(
       [this](const std::vector<PullRequest> &prs) { update_prs(prs); });
   poller_.set_log_callback([this](const std::string &msg) { log(msg); });
-  poller_.set_stray_callback(
-      [this](const std::vector<StrayBranch> &branches) {
-        update_branches(branches);
-      });
+  poller_.set_stray_callback([this](const std::vector<StrayBranch> &branches) {
+    update_branches(branches);
+  });
   cbreak();
   noecho();
   keypad(stdscr, TRUE);
@@ -736,7 +752,8 @@ void Tui::draw() {
     help_x = w - help_width;
   }
 
-  int caddy_count = (request_caddy_window_ ? 1 : 0) + (mcp_caddy_window_ ? 1 : 0);
+  int caddy_count =
+      (request_caddy_window_ ? 1 : 0) + (mcp_caddy_window_ ? 1 : 0);
   if (caddy_count > 0 && log_height > 0) {
     int available = log_height;
     int caddy_height = std::max(3, available / (caddy_count + 1));
@@ -755,9 +772,11 @@ void Tui::draw() {
     log_height = std::max(1, available - total_caddy);
     int offset_y = log_y + log_height;
     if (request_caddy_window_) {
-      request_height = std::min(caddy_height, std::max(0, available - (offset_y - log_y)));
+      request_height =
+          std::min(caddy_height, std::max(0, available - (offset_y - log_y)));
       if (request_height <= 0 && total_caddy > 0) {
-        request_height = std::min(total_caddy, std::max(1, available - log_height));
+        request_height =
+            std::min(total_caddy, std::max(1, available - log_height));
       }
       request_width = log_width;
       request_y = offset_y;
@@ -765,9 +784,11 @@ void Tui::draw() {
       offset_y += request_height;
     }
     if (mcp_caddy_window_) {
-      mcp_height = std::min(caddy_height, std::max(0, available - (offset_y - log_y)));
+      mcp_height =
+          std::min(caddy_height, std::max(0, available - (offset_y - log_y)));
       if (mcp_height <= 0 && total_caddy > 0) {
-        mcp_height = std::min(total_caddy, std::max(1, available - (offset_y - log_y)));
+        mcp_height =
+            std::min(total_caddy, std::max(1, available - (offset_y - log_y)));
       }
       mcp_width = log_width;
       mcp_y = offset_y;
@@ -790,7 +811,8 @@ void Tui::draw() {
     branch_width = pr_total_width - pr_list_width;
   }
   if (branch_width < 20) {
-    branch_width = std::max(1, std::min(pr_total_width - 20, pr_total_width / 2));
+    branch_width =
+        std::max(1, std::min(pr_total_width - 20, pr_total_width / 2));
     pr_list_width = pr_total_width - branch_width;
   }
   if (branch_width <= 0) {
@@ -814,8 +836,8 @@ void Tui::draw() {
     request_win_ = nullptr;
   }
 
-  if (h != last_h_ || w != last_w_ || pr_win_ == nullptr || branch_win_ == nullptr ||
-      log_win_ == nullptr || help_win_ == nullptr ||
+  if (h != last_h_ || w != last_w_ || pr_win_ == nullptr ||
+      branch_win_ == nullptr || log_win_ == nullptr || help_win_ == nullptr ||
       (mcp_caddy_window_ && mcp_win_ == nullptr) ||
       (request_caddy_window_ && request_win_ == nullptr)) {
     last_h_ = h;
@@ -845,13 +867,12 @@ void Tui::draw() {
     log_win_ = newwin(log_height, log_width, log_y, log_x);
     help_win_ = newwin(help_height, help_width, help_y, help_x);
     if (request_caddy_window_ && request_height > 0 && request_width > 0) {
-      request_win_ =
-          newwin(std::max(1, request_height), std::max(1, request_width),
-                 request_y, request_x);
+      request_win_ = newwin(std::max(1, request_height),
+                            std::max(1, request_width), request_y, request_x);
     }
     if (mcp_caddy_window_ && mcp_height > 0 && mcp_width > 0) {
-      mcp_win_ = newwin(std::max(1, mcp_height), std::max(1, mcp_width),
-                        mcp_y, mcp_x);
+      mcp_win_ =
+          newwin(std::max(1, mcp_height), std::max(1, mcp_width), mcp_y, mcp_x);
     }
   }
 
@@ -937,11 +958,12 @@ void Tui::draw() {
   if (branches_.empty()) {
     mvwprintw(branch_win_, 1, 1, "No branches detected");
   } else {
-    for (int i = 0; i < static_cast<int>(branches_.size()) &&
-             i < max_branch_lines; ++i) {
+    for (int i = 0;
+         i < static_cast<int>(branches_.size()) && i < max_branch_lines; ++i) {
       std::string line = branches_[i].owner + "/" + branches_[i].repo + " " +
                          branches_[i].name;
-      if (branch_win_w > 2 && static_cast<int>(line.size()) > branch_win_w - 2) {
+      if (branch_win_w > 2 &&
+          static_cast<int>(line.size()) > branch_win_w - 2) {
         if (branch_win_w > 5) {
           line = line.substr(0, branch_win_w - 5) + "...";
         } else {
@@ -1002,11 +1024,11 @@ void Tui::draw() {
     std::string session_text = "Session --";
     if (queue_snapshot.session_start !=
         std::chrono::steady_clock::time_point{}) {
-      session_text =
-          "Session " + format_duration_brief(now - queue_snapshot.session_start);
+      session_text = "Session " +
+                     format_duration_brief(now - queue_snapshot.session_start);
     }
-    std::size_t outstanding = queue_snapshot.pending.size() +
-                              queue_snapshot.running.size();
+    std::size_t outstanding =
+        queue_snapshot.pending.size() + queue_snapshot.running.size();
     std::ostringstream stats_line;
     stats_line << session_text << " | Outstanding " << outstanding;
     stats_line << " | Done " << queue_snapshot.total_completed << "/"
@@ -1018,9 +1040,11 @@ void Tui::draw() {
       stats_line << " | Avg --";
     }
     if (queue_snapshot.clearance) {
-      auto clearance_duration = std::chrono::duration_cast<
-          std::chrono::steady_clock::duration>(*queue_snapshot.clearance);
-      stats_line << " | Clearance " << format_duration_brief(clearance_duration);
+      auto clearance_duration =
+          std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+              *queue_snapshot.clearance);
+      stats_line << " | Clearance "
+                 << format_duration_brief(clearance_duration);
     }
     print_line(stats_line.str());
     if (budget_snapshot) {
@@ -1039,7 +1063,7 @@ void Tui::draw() {
     }
     auto format_entry = [&](const Poller::RequestInfo &info) {
       std::ostringstream oss;
-      oss << info.label;
+      oss << info.name;
       switch (info.state) {
       case Poller::RequestState::Pending:
         oss << " [pending]";
@@ -1108,8 +1132,10 @@ void Tui::draw() {
     if (start_index < 0)
       start_index = 0;
     for (int i = 0; i < max_mcp_lines &&
-                    start_index + i < static_cast<int>(mcp_snapshot.size()); ++i) {
-      std::string entry = mcp_snapshot[static_cast<std::size_t>(start_index + i)];
+                    start_index + i < static_cast<int>(mcp_snapshot.size());
+         ++i) {
+      std::string entry =
+          mcp_snapshot[static_cast<std::size_t>(start_index + i)];
       if (mcp_win_w > 2 && static_cast<int>(entry.size()) > mcp_win_w - 2) {
         if (mcp_win_w > 5) {
           entry = entry.substr(0, mcp_win_w - 5) + "...";
@@ -1171,8 +1197,8 @@ void Tui::draw() {
     mvwprintw(detail_win_, 0, 2, "PR Details");
     if (!prs_.empty() && selected_ < static_cast<int>(prs_.size())) {
       const auto &pr = prs_[selected_];
-      mvwprintw(detail_win_, 1, 1, "%s/%s #%d", pr.owner.c_str(), pr.repo.c_str(),
-                pr.number);
+      mvwprintw(detail_win_, 1, 1, "%s/%s #%d", pr.owner.c_str(),
+                pr.repo.c_str(), pr.number);
     }
     mvwprintw(detail_win_, 2, 1, "%s", detail_text_.c_str());
     mvwprintw(detail_win_, dh - 2, 1, "Press ENTER or d to close");
@@ -1271,8 +1297,8 @@ void Tui::handle_key(int ch) {
   } else if (action == "toggle_focus") {
     if (!branches_.empty()) {
       focus_branches_ = !focus_branches_;
-      tui_log()->debug("Focus switched to {}", focus_branches_ ? "branches"
-                                                               : "pull requests");
+      tui_log()->debug("Focus switched to {}",
+                       focus_branches_ ? "branches" : "pull requests");
       request_redraw();
     }
   } else {
@@ -1288,8 +1314,7 @@ void Tui::run() {
     return;
   running_ = true;
   redraw_requested_.store(true, std::memory_order_relaxed);
-  auto next_refresh =
-      std::chrono::steady_clock::now() + refresh_interval_;
+  auto next_refresh = std::chrono::steady_clock::now() + refresh_interval_;
   while (running_) {
     auto now = std::chrono::steady_clock::now();
     bool due = now >= next_refresh;
@@ -1307,8 +1332,8 @@ void Tui::run() {
       wait_ms = 0;
     const long min_wait = 10;
     const long max_wait = 1000;
-    long timeout_ms = wait_ms == 0 ? 0
-                                   : std::clamp(wait_ms, min_wait, max_wait);
+    long timeout_ms =
+        wait_ms == 0 ? 0 : std::clamp(wait_ms, min_wait, max_wait);
     timeout(static_cast<int>(timeout_ms));
     int ch = getch();
     if (ch == ERR) {

@@ -81,9 +81,10 @@ TEST_CASE("test config from json") {
   octo["hooks"]["actions"] =
       nlohmann::json::array({{{"type", "command"}, {"command", "notify"}}});
   octo["hooks"]["event_actions"]["pull_request.merged"] =
-      nlohmann::json::array(
-          {{{"type", "http"}, {"endpoint", "https://example.com"},
-            {"method", "PUT"}, {"parameters", {{"reason", "cleanup"}}}}});
+      nlohmann::json::array({{{"type", "http"},
+                              {"endpoint", "https://example.com"},
+                              {"method", "PUT"},
+                              {"parameters", {{"reason", "cleanup"}}}}});
   auto &regex_override = repo_overrides["regex:^agpm/.+$"];
   regex_override["auto_merge"] = true;
 
@@ -137,10 +138,11 @@ TEST_CASE("test config from json") {
   REQUIRE(cfg.hook_branch_threshold() == 3);
   const auto &overrides = cfg.repository_overrides();
   REQUIRE(overrides.size() == 2);
-  auto glob_it = std::find_if(overrides.begin(), overrides.end(),
-                              [](const agpm::Config::RepositoryOverride &entry) {
-                                return entry.pattern == "octocat/*";
-                              });
+  auto glob_it =
+      std::find_if(overrides.begin(), overrides.end(),
+                   [](const agpm::Config::RepositoryOverride &entry) {
+                     return entry.pattern == "octocat/*";
+                   });
   REQUIRE(glob_it != overrides.end());
   const auto &glob_override = *glob_it;
   REQUIRE(glob_override.actions.has_only_poll_prs);
@@ -164,10 +166,11 @@ TEST_CASE("test config from json") {
   REQUIRE(merged_actions.front().parameters.size() == 1);
   REQUIRE(merged_actions.front().parameters.front().first == "reason");
   REQUIRE(merged_actions.front().parameters.front().second == "cleanup");
-  auto regex_it = std::find_if(overrides.begin(), overrides.end(),
-                               [](const agpm::Config::RepositoryOverride &entry) {
-                                 return entry.pattern == "regex:^agpm/.+$";
-                               });
+  auto regex_it =
+      std::find_if(overrides.begin(), overrides.end(),
+                   [](const agpm::Config::RepositoryOverride &entry) {
+                     return entry.pattern == "regex:^agpm/.+$";
+                   });
   REQUIRE(regex_it != overrides.end());
   REQUIRE(regex_it->actions.has_auto_merge);
   REQUIRE(regex_it->actions.auto_merge);

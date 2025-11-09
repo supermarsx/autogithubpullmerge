@@ -1,3 +1,12 @@
+/**
+ * @file history.cpp
+ * @brief Implements persistent storage and export of pull request history using
+ * SQLite.
+ *
+ * This file defines the PullRequestHistory class, which manages a local SQLite
+ * database for tracking pull request metadata (number, title, merged status)
+ * and provides export functionality to CSV and JSON formats.
+ */
 #include "history.hpp"
 #include "log.hpp"
 #include <fstream>

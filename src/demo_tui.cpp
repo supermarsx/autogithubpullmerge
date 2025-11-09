@@ -1,3 +1,10 @@
+/**
+ * @file demo_tui.cpp
+ * @brief Demo implementation of the terminal UI for autogithubpullmerge.
+ *
+ * Provides a mock curses-based TUI for demonstration and testing purposes.
+ */
+
 #include "demo_tui.hpp"
 #include "log.hpp"
 #include <algorithm>
@@ -75,7 +82,8 @@ void draw_footer(int height, int width, bool focus_prs) {
   mvprintw(height - 2, 2,
            "Controls: \u2191/\u2193 navigate  |  TAB switch pane  |  q quit");
   mvhline(height - 1, 0, ' ', width);
-  mvprintw(height - 1, 2, "Focused: %s", focus_prs ? "Pull Requests" : "Branches");
+  mvprintw(height - 1, 2, "Focused: %s",
+           focus_prs ? "Pull Requests" : "Branches");
 }
 
 /**
@@ -100,9 +108,8 @@ void draw_pull_requests(const std::vector<DemoPullRequest> &prs, int selected,
   for (int i = 0; i < rows; ++i) {
     mvhline(start_row + i, 0, ' ', width);
   }
-  for (int row = 0; row < rows &&
-                   start_index + row < static_cast<int>(prs.size());
-       ++row) {
+  for (int row = 0;
+       row < rows && start_index + row < static_cast<int>(prs.size()); ++row) {
     const auto &item = prs[start_index + row];
     if (start_index + row == selected) {
       attron(A_REVERSE | (focused ? A_BOLD : A_NORMAL));
@@ -138,8 +145,8 @@ void draw_branches(const std::vector<DemoBranch> &branches, int selected,
   for (int i = 0; i < rows; ++i) {
     mvhline(start_row + i, 0, ' ', width);
   }
-  for (int row = 0; row < rows &&
-                   start_index + row < static_cast<int>(branches.size());
+  for (int row = 0;
+       row < rows && start_index + row < static_cast<int>(branches.size());
        ++row) {
     const auto &item = branches[start_index + row];
     if (start_index + row == selected) {
@@ -184,26 +191,19 @@ int run_demo_tui() {
   }
 
   std::vector<DemoPullRequest> prs{
-      {"octocat", "hello-world", 128,
-       "Improve commit status notifications",
+      {"octocat", "hello-world", 128, "Improve commit status notifications",
        "Ready to merge"},
-      {"octocat", "hello-world", 129,
-       "Refactor polling pipeline",
+      {"octocat", "hello-world", 129, "Refactor polling pipeline",
        "Awaiting checks"},
-      {"spacecorp", "launchpad", 42,
-       "Add branch protection overrides",
+      {"spacecorp", "launchpad", 42, "Add branch protection overrides",
        "Review required"},
-      {"spacecorp", "launchpad", 43,
-       "Implement nightly workflow",
-       "Draft"}};
+      {"spacecorp", "launchpad", 43, "Implement nightly workflow", "Draft"}};
 
-  std::vector<DemoBranch> branches{{"feature/tui-refresh", "5be92c1",
-                                    "Merged 2 hours ago"},
-                                   {"feature/better-logs", "92c44fa",
-                                    "Merged yesterday"},
-                                   {"release/v1.5.0", "aa4f732",
-                                    "Pending clean-up policy"},
-                                   {"fix/issue-808", "bb12c08", "Stale 12 days"}};
+  std::vector<DemoBranch> branches{
+      {"feature/tui-refresh", "5be92c1", "Merged 2 hours ago"},
+      {"feature/better-logs", "92c44fa", "Merged yesterday"},
+      {"release/v1.5.0", "aa4f732", "Pending clean-up policy"},
+      {"fix/issue-808", "bb12c08", "Stale 12 days"}};
 
   bool focus_prs = true;
   int pr_selection = 0;

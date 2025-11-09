@@ -2,7 +2,8 @@
  * @file notification.hpp
  * @brief User notification interfaces for autogithubpullmerge.
  *
- * Declares the Notifier interface and platform-specific notification implementations.
+ * Declares the Notifier interface and platform-specific notification
+ * implementations.
  */
 
 #ifndef AUTOGITHUBPULLMERGE_NOTIFICATION_HPP

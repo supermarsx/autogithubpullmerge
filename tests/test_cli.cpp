@@ -84,13 +84,20 @@ TEST_CASE("test cli", "[cli]") {
   char hook_pull_threshold_val[] = "10";
   char hook_branch_threshold_flag[] = "--hook-branch-threshold";
   char hook_branch_threshold_val[] = "5";
-  char *argv_hooks[] = {
-      prog,                        enable_hooks,          hook_command_flag,
-      hook_command_val,            hook_endpoint_flag,    hook_endpoint_val,
-      hook_method_flag,            hook_method_val,       hook_header_flag,
-      hook_header_val,             hook_pull_threshold_flag,
-      hook_pull_threshold_val,     hook_branch_threshold_flag,
-      hook_branch_threshold_val};
+  char *argv_hooks[] = {prog,
+                        enable_hooks,
+                        hook_command_flag,
+                        hook_command_val,
+                        hook_endpoint_flag,
+                        hook_endpoint_val,
+                        hook_method_flag,
+                        hook_method_val,
+                        hook_header_flag,
+                        hook_header_val,
+                        hook_pull_threshold_flag,
+                        hook_pull_threshold_val,
+                        hook_branch_threshold_flag,
+                        hook_branch_threshold_val};
   agpm::CliOptions opts_hooks = agpm::parse_cli(14, argv_hooks);
   REQUIRE(opts_hooks.hooks_enabled);
   REQUIRE(opts_hooks.hooks_explicit);

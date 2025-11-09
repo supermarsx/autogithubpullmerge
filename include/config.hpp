@@ -643,13 +643,25 @@ public:
   match_repository_override(const std::string &owner,
                             const std::string &repo) const;
 
-  /// Load configuration from the file at `path`.
+  /**
+   * @brief Load configuration from the file at the given path.
+   * @param path Path to the configuration file.
+   * @return Parsed Config object.
+   * @throws std::runtime_error if the file cannot be read or parsed.
+   */
   static Config from_file(const std::string &path);
 
-  /// Build configuration from a JSON object.
+  /**
+   * @brief Build configuration from a JSON object.
+   * @param j JSON object containing configuration data.
+   * @return Parsed Config object.
+   */
   static Config from_json(const nlohmann::json &j);
 
-  /// Populate this configuration from a JSON object.
+  /**
+   * @brief Populate this configuration from a JSON object.
+   * @param j JSON object containing configuration data.
+   */
   void load_json(const nlohmann::json &j);
 
   /// Determine whether the MCP server should be enabled.

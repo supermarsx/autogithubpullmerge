@@ -2,8 +2,9 @@
  * @file rule_engine.hpp
  * @brief Rule engines for automated pull request and branch actions.
  *
- * Contains enums and classes for evaluating and mapping pull request and branch states
- * to automated actions such as merge, close, or delete, according to configurable rules.
+ * Contains enums and classes for evaluating and mapping pull request and branch
+ * states to automated actions such as merge, close, or delete, according to
+ * configurable rules.
  */
 #ifndef AUTOGITHUBPULLMERGE_RULE_ENGINE_HPP
 #define AUTOGITHUBPULLMERGE_RULE_ENGINE_HPP
@@ -44,12 +45,12 @@ enum class BranchAction {
  * branch was newly observed or classified as stray.
  */
 struct BranchMetadata {
-  std::string owner;           ///< Repository owner of the branch.
-  std::string repo;            ///< Repository name containing the branch.
-  std::string name;            ///< Fully-qualified branch ref name.
-  std::string state;           ///< Branch state label ("stray", "new", "dirty", ...).
-  bool stray{false};           ///< Flag indicating the branch was classified as stray.
-  bool newly_created{false};   ///< Branch observed for the first time this poll.
+  std::string owner; ///< Repository owner of the branch.
+  std::string repo;  ///< Repository name containing the branch.
+  std::string name;  ///< Fully-qualified branch ref name.
+  std::string state; ///< Branch state label ("stray", "new", "dirty", ...).
+  bool stray{false}; ///< Flag indicating the branch was classified as stray.
+  bool newly_created{false}; ///< Branch observed for the first time this poll.
 };
 
 /**
@@ -57,9 +58,9 @@ struct BranchMetadata {
  * requests.
  *
  * The rule engine maps mergeability states reported by GitHub to high-level
- * actions such as merging, waiting, or closing the pull request. Defaults follow
- * the product specification (dirty PRs close, clean/blocked/unstable PRs merge),
- * while callers may override individual states at runtime.
+ * actions such as merging, waiting, or closing the pull request. Defaults
+ * follow the product specification (dirty PRs close, clean/blocked/unstable PRs
+ * merge), while callers may override individual states at runtime.
  */
 class PullRequestRuleEngine {
 public:
