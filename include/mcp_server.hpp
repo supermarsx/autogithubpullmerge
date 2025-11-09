@@ -1,3 +1,10 @@
+/**
+ * @file mcp_server.hpp
+ * @brief Model Context Protocol (MCP) server and backend for autogithubpullmerge.
+ *
+ * Declares the MCP server, backend interfaces, and runner for automation integrations.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_MCP_SERVER_HPP
 #define AUTOGITHUBPULLMERGE_MCP_SERVER_HPP
 

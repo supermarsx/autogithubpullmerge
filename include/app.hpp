@@ -1,3 +1,11 @@
+/**
+ * @file app.hpp
+ * @brief Main application entry point and orchestrator for autogithubpullmerge.
+ *
+ * Declares the App class, which manages high-level application flow, configuration loading,
+ * and CLI parsing for the autogithubpullmerge tool.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_APP_HPP
 #define AUTOGITHUBPULLMERGE_APP_HPP
 

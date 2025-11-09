@@ -1,3 +1,11 @@
+/**
+ * @file github_client.hpp
+ * @brief GitHub API client and HTTP utilities for autogithubpullmerge.
+ *
+ * Defines HTTP client interfaces, CURL-based implementations, and the main
+ * GitHubClient class for interacting with the GitHub REST API.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_GITHUB_CLIENT_HPP
 #define AUTOGITHUBPULLMERGE_GITHUB_CLIENT_HPP
 

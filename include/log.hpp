@@ -1,3 +1,10 @@
+/**
+ * @file log.hpp
+ * @brief Logging utilities for autogithubpullmerge.
+ *
+ * Declares logger initialization, category loggers, and log category configuration.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_LOG_HPP
 #define AUTOGITHUBPULLMERGE_LOG_HPP
 

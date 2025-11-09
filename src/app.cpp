@@ -1,3 +1,11 @@
+/**
+ * @file app.cpp
+ * @brief Main application logic and entry point implementation for autogithubpullmerge.
+ *
+ * Implements the App class methods, including application flow, configuration loading,
+ * and CLI parsing for the autogithubpullmerge tool.
+ */
+
 #include "app.hpp"
 #include "cli.hpp"
 #include "config.hpp"

@@ -1,3 +1,10 @@
+/**
+ * @file duration.hpp
+ * @brief Human-readable duration parsing utilities.
+ *
+ * Provides functions to parse duration strings (e.g. "10s", "5m", "2h") into
+ * std::chrono::seconds for use in configuration and scheduling.
+ */
 #ifndef AUTOGITHUBPULLMERGE_UTIL_DURATION_HPP
 #define AUTOGITHUBPULLMERGE_UTIL_DURATION_HPP
 

@@ -1,3 +1,10 @@
+/**
+ * @file config.cpp
+ * @brief Application configuration model implementation for autogithubpullmerge.
+ *
+ * Implements the Config class and helpers for loading/managing YAML, TOML, or JSON config files.
+ */
+
 #include "config.hpp"
 #include "log.hpp"
 #include "token_loader.hpp"

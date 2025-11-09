@@ -1,3 +1,10 @@
+/**
+ * @file cli.hpp
+ * @brief Command line interface parsing and options for autogithubpullmerge.
+ *
+ * Declares CLI parsing helpers, option structures, and related exceptions for the tool.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_CLI_HPP
 #define AUTOGITHUBPULLMERGE_CLI_HPP
 

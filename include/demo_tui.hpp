@@ -1,3 +1,10 @@
+/**
+ * @file demo_tui.hpp
+ * @brief Demo TUI entry point for autogithubpullmerge.
+ *
+ * Declares the function to run the interactive demo TUI with mock data.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_DEMO_TUI_HPP
 #define AUTOGITHUBPULLMERGE_DEMO_TUI_HPP
 

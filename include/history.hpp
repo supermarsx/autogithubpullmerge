@@ -1,3 +1,11 @@
+/**
+ * @file history.hpp
+ * @brief Pull request history database for autogithubpullmerge.
+ *
+ * Declares the PullRequestHistory class for storing and exporting PR history
+ * using SQLite.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_HISTORY_HPP
 #define AUTOGITHUBPULLMERGE_HISTORY_HPP
 

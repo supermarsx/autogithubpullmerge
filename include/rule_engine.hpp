@@ -1,3 +1,10 @@
+/**
+ * @file rule_engine.hpp
+ * @brief Rule engines for automated pull request and branch actions.
+ *
+ * Contains enums and classes for evaluating and mapping pull request and branch states
+ * to automated actions such as merge, close, or delete, according to configurable rules.
+ */
 #ifndef AUTOGITHUBPULLMERGE_RULE_ENGINE_HPP
 #define AUTOGITHUBPULLMERGE_RULE_ENGINE_HPP
 

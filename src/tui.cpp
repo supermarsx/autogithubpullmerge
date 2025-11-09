@@ -1,3 +1,11 @@
+/**
+ * @file tui.cpp
+ * @brief Implementation of the terminal UI for autogithubpullmerge.
+ *
+ * Contains the implementation of the curses-based TUI for monitoring and
+ * managing pull requests and branches interactively.
+ */
+
 #include "tui.hpp"
 #include "log.hpp"
 #include <algorithm>

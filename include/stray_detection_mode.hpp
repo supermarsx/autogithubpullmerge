@@ -1,3 +1,10 @@
+/**
+ * @file stray_detection_mode.hpp
+ * @brief Stray branch detection mode selection and utilities.
+ *
+ * Defines the StrayDetectionMode enum and helpers for selecting and converting between
+ * rule-based, heuristic, and combined stray branch detection engines.
+ */
 #ifndef AUTOGITHUBPULLMERGE_STRAY_DETECTION_MODE_HPP
 #define AUTOGITHUBPULLMERGE_STRAY_DETECTION_MODE_HPP
 

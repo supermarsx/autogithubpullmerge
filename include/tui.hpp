@@ -1,3 +1,11 @@
+/**
+ * @file tui.hpp
+ * @brief Terminal UI for autogithubpullmerge.
+ *
+ * Provides a curses-based interface for monitoring and managing pull requests
+ * and branches interactively.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_TUI_HPP
 #define AUTOGITHUBPULLMERGE_TUI_HPP
 

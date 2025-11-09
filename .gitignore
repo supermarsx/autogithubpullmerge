@@ -45,3 +45,4 @@ test_history.db
 /cfg.yaml
 /cfg.json
 history.db
+/.cache

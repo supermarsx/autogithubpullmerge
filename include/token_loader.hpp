@@ -1,3 +1,10 @@
+/**
+ * @file token_loader.hpp
+ * @brief GitHub token file loader utilities.
+ *
+ * Declares functions for loading GitHub access tokens from configuration files in various
+ * formats (JSON, YAML, TOML) for use by the automation engine.
+ */
 #ifndef AUTOGITHUBPULLMERGE_TOKEN_LOADER_HPP
 #define AUTOGITHUBPULLMERGE_TOKEN_LOADER_HPP
 

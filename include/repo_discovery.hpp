@@ -1,3 +1,10 @@
+/**
+ * @file repo_discovery.hpp
+ * @brief Repository discovery modes and utilities.
+ *
+ * Provides enums and functions for discovering GitHub repositories via tokens or filesystem
+ * scanning, and for converting between string representations and discovery modes.
+ */
 #ifndef AUTOGITHUBPULLMERGE_REPO_DISCOVERY_HPP
 #define AUTOGITHUBPULLMERGE_REPO_DISCOVERY_HPP
 

@@ -1,3 +1,10 @@
+/**
+ * @file cli.cpp
+ * @brief Command line interface parsing and helpers for autogithubpullmerge.
+ *
+ * Implements CLI parsing, option normalization, and related helpers for the tool.
+ */
+
 #include "cli.hpp"
 #include "curl/curl.h"
 #include "log.hpp"

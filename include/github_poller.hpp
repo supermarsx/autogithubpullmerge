@@ -1,3 +1,11 @@
+/**
+ * @file github_poller.hpp
+ * @brief GitHub polling engine for autogithubpullmerge.
+ *
+ * Declares the GitHubPoller class and related structures for periodic polling
+ * of repositories, pull requests, and branches with rate limiting and rules.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_GITHUB_POLLER_HPP
 #define AUTOGITHUBPULLMERGE_GITHUB_POLLER_HPP
 

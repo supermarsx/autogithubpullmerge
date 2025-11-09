@@ -1,3 +1,11 @@
+/**
+ * @file github_client.cpp
+ * @brief Implementation of GitHub API client and HTTP utilities.
+ *
+ * Contains the implementation of HTTP client interfaces, CURL-based HTTP
+ * operations, and the main GitHubClient logic for autogithubpullmerge.
+ */
+
 #include "github_client.hpp"
 #include "curl/curl.h"
 #include "log.hpp"

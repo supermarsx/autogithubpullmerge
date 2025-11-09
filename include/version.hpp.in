@@ -1,3 +1,10 @@
+/**
+ * @file version.hpp
+ * @brief Version string constants (auto-generated).
+ *
+ * Declares compile-time version string constants for the application, including commit hash,
+ * build date, and version string. This file is generated from version.hpp.in by CMake.
+ */
 #pragma once
 
 #include <string_view>

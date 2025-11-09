@@ -1,3 +1,10 @@
+/**
+ * @file config_manager.cpp
+ * @brief Configuration file loader implementation for autogithubpullmerge.
+ *
+ * Implements the ConfigManager utility for loading configuration files from disk.
+ */
+
 #include "config_manager.hpp"
 
 namespace agpm {

@@ -1,3 +1,10 @@
+/**
+ * @file sort.hpp
+ * @brief Sorting utilities for pull requests and strings.
+ *
+ * Provides functions for natural and lexicographical sorting of pull requests by title,
+ * including case-insensitive and numeric-aware comparisons.
+ */
 #ifndef AUTOGITHUBPULLMERGE_SORT_HPP
 #define AUTOGITHUBPULLMERGE_SORT_HPP
 

@@ -1,3 +1,11 @@
+/**
+ * @file poller.hpp
+ * @brief Thread pool and request scheduler for polling tasks with rate limiting.
+ *
+ * Defines the Poller class, which manages a pool of worker threads to execute polling jobs,
+ * enforces a maximum request rate using a token bucket, and provides backlog alerting and
+ * statistics for outstanding jobs.
+ */
 #ifndef AUTOGITHUBPULLMERGE_POLLER_HPP
 #define AUTOGITHUBPULLMERGE_POLLER_HPP
 

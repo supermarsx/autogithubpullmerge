@@ -1,3 +1,10 @@
+/**
+ * @file pat.hpp
+ * @brief Personal access token helpers for autogithubpullmerge.
+ *
+ * Declares helpers for opening the GitHub PAT creation page and saving tokens securely.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_PAT_HPP
 #define AUTOGITHUBPULLMERGE_PAT_HPP
 

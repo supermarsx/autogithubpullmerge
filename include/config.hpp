@@ -1,3 +1,11 @@
+/**
+ * @file config.hpp
+ * @brief Application configuration model for autogithubpullmerge.
+ *
+ * Declares the Config class and related structures for loading and managing
+ * YAML, TOML, or JSON configuration files.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_CONFIG_HPP
 #define AUTOGITHUBPULLMERGE_CONFIG_HPP
 

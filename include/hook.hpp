@@ -1,3 +1,11 @@
+/**
+ * @file hook.hpp
+ * @brief Hook dispatching and configuration for autogithubpullmerge.
+ *
+ * Declares hook action types, settings, and the HookDispatcher class for
+ * asynchronous event handling.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_HOOK_HPP
 #define AUTOGITHUBPULLMERGE_HOOK_HPP
 

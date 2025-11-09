@@ -1,3 +1,10 @@
+/**
+ * @file config_manager.hpp
+ * @brief Configuration file loader for autogithubpullmerge.
+ *
+ * Declares the ConfigManager utility for loading configuration files from disk.
+ */
+
 #ifndef AUTOGITHUBPULLMERGE_CONFIG_MANAGER_HPP
 #define AUTOGITHUBPULLMERGE_CONFIG_MANAGER_HPP
 
