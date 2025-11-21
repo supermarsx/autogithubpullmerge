@@ -46,3 +46,4 @@ test_history.db
 /cfg.json
 history.db
 /.cache
+/tmp

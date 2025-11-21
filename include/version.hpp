@@ -5,4 +5,6 @@
 
 #pragma once
 
-constexpr const char* kVersionString = "dev-placeholder";
+namespace agpm {
+constexpr const char *kVersionString = "dev-placeholder";
+} // namespace agpm
