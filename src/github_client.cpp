@@ -725,12 +725,28 @@ private:
    * Determine whether an exception likely represents a transient failure.
    */
   bool is_transient(const std::exception &e) const {
-    // Prefer typed exceptions for clarity.
+    // Prefer typed exceptions when available.
     if (dynamic_cast<const TransientNetworkError *>(&e)) {
       return true;
     }
     if (auto http_err = dynamic_cast<const HttpStatusError *>(&e)) {
       return http_err->status >= 500 && http_err->status < 600;
+    }
+    // Fallback: inspect message for legacy errors produced before typed exceptions.
+    std::string msg = e.what();
+    // Look for numeric HTTP code patterns: "HTTP code NNN" or "failed with HTTP code NNN"
+    auto pos = msg.find("HTTP code ");
+    if (pos != std::string::npos) {
+      try {
+        int code = std::stoi(msg.substr(pos + 10));
+        return code >= 500 && code < 600;
+      } catch (...) {
+      }
+    }
+    // Transport-level curl failures often include "curl " or "Timeout" text.
+    if (msg.find("curl ") != std::string::npos || msg.find("Timeout") != std::string::npos ||
+        msg.find("timed out") != std::string::npos) {
+      return true;
     }
     return false;
   }
