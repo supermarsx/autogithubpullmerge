@@ -24,6 +24,17 @@
 
 namespace agpm {
 
+/* Typed network errors used by HTTP clients so retry logic can be precise. */
+struct TransientNetworkError : public std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
+
+struct HttpStatusError : public std::runtime_error {
+  int status;
+  HttpStatusError(int s, const std::string &m) : std::runtime_error(m), status(s) {}
+};
+
+
 /**
  * Simple HTTP response container capturing body, headers, and status code.
  */

@@ -725,13 +725,14 @@ private:
    * Determine whether an exception likely represents a transient failure.
    */
   bool is_transient(const std::exception &e) const {
-    std::string msg = e.what();
-    auto pos = msg.find("HTTP code ");
-    if (pos != std::string::npos) {
-      int code = std::stoi(msg.substr(pos + 10));
-      return code >= 500 && code < 600;
+    // Prefer typed exceptions for clarity.
+    if (dynamic_cast<const TransientNetworkError *>(&e)) {
+      return true;
     }
-    return true;
+    if (auto http_err = dynamic_cast<const HttpStatusError *>(&e)) {
+      return http_err->status >= 500 && http_err->status < 600;
+    }
+    return false;
   }
 
   std::unique_ptr<agpm::HttpClient> inner_;
