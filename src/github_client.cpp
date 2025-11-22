@@ -443,7 +443,7 @@ CurlHttpClient::get_with_headers(const std::string &url,
   if (res != CURLE_OK) {
     std::string msg = format_curl_error("GET", url, res, errbuf);
     github_client_log()->error(msg);
-    throw std::runtime_error(msg);
+    throw TransientNetworkError(msg);
   }
   if (http_code < 200 || http_code >= 300) {
     if (http_code == 403 || http_code == 429) {
