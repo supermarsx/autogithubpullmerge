@@ -13,7 +13,7 @@ public:
     (void)url;
     (void)headers;
     if (calls++ < 2) {
-      throw std::runtime_error("curl GET failed with HTTP code 500");
+      throw HttpStatusError(500, "curl GET failed with HTTP code 500");
     }
     return "[{\"number\":1,\"title\":\"PR\"}]";
   }
@@ -40,7 +40,7 @@ public:
     (void)url;
     (void)headers;
     ++calls;
-    throw std::runtime_error("curl GET failed with HTTP code 400");
+    throw HttpStatusError(400, "curl GET failed with HTTP code 400");
   }
   std::string put(const std::string &url, const std::string &data,
                   const std::vector<std::string> &headers) override {
