@@ -34,8 +34,7 @@ add_library(
   notification.cpp
   repo_discovery.cpp
   token_loader.cpp
-   util/duration.cpp
-   giant_temporary_fix.cpp)
+    util/duration.cpp)
 
 target_include_directories(
   autogithubpullmerge_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include
