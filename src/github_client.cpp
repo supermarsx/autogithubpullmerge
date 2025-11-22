@@ -732,6 +732,20 @@ private:
     if (auto http_err = dynamic_cast<const HttpStatusError *>(&e)) {
       return http_err->status >= 500 && http_err->status < 600;
     }
+    // Fallback: inspect message for legacy errors produced before typed exceptions.
+    std::string msg = e.what();
+    auto pos = msg.find("HTTP code ");
+    if (pos != std::string::npos) {
+      try {
+        int code = std::stoi(msg.substr(pos + 10));
+        return code >= 500 && code < 600;
+      } catch (...) {
+      }
+    }
+    if (msg.find("curl ") != std::string::npos || msg.find("Timeout") != std::string::npos ||
+        msg.find("timed out") != std::string::npos) {
+      return true;
+    }
     return false;
   }
 
@@ -846,6 +860,17 @@ void GitHubClient::save_cache_locked() {
 void GitHubClient::set_delay_ms(int delay_ms) {
   std::scoped_lock lock(mutex_);
   delay_ms_ = delay_ms;
+}
+
+// Flush cache immediately (thread-safe public API)
+void GitHubClient::flush_cache() {
+  std::scoped_lock lock(mutex_);
+  save_cache_locked();
+}
+
+void GitHubClient::set_cache_flush_interval(std::chrono::milliseconds interval) {
+  cache_flush_interval_ = interval;
+  cache_flusher_cv_.notify_all();
 }
 
 /**

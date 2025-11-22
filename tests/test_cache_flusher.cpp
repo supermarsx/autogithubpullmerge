@@ -21,8 +21,8 @@ TEST_CASE("cache flusher persists cache") {
 
   auto http = std::make_unique<FakeClient>();
   GitHubClient client({"tok"}, std::move(http), {}, {}, 0, 30000, 0, "https://api.github.com", false, tmpfile);
-  // Trigger a cache update
-  client.list_open_pull_requests_single("me/repo");
+  // Trigger a cache update: call list_pull_requests so URL used by caching is exercised
+  client.list_pull_requests("me", "repo");
   // Force flush
   client.flush_cache();
   std::ifstream in(tmpfile);
