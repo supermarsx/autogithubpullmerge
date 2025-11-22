@@ -496,13 +496,13 @@ public:
    * @return Populated status snapshot when the endpoint succeeds;
    * `std::nullopt` if the probe fails or returns malformed data.
    */
+  
+
   std::optional<RateLimitStatus> rate_limit_status(int max_attempts = 1);
 
-public:
-  void flush_cache();
-  void set_cache_flush_interval(std::chrono::milliseconds interval);
 private:
   mutable std::mutex mutex_;
+
   std::vector<std::string> tokens_;
   size_t token_index_{0};
   std::unique_ptr<HttpClient> http_;
