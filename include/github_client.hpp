@@ -498,6 +498,9 @@ public:
    */
   std::optional<RateLimitStatus> rate_limit_status(int max_attempts = 1);
 
+public:
+  void flush_cache();
+  void set_cache_flush_interval(std::chrono::milliseconds interval);
 private:
   mutable std::mutex mutex_;
   std::vector<std::string> tokens_;
@@ -523,6 +526,13 @@ private:
   std::condition_variable cache_flusher_cv_;
   std::chrono::milliseconds cache_flush_interval_{std::chrono::seconds(5)};
 
+public:
+  // Flush the in-memory cache immediately to disk. Public to allow tests to
+  // ensure persistence deterministically.
+  void flush_cache();
+  void set_cache_flush_interval(std::chrono::milliseconds interval);
+private:
+
   int required_approvals_{0};
   bool require_status_success_{false};
   bool require_mergeable_state_{false};
@@ -545,9 +555,6 @@ private:
                                     const std::string &repo, int pr_number,
                                     const PullRequestMetadata *metadata);
 
-  // Persist cache immediately and configure flush interval.
-  void flush_cache();
-  void set_cache_flush_interval(std::chrono::milliseconds interval);
 };
 
 /** Minimal GitHub GraphQL API client used for querying pull requests. */
