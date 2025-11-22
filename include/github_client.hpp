@@ -518,7 +518,6 @@ private:
   };
   std::unordered_map<std::string, CachedResponse> cache_;
   std::string cache_file_;
-  bool cache_dirty_{false};
   std::chrono::steady_clock::time_point last_cache_save_{};
   std::atomic<bool> cache_flusher_running_{false};
   std::thread cache_flusher_thread_;

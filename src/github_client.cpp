@@ -317,7 +317,7 @@ CurlHandle::CurlHandle() {
   std::call_once(flag, []() { curl_global_init(CURL_GLOBAL_DEFAULT); });
   handle_ = curl_easy_init();
   if (!handle_) {
-    throw std::runtime_error("Failed to init curl");
+    throw TransientNetworkError("Failed to init curl");
   }
 }
 
@@ -443,7 +443,7 @@ CurlHttpClient::get_with_headers(const std::string &url,
   if (res != CURLE_OK) {
     std::string msg = format_curl_error("GET", url, res, errbuf);
     github_client_log()->error(msg);
-    throw std::runtime_error(msg);
+    throw TransientNetworkError(msg);
   }
   if (http_code < 200 || http_code >= 300) {
     if (http_code == 403 || http_code == 429) {
@@ -452,8 +452,9 @@ CurlHttpClient::get_with_headers(const std::string &url,
     }
     github_client_log()->error("curl GET {} failed with HTTP code {}", url,
                                http_code);
-    throw std::runtime_error("curl GET failed with HTTP code " +
-                             std::to_string(http_code));
+    throw HttpStatusError(static_cast<int>(http_code),
+                          "curl GET failed with HTTP code " +
+                              std::to_string(http_code));
   }
   return {response, resp_headers, http_code};
 }
@@ -517,13 +518,14 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   if (res != CURLE_OK) {
     std::string msg = format_curl_error("PUT", url, res, errbuf);
     github_client_log()->error(msg);
-    throw std::runtime_error(msg);
+    throw TransientNetworkError(msg);
   }
   if (http_code < 200 || http_code >= 300) {
     github_client_log()->error("curl PUT {} failed with HTTP code {}", url,
                                http_code);
-    throw std::runtime_error("curl PUT failed with HTTP code " +
-                             std::to_string(http_code));
+    throw HttpStatusError(static_cast<int>(http_code),
+                          "curl PUT failed with HTTP code " +
+                              std::to_string(http_code));
   }
   return response;
 }
@@ -580,13 +582,14 @@ std::string CurlHttpClient::patch(const std::string &url,
   if (res != CURLE_OK) {
     std::string msg = format_curl_error("PATCH", url, res, errbuf);
     github_client_log()->error(msg);
-    throw std::runtime_error(msg);
+    throw TransientNetworkError(msg);
   }
   if (http_code < 200 || http_code >= 300) {
     github_client_log()->error("curl PATCH {} failed with HTTP code {}", url,
                                http_code);
-    throw std::runtime_error("curl PATCH failed with HTTP code " +
-                             std::to_string(http_code));
+    throw HttpStatusError(static_cast<int>(http_code),
+                          "curl PATCH failed with HTTP code " +
+                              std::to_string(http_code));
   }
   return response;
 }
@@ -641,13 +644,14 @@ std::string CurlHttpClient::del(const std::string &url,
   if (res != CURLE_OK) {
     std::string msg = format_curl_error("DELETE", url, res, errbuf);
     github_client_log()->error(msg);
-    throw std::runtime_error(msg);
+    throw TransientNetworkError(msg);
   }
   if (http_code < 200 || http_code >= 300) {
     github_client_log()->error("curl DELETE {} failed with HTTP code {}", url,
                                http_code);
-    throw std::runtime_error("curl DELETE failed with HTTP code " +
-                             std::to_string(http_code));
+    throw HttpStatusError(static_cast<int>(http_code),
+                          "curl DELETE failed with HTTP code " +
+                              std::to_string(http_code));
   }
   return response;
 }
