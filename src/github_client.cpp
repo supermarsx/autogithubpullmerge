@@ -1565,8 +1565,8 @@ std::vector<std::string> GitHubClient::detect_stray_branches(
       continue;
     }
     int ahead_by = 0;
-    (void)ahead_by; // value may be used in heuristics; suppress unused warning
     int behind_by = 0;
+    (void)behind_by;
     std::string status;
     try {
       enforce_delay();
