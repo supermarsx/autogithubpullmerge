@@ -517,13 +517,14 @@ std::string CurlHttpClient::put(const std::string &url, const std::string &data,
   if (res != CURLE_OK) {
     std::string msg = format_curl_error("PUT", url, res, errbuf);
     github_client_log()->error(msg);
-    throw std::runtime_error(msg);
+    throw TransientNetworkError(msg);
   }
   if (http_code < 200 || http_code >= 300) {
     github_client_log()->error("curl PUT {} failed with HTTP code {}", url,
                                http_code);
-    throw std::runtime_error("curl PUT failed with HTTP code " +
-                             std::to_string(http_code));
+    throw HttpStatusError(static_cast<int>(http_code),
+                          "curl PUT failed with HTTP code " +
+                              std::to_string(http_code));
   }
   return response;
 }
@@ -580,13 +581,14 @@ std::string CurlHttpClient::patch(const std::string &url,
   if (res != CURLE_OK) {
     std::string msg = format_curl_error("PATCH", url, res, errbuf);
     github_client_log()->error(msg);
-    throw std::runtime_error(msg);
+    throw TransientNetworkError(msg);
   }
   if (http_code < 200 || http_code >= 300) {
     github_client_log()->error("curl PATCH {} failed with HTTP code {}", url,
                                http_code);
-    throw std::runtime_error("curl PATCH failed with HTTP code " +
-                             std::to_string(http_code));
+    throw HttpStatusError(static_cast<int>(http_code),
+                          "curl PATCH failed with HTTP code " +
+                              std::to_string(http_code));
   }
   return response;
 }
@@ -641,13 +643,14 @@ std::string CurlHttpClient::del(const std::string &url,
   if (res != CURLE_OK) {
     std::string msg = format_curl_error("DELETE", url, res, errbuf);
     github_client_log()->error(msg);
-    throw std::runtime_error(msg);
+    throw TransientNetworkError(msg);
   }
   if (http_code < 200 || http_code >= 300) {
     github_client_log()->error("curl DELETE {} failed with HTTP code {}", url,
                                http_code);
-    throw std::runtime_error("curl DELETE failed with HTTP code " +
-                             std::to_string(http_code));
+    throw HttpStatusError(static_cast<int>(http_code),
+                          "curl DELETE failed with HTTP code " +
+                              std::to_string(http_code));
   }
   return response;
 }
@@ -779,12 +782,34 @@ GitHubClient::GitHubClient(std::vector<std::string> tokens,
   ensure_default_logger();
   std::scoped_lock lock(mutex_);
   load_cache_locked();
+  if (!cache_file_.empty()) {
+    cache_flusher_running_.store(true);
+    cache_flusher_thread_ = std::thread([this]() {
+      std::unique_lock<std::mutex> lk(cache_flusher_mutex_);
+      while (cache_flusher_running_.load()) {
+        cache_flusher_cv_.wait_for(lk, cache_flush_interval_);
+        if (!cache_flusher_running_.load())
+          break;
+        if (cache_dirty_) {
+          std::scoped_lock data_lock(mutex_);
+          save_cache_locked();
+        }
+      }
+    });
+  }
 }
 
 /**
  * Persist any cached responses when the client is destroyed.
  */
 GitHubClient::~GitHubClient() {
+  // Stop flusher thread first then save final cache under lock.
+  if (cache_flusher_running_.load()) {
+    cache_flusher_running_.store(false);
+    cache_flusher_cv_.notify_all();
+    if (cache_flusher_thread_.joinable())
+      cache_flusher_thread_.join();
+  }
   std::scoped_lock lock(mutex_);
   save_cache_locked();
 }
@@ -813,7 +838,7 @@ GitHubClient::get_with_cache_locked(const std::string &url,
     if (!etag.empty() && etag[0] == ' ')
       etag.erase(0, 1);
     cache_[url] = {etag, res.body, res.headers};
-    save_cache_locked();
+    cache_dirty_ = true;
   }
   return res;
 }
@@ -852,8 +877,11 @@ void GitHubClient::save_cache_locked() {
     j[url] = {{"etag", c.etag}, {"body", c.body}, {"headers", c.headers}};
   }
   std::ofstream out(cache_file_);
-  if (out)
+  if (out) {
     out << j.dump();
+    cache_dirty_ = false;
+    last_cache_save_ = std::chrono::steady_clock::now();
+  }
 }
 
 /**
@@ -1537,6 +1565,7 @@ std::vector<std::string> GitHubClient::detect_stray_branches(
       continue;
     }
     int ahead_by = 0;
+    (void)ahead_by; // value may be used in heuristics; suppress unused warning
     int behind_by = 0;
     std::string status;
     try {

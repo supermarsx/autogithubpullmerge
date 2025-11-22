@@ -21,6 +21,9 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <thread>
+#include <atomic>
+#include <condition_variable>
 
 namespace agpm {
 
@@ -512,6 +515,13 @@ private:
   };
   std::unordered_map<std::string, CachedResponse> cache_;
   std::string cache_file_;
+  bool cache_dirty_{false};
+  std::chrono::steady_clock::time_point last_cache_save_{};
+  std::atomic<bool> cache_flusher_running_{false};
+  std::thread cache_flusher_thread_;
+  std::mutex cache_flusher_mutex_;
+  std::condition_variable cache_flusher_cv_;
+  std::chrono::milliseconds cache_flush_interval_{std::chrono::seconds(5)};
 
   int required_approvals_{0};
   bool require_status_success_{false};
@@ -531,9 +541,13 @@ private:
   std::optional<PullRequestMetadata>
   pull_request_metadata_locked(const std::string &owner,
                                const std::string &repo, int pr_number);
-  bool merge_pull_request_internal(const std::string &owner,
-                                   const std::string &repo, int pr_number,
-                                   const PullRequestMetadata *metadata);
+   bool merge_pull_request_internal(const std::string &owner,
+                                    const std::string &repo, int pr_number,
+                                    const PullRequestMetadata *metadata);
+
+  // Persist cache immediately and configure flush interval.
+  void flush_cache();
+  void set_cache_flush_interval(std::chrono::milliseconds interval);
 };
 
 /** Minimal GitHub GraphQL API client used for querying pull requests. */
