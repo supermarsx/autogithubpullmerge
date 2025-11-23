@@ -537,7 +537,14 @@ private:
   bool require_mergeable_state_{false};
 
   int delay_ms_;
-  std::chrono::steady_clock::time_point last_request_;
+  // Rate-limit state protected by its own mutex to avoid holding the main
+  // `mutex_` during sleeps or token rotations.
+  struct RateState {
+    std::chrono::steady_clock::time_point last_request{};
+  } rate_state_;
+  mutable std::mutex rate_state_mutex_;
+  // Helper accessor to snapshot current token index under the rate mutex.
+  size_t current_token_index() const { std::scoped_lock lk(rate_state_mutex_); return token_index_; }
   bool allow_delete_base_branch_{false};
 
   bool repo_allowed(const std::string &owner, const std::string &repo) const;

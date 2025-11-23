@@ -769,15 +769,13 @@ GitHubClient::GitHubClient(std::vector<std::string> tokens,
                            int delay_ms, int timeout_ms, int max_retries,
                            std::string api_base, bool dry_run,
                            std::string cache_file)
-    : tokens_(std::move(tokens)), token_index_(0),
+    : tokens_(std::move(tokens)),
       http_(std::make_unique<RetryHttpClient>(
           http ? std::move(http) : std::make_unique<CurlHttpClient>(timeout_ms),
           max_retries, 100)),
       include_repos_(std::move(include_repos)),
       exclude_repos_(std::move(exclude_repos)), api_base_(std::move(api_base)),
-      dry_run_(dry_run), cache_file_(std::move(cache_file)),
-      delay_ms_(delay_ms), last_request_(std::chrono::steady_clock::now() -
-                                         std::chrono::milliseconds(delay_ms)) {
+      dry_run_(dry_run), cache_file_(std::move(cache_file)), delay_ms_(delay_ms) {
   ensure_default_logger();
   std::scoped_lock lock(mutex_);
   load_cache_locked();
@@ -895,15 +893,26 @@ bool GitHubClient::repo_allowed(const std::string &owner,
 /// @copydoc GitHubClient::list_repositories
 std::vector<std::pair<std::string, std::string>>
 GitHubClient::list_repositories() {
-  std::scoped_lock lock(mutex_);
   std::vector<std::pair<std::string, std::string>> repos;
   github_client_log()->info("Listing repositories");
   std::string url = api_base_ + "/user/repos?per_page=100";
-  std::vector<std::string> headers;
-  if (!tokens_.empty())
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
-  headers.push_back("Accept: application/vnd.github+json");
+
   while (true) {
+    // Build headers and url under lock, then release before network I/O.
+    std::vector<std::string> headers;
+    {
+      std::scoped_lock lock(mutex_);
+      if (!tokens_.empty()) {
+        size_t ti;
+        {
+          std::scoped_lock rs_lock(rate_state_mutex_);
+          ti = token_index_;
+        }
+        headers.push_back("Authorization: token " + tokens_[ti]);
+      }
+      headers.push_back("Accept: application/vnd.github+json");
+    }
+
     enforce_delay();
     HttpResponse res;
     try {
@@ -986,8 +995,14 @@ GitHubClient::list_pull_requests(const std::string &owner,
     url += "?" + query;
   }
   std::vector<std::string> headers;
-  if (!tokens_.empty())
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
+    if (!tokens_.empty()) {
+      size_t ti;
+      {
+        std::scoped_lock rs_lock(rate_state_mutex_);
+        ti = token_index_;
+      }
+      headers.push_back("Authorization: token " + tokens_[ti]);
+    }
   headers.push_back("Accept: application/vnd.github+json");
   auto cutoff = std::chrono::system_clock::now() - since;
   std::vector<PullRequest> prs;
@@ -1119,7 +1134,12 @@ GitHubClient::list_open_pull_requests_single(const std::string &owner_repo,
                     "/pulls?state=open&per_page=" + std::to_string(per_page);
   std::vector<std::string> headers;
   if (!tokens_.empty()) {
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
+    size_t ti;
+    {
+      std::scoped_lock rs_lock(rate_state_mutex_);
+      ti = token_index_;
+    }
+    headers.push_back("Authorization: token " + tokens_[ti]);
   }
   headers.push_back("Accept: application/vnd.github+json");
   enforce_delay();
@@ -1172,7 +1192,12 @@ std::optional<PullRequestMetadata> GitHubClient::pull_request_metadata_locked(
   }
   std::vector<std::string> headers;
   if (!tokens_.empty()) {
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
+    size_t ti;
+    {
+      std::scoped_lock rs_lock(rate_state_mutex_);
+      ti = token_index_;
+    }
+    headers.push_back("Authorization: token " + tokens_[ti]);
   }
   headers.push_back("Accept: application/vnd.github+json");
   enforce_delay();
@@ -1234,7 +1259,12 @@ bool GitHubClient::merge_pull_request_internal(
                             owner, repo);
   std::vector<std::string> headers;
   if (!tokens_.empty()) {
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
+    size_t ti;
+    {
+      std::scoped_lock rs_lock(rate_state_mutex_);
+      ti = token_index_;
+    }
+    headers.push_back("Authorization: token " + tokens_[ti]);
   }
   headers.push_back("Accept: application/vnd.github+json");
   const PullRequestMetadata *meta_ptr = metadata;
@@ -1305,7 +1335,12 @@ bool GitHubClient::close_pull_request(const std::string &owner,
   }
   std::vector<std::string> headers;
   if (!tokens_.empty()) {
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
+    size_t ti;
+    {
+      std::scoped_lock rs_lock(rate_state_mutex_);
+      ti = token_index_;
+    }
+    headers.push_back("Authorization: token " + tokens_[ti]);
   }
   headers.push_back("Accept: application/vnd.github+json");
   headers.push_back("Content-Type: application/json");
@@ -1364,7 +1399,7 @@ bool GitHubClient::delete_branch(
 
   std::vector<std::string> headers;
   if (!tokens_.empty()) {
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
+    headers.push_back("Authorization: token " + tokens_[current_token_index()]);
   }
   headers.push_back("Accept: application/vnd.github+json");
 
@@ -1404,8 +1439,14 @@ GitHubClient::list_branches(const std::string &owner, const std::string &repo,
     *default_branch_out = std::string{};
   }
   std::vector<std::string> headers;
-  if (!tokens_.empty())
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
+    if (!tokens_.empty()) {
+      size_t ti;
+      {
+        std::scoped_lock rs_lock(rate_state_mutex_);
+        ti = token_index_;
+      }
+      headers.push_back("Authorization: token " + tokens_[ti]);
+    }
   headers.push_back("Accept: application/vnd.github+json");
   enforce_delay();
   std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
@@ -1499,7 +1540,12 @@ std::vector<std::string> GitHubClient::detect_stray_branches(
   }
   std::vector<std::string> headers;
   if (!tokens_.empty()) {
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
+    size_t ti;
+    {
+      std::scoped_lock rs_lock(rate_state_mutex_);
+      ti = token_index_;
+    }
+    headers.push_back("Authorization: token " + tokens_[ti]);
   }
   headers.push_back("Accept: application/vnd.github+json");
   const std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
@@ -1634,8 +1680,14 @@ GitHubClient::list_branches_single(const std::string &owner_repo,
   std::string url = api_base_ + "/repos/" + owner + "/" + repo +
                     "/branches?per_page=" + std::to_string(per_page);
   std::vector<std::string> headers;
-  if (!tokens_.empty())
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
+    if (!tokens_.empty()) {
+      size_t ti;
+      {
+        std::scoped_lock rs_lock(rate_state_mutex_);
+        ti = token_index_;
+      }
+      headers.push_back("Authorization: token " + tokens_[ti]);
+    }
   headers.push_back("Accept: application/vnd.github+json");
   enforce_delay();
   HttpResponse res;
@@ -1685,8 +1737,14 @@ std::vector<std::string> GitHubClient::cleanup_branches(
   std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
   std::string url = repo_url + "/pulls?state=closed";
   std::vector<std::string> headers;
-  if (!tokens_.empty())
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
+    if (!tokens_.empty()) {
+      size_t ti;
+      {
+        std::scoped_lock rs_lock(rate_state_mutex_);
+        ti = token_index_;
+      }
+      headers.push_back("Authorization: token " + tokens_[ti]);
+    }
   headers.push_back("Accept: application/vnd.github+json");
   std::string default_branch;
   if (!allow_delete_base_branch_) {
@@ -1795,8 +1853,14 @@ void GitHubClient::close_dirty_branches(
     return;
   }
   std::vector<std::string> headers;
-  if (!tokens_.empty())
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
+    if (!tokens_.empty()) {
+      size_t ti;
+      {
+        std::scoped_lock rs_lock(rate_state_mutex_);
+        ti = token_index_;
+      }
+      headers.push_back("Authorization: token " + tokens_[ti]);
+    }
   headers.push_back("Accept: application/vnd.github+json");
 
   // Fetch repository metadata to determine the default branch.
@@ -1938,7 +2002,7 @@ GitHubClient::rate_limit_status(int max_attempts) {
   std::scoped_lock lock(mutex_);
   std::vector<std::string> headers;
   if (!tokens_.empty()) {
-    headers.push_back("Authorization: token " + tokens_[token_index_]);
+    headers.push_back("Authorization: token " + tokens_[current_token_index()]);
   }
   headers.push_back("Accept: application/vnd.github+json");
   std::string url = api_base_ + "/rate_limit";
@@ -2011,37 +2075,42 @@ bool GitHubClient::handle_rate_limit(const HttpResponse &resp) {
   long retry_after = 0;
   for (const auto &h : resp.headers) {
     if (h.rfind("X-RateLimit-Remaining:", 0) == 0) {
-      remaining = std::stol(h.substr(22));
+      try { remaining = std::stol(h.substr(22)); } catch(...) {}
     } else if (h.rfind("X-RateLimit-Reset:", 0) == 0) {
-      reset = std::stol(h.substr(19));
+      try { reset = std::stol(h.substr(19)); } catch(...) {}
     } else if (h.rfind("Retry-After:", 0) == 0) {
-      retry_after = std::stol(h.substr(12));
+      try { retry_after = std::stol(h.substr(12)); } catch(...) {}
     }
   }
-  if ((resp.status_code == 403 || resp.status_code == 429) &&
-      tokens_.size() > 1) {
-    token_index_ = (token_index_ + 1) % tokens_.size();
-    github_client_log()->warn(
-        "Rate limit hit, switching to next token (index {})", token_index_);
-    last_request_ = std::chrono::steady_clock::now();
+
+  // If multiple tokens are configured, rotate quickly under the rate_state lock
+  if ((resp.status_code == 403 || resp.status_code == 429) && tokens_.size() > 1) {
+    {
+      std::scoped_lock rs_lock(rate_state_mutex_);
+      token_index_ = (token_index_ + 1) % tokens_.size();
+    }
+    github_client_log()->warn("Rate limit hit, switching to next token (index {})", token_index_);
+    // Signal caller to retry immediately.
     return true;
   }
+
   if (resp.status_code == 403 || resp.status_code == 429 || remaining == 0) {
     std::chrono::milliseconds wait{0};
     auto now = std::chrono::system_clock::now();
     if (retry_after > 0) {
       wait = std::chrono::seconds(retry_after);
     } else if (reset > 0) {
-      auto reset_time =
-          std::chrono::system_clock::time_point(std::chrono::seconds(reset));
+      auto reset_time = std::chrono::system_clock::time_point(std::chrono::seconds(reset));
       if (reset_time > now)
-        wait = std::chrono::duration_cast<std::chrono::milliseconds>(
-            reset_time - now);
+        wait = std::chrono::duration_cast<std::chrono::milliseconds>(reset_time - now);
     }
     if (wait.count() > 0) {
       std::this_thread::sleep_for(wait);
     }
-    last_request_ = std::chrono::steady_clock::now();
+    {
+      std::scoped_lock rs_lock(rate_state_mutex_);
+      rate_state_.last_request = std::chrono::steady_clock::now();
+    }
     return true;
   }
   return false;
@@ -2053,14 +2122,20 @@ bool GitHubClient::handle_rate_limit(const HttpResponse &resp) {
 void GitHubClient::enforce_delay() {
   if (delay_ms_ <= 0)
     return;
+  std::chrono::steady_clock::time_point last;
+  {
+    std::scoped_lock rs_lock(rate_state_mutex_);
+    last = rate_state_.last_request;
+  }
   auto now = std::chrono::steady_clock::now();
-  auto elapsed =
-      std::chrono::duration_cast<std::chrono::milliseconds>(now - last_request_)
-          .count();
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count();
   if (elapsed < delay_ms_) {
     std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms_ - elapsed));
   }
-  last_request_ = std::chrono::steady_clock::now();
+  {
+    std::scoped_lock rs_lock(rate_state_mutex_);
+    rate_state_.last_request = std::chrono::steady_clock::now();
+  }
 }
 
 /// @copydoc GitHubGraphQLClient::GitHubGraphQLClient
