@@ -9,7 +9,9 @@
 #ifndef AUTOGITHUBPULLMERGE_GITHUB_CLIENT_HPP
 #define AUTOGITHUBPULLMERGE_GITHUB_CLIENT_HPP
 
+#include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <curl/curl.h>
 #include <memory>
 #include <mutex>
@@ -17,13 +19,11 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <thread>
-#include <atomic>
-#include <condition_variable>
 
 namespace agpm {
 
@@ -34,9 +34,9 @@ struct TransientNetworkError : public std::runtime_error {
 
 struct HttpStatusError : public std::runtime_error {
   int status;
-  HttpStatusError(int s, const std::string &m) : std::runtime_error(m), status(s) {}
+  HttpStatusError(int s, const std::string &m)
+      : std::runtime_error(m), status(s) {}
 };
-
 
 /**
  * Simple HTTP response container capturing body, headers, and status code.
@@ -496,7 +496,6 @@ public:
    * @return Populated status snapshot when the endpoint succeeds;
    * `std::nullopt` if the probe fails or returns malformed data.
    */
-  
 
   std::optional<RateLimitStatus> rate_limit_status(int max_attempts = 1);
 
@@ -531,8 +530,8 @@ public:
   // ensure persistence deterministically.
   void flush_cache();
   void set_cache_flush_interval(std::chrono::milliseconds interval);
-private:
 
+private:
   int required_approvals_{0};
   bool require_status_success_{false};
   bool require_mergeable_state_{false};
@@ -545,7 +544,10 @@ private:
   } rate_state_;
   mutable std::mutex rate_state_mutex_;
   // Helper accessor to snapshot current token index under the rate mutex.
-  size_t current_token_index() const { std::scoped_lock lk(rate_state_mutex_); return token_index_; }
+  size_t current_token_index() const {
+    std::scoped_lock lk(rate_state_mutex_);
+    return token_index_;
+  }
   bool allow_delete_base_branch_{false};
 
   bool repo_allowed(const std::string &owner, const std::string &repo) const;
@@ -558,10 +560,9 @@ private:
   std::optional<PullRequestMetadata>
   pull_request_metadata_locked(const std::string &owner,
                                const std::string &repo, int pr_number);
-   bool merge_pull_request_internal(const std::string &owner,
-                                    const std::string &repo, int pr_number,
-                                    const PullRequestMetadata *metadata);
-
+  bool merge_pull_request_internal(const std::string &owner,
+                                   const std::string &repo, int pr_number,
+                                   const PullRequestMetadata *metadata);
 };
 
 /** Minimal GitHub GraphQL API client used for querying pull requests. */

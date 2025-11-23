@@ -6,17 +6,25 @@
 using namespace agpm;
 
 class ConcurrentFake : public HttpClient {
- public:
+public:
   std::atomic<int> calls{0};
-  std::string get(const std::string &url, const std::vector<std::string> &headers) override {
-    (void)url; (void)headers;
+  std::string get(const std::string &url,
+                  const std::vector<std::string> &headers) override {
+    (void)url;
+    (void)headers;
     ++calls;
     // Simulate light work
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
     return "[]";
   }
-  std::string put(const std::string &, const std::string &, const std::vector<std::string> &) override { return "{}"; }
-  std::string del(const std::string &, const std::vector<std::string> &) override { return ""; }
+  std::string put(const std::string &, const std::string &,
+                  const std::vector<std::string> &) override {
+    return "{}";
+  }
+  std::string del(const std::string &,
+                  const std::vector<std::string> &) override {
+    return "";
+  }
 };
 
 TEST_CASE("github client concurrent access") {
@@ -35,7 +43,8 @@ TEST_CASE("github client concurrent access") {
       }
     });
   }
-  for (auto &th : threads) th.join();
+  for (auto &th : threads)
+    th.join();
 
   REQUIRE(raw->calls.load() >= nthreads * iters);
 }

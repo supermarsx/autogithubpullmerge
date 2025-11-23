@@ -762,7 +762,8 @@ GitHubClient::GitHubClient(std::vector<std::string> tokens,
           max_retries, 100)),
       include_repos_(std::move(include_repos)),
       exclude_repos_(std::move(exclude_repos)), api_base_(std::move(api_base)),
-      dry_run_(dry_run), cache_file_(std::move(cache_file)), delay_ms_(delay_ms) {
+      dry_run_(dry_run), cache_file_(std::move(cache_file)),
+      delay_ms_(delay_ms) {
   ensure_default_logger();
   std::scoped_lock lock(mutex_);
   load_cache_locked();
@@ -772,7 +773,8 @@ GitHubClient::GitHubClient(std::vector<std::string> tokens,
       auto ms = std::stol(env);
       if (ms > 0)
         cache_flush_interval_ = std::chrono::milliseconds(ms);
-    } catch (...) {}
+    } catch (...) {
+    }
   }
   if (!cache_file_.empty()) {
     cache_flusher_running_.store(true);
@@ -818,15 +820,15 @@ GitHubClient::get_with_cache_locked(const std::string &url,
   const auto etag_it = std::find_if(
       res.headers.begin(), res.headers.end(),
       [](const std::string &h) { return h.rfind("ETag:", 0) == 0; });
-    if (etag_it != res.headers.end()) {
-     std::string etag = etag_it->substr(5);
-     if (!etag.empty() && etag[0] == ' ')
-       etag.erase(0, 1);
-     cache_[url] = {etag, res.body, res.headers};
-     cache_dirty_ = true;
-   }
-   return res;
- }
+  if (etag_it != res.headers.end()) {
+    std::string etag = etag_it->substr(5);
+    if (!etag.empty() && etag[0] == ' ')
+      etag.erase(0, 1);
+    cache_[url] = {etag, res.body, res.headers};
+    cache_dirty_ = true;
+  }
+  return res;
+}
 
 /**
  * Load cached HTTP responses from disk.
@@ -883,7 +885,8 @@ void GitHubClient::flush_cache() {
   save_cache_locked();
 }
 
-void GitHubClient::set_cache_flush_interval(std::chrono::milliseconds interval) {
+void GitHubClient::set_cache_flush_interval(
+    std::chrono::milliseconds interval) {
   cache_flush_interval_ = interval;
   cache_flusher_cv_.notify_all();
 }
@@ -1008,14 +1011,14 @@ GitHubClient::list_pull_requests(const std::string &owner,
     url += "?" + query;
   }
   std::vector<std::string> headers;
-    if (!tokens_.empty()) {
-      size_t ti;
-      {
-        std::scoped_lock rs_lock(rate_state_mutex_);
-        ti = token_index_;
-      }
-      headers.push_back("Authorization: token " + tokens_[ti]);
+  if (!tokens_.empty()) {
+    size_t ti;
+    {
+      std::scoped_lock rs_lock(rate_state_mutex_);
+      ti = token_index_;
     }
+    headers.push_back("Authorization: token " + tokens_[ti]);
+  }
   headers.push_back("Accept: application/vnd.github+json");
   auto cutoff = std::chrono::system_clock::now() - since;
   std::vector<PullRequest> prs;
@@ -1452,14 +1455,14 @@ GitHubClient::list_branches(const std::string &owner, const std::string &repo,
     *default_branch_out = std::string{};
   }
   std::vector<std::string> headers;
-    if (!tokens_.empty()) {
-      size_t ti;
-      {
-        std::scoped_lock rs_lock(rate_state_mutex_);
-        ti = token_index_;
-      }
-      headers.push_back("Authorization: token " + tokens_[ti]);
+  if (!tokens_.empty()) {
+    size_t ti;
+    {
+      std::scoped_lock rs_lock(rate_state_mutex_);
+      ti = token_index_;
     }
+    headers.push_back("Authorization: token " + tokens_[ti]);
+  }
   headers.push_back("Accept: application/vnd.github+json");
   enforce_delay();
   std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
@@ -1694,14 +1697,14 @@ GitHubClient::list_branches_single(const std::string &owner_repo,
   std::string url = api_base_ + "/repos/" + owner + "/" + repo +
                     "/branches?per_page=" + std::to_string(per_page);
   std::vector<std::string> headers;
-    if (!tokens_.empty()) {
-      size_t ti;
-      {
-        std::scoped_lock rs_lock(rate_state_mutex_);
-        ti = token_index_;
-      }
-      headers.push_back("Authorization: token " + tokens_[ti]);
+  if (!tokens_.empty()) {
+    size_t ti;
+    {
+      std::scoped_lock rs_lock(rate_state_mutex_);
+      ti = token_index_;
     }
+    headers.push_back("Authorization: token " + tokens_[ti]);
+  }
   headers.push_back("Accept: application/vnd.github+json");
   enforce_delay();
   HttpResponse res;
@@ -1751,14 +1754,14 @@ std::vector<std::string> GitHubClient::cleanup_branches(
   std::string repo_url = api_base_ + "/repos/" + owner + "/" + repo;
   std::string url = repo_url + "/pulls?state=closed";
   std::vector<std::string> headers;
-    if (!tokens_.empty()) {
-      size_t ti;
-      {
-        std::scoped_lock rs_lock(rate_state_mutex_);
-        ti = token_index_;
-      }
-      headers.push_back("Authorization: token " + tokens_[ti]);
+  if (!tokens_.empty()) {
+    size_t ti;
+    {
+      std::scoped_lock rs_lock(rate_state_mutex_);
+      ti = token_index_;
     }
+    headers.push_back("Authorization: token " + tokens_[ti]);
+  }
   headers.push_back("Accept: application/vnd.github+json");
   std::string default_branch;
   if (!allow_delete_base_branch_) {
@@ -1867,14 +1870,14 @@ void GitHubClient::close_dirty_branches(
     return;
   }
   std::vector<std::string> headers;
-    if (!tokens_.empty()) {
-      size_t ti;
-      {
-        std::scoped_lock rs_lock(rate_state_mutex_);
-        ti = token_index_;
-      }
-      headers.push_back("Authorization: token " + tokens_[ti]);
+  if (!tokens_.empty()) {
+    size_t ti;
+    {
+      std::scoped_lock rs_lock(rate_state_mutex_);
+      ti = token_index_;
     }
+    headers.push_back("Authorization: token " + tokens_[ti]);
+  }
   headers.push_back("Accept: application/vnd.github+json");
 
   // Fetch repository metadata to determine the default branch.
@@ -2089,21 +2092,32 @@ bool GitHubClient::handle_rate_limit(const HttpResponse &resp) {
   long retry_after = 0;
   for (const auto &h : resp.headers) {
     if (h.rfind("X-RateLimit-Remaining:", 0) == 0) {
-      try { remaining = std::stol(h.substr(22)); } catch(...) {}
+      try {
+        remaining = std::stol(h.substr(22));
+      } catch (...) {
+      }
     } else if (h.rfind("X-RateLimit-Reset:", 0) == 0) {
-      try { reset = std::stol(h.substr(19)); } catch(...) {}
+      try {
+        reset = std::stol(h.substr(19));
+      } catch (...) {
+      }
     } else if (h.rfind("Retry-After:", 0) == 0) {
-      try { retry_after = std::stol(h.substr(12)); } catch(...) {}
+      try {
+        retry_after = std::stol(h.substr(12));
+      } catch (...) {
+      }
     }
   }
 
   // If multiple tokens are configured, rotate quickly under the rate_state lock
-  if ((resp.status_code == 403 || resp.status_code == 429) && tokens_.size() > 1) {
+  if ((resp.status_code == 403 || resp.status_code == 429) &&
+      tokens_.size() > 1) {
     {
       std::scoped_lock rs_lock(rate_state_mutex_);
       token_index_ = (token_index_ + 1) % tokens_.size();
     }
-    github_client_log()->warn("Rate limit hit, switching to next token (index {})", token_index_);
+    github_client_log()->warn(
+        "Rate limit hit, switching to next token (index {})", token_index_);
     // Signal caller to retry immediately.
     return true;
   }
@@ -2114,9 +2128,11 @@ bool GitHubClient::handle_rate_limit(const HttpResponse &resp) {
     if (retry_after > 0) {
       wait = std::chrono::seconds(retry_after);
     } else if (reset > 0) {
-      auto reset_time = std::chrono::system_clock::time_point(std::chrono::seconds(reset));
+      auto reset_time =
+          std::chrono::system_clock::time_point(std::chrono::seconds(reset));
       if (reset_time > now)
-        wait = std::chrono::duration_cast<std::chrono::milliseconds>(reset_time - now);
+        wait = std::chrono::duration_cast<std::chrono::milliseconds>(
+            reset_time - now);
     }
     if (wait.count() > 0) {
       std::this_thread::sleep_for(wait);
@@ -2142,7 +2158,8 @@ void GitHubClient::enforce_delay() {
     last = rate_state_.last_request;
   }
   auto now = std::chrono::steady_clock::now();
-  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count();
+  auto elapsed =
+      std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count();
   if (elapsed < delay_ms_) {
     std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms_ - elapsed));
   }
