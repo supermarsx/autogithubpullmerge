@@ -736,20 +736,7 @@ private:
     if (auto http_err = dynamic_cast<const HttpStatusError *>(&e)) {
       return http_err->status >= 500 && http_err->status < 600;
     }
-    // Fallback: inspect message for legacy errors produced before typed exceptions.
-    std::string msg = e.what();
-    auto pos = msg.find("HTTP code ");
-    if (pos != std::string::npos) {
-      try {
-        int code = std::stoi(msg.substr(pos + 10));
-        return code >= 500 && code < 600;
-      } catch (...) {
-      }
-    }
-    if (msg.find("curl ") != std::string::npos || msg.find("Timeout") != std::string::npos ||
-        msg.find("timed out") != std::string::npos) {
-      return true;
-    }
+    // Only treat typed exceptions as transient. Legacy string parsing removed.
     return false;
   }
 
@@ -779,6 +766,29 @@ GitHubClient::GitHubClient(std::vector<std::string> tokens,
   ensure_default_logger();
   std::scoped_lock lock(mutex_);
   load_cache_locked();
+  // Allow configuring cache flush interval via env var AGPM_CACHE_FLUSH_MS
+  if (const char *env = std::getenv("AGPM_CACHE_FLUSH_MS")) {
+    try {
+      auto ms = std::stol(env);
+      if (ms > 0)
+        cache_flush_interval_ = std::chrono::milliseconds(ms);
+    } catch (...) {}
+  }
+  if (!cache_file_.empty()) {
+    cache_flusher_running_.store(true);
+    cache_flusher_thread_ = std::thread([this]() {
+      std::unique_lock<std::mutex> lk(cache_flusher_mutex_);
+      while (cache_flusher_running_.load()) {
+        cache_flusher_cv_.wait_for(lk, cache_flush_interval_);
+        if (!cache_flusher_running_.load())
+          break;
+        if (cache_dirty_) {
+          std::scoped_lock data_lock(mutex_);
+          save_cache_locked();
+        }
+      }
+    });
+  }
 }
 
 /**
@@ -808,15 +818,15 @@ GitHubClient::get_with_cache_locked(const std::string &url,
   const auto etag_it = std::find_if(
       res.headers.begin(), res.headers.end(),
       [](const std::string &h) { return h.rfind("ETag:", 0) == 0; });
-  if (etag_it != res.headers.end()) {
-    std::string etag = etag_it->substr(5);
-    if (!etag.empty() && etag[0] == ' ')
-      etag.erase(0, 1);
-    cache_[url] = {etag, res.body, res.headers};
-    save_cache_locked();
-  }
-  return res;
-}
+    if (etag_it != res.headers.end()) {
+     std::string etag = etag_it->substr(5);
+     if (!etag.empty() && etag[0] == ' ')
+       etag.erase(0, 1);
+     cache_[url] = {etag, res.body, res.headers};
+     cache_dirty_ = true;
+   }
+   return res;
+ }
 
 /**
  * Load cached HTTP responses from disk.
@@ -852,8 +862,11 @@ void GitHubClient::save_cache_locked() {
     j[url] = {{"etag", c.etag}, {"body", c.body}, {"headers", c.headers}};
   }
   std::ofstream out(cache_file_);
-  if (out)
+  if (out) {
     out << j.dump();
+    cache_dirty_ = false;
+    last_cache_save_ = std::chrono::steady_clock::now();
+  }
 }
 
 /**
