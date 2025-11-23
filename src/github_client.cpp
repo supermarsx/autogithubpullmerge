@@ -1610,6 +1610,7 @@ std::vector<std::string> GitHubClient::detect_stray_branches(
     }
     int ahead_by = 0;
     int behind_by = 0;
+    (void)behind_by;
     std::string status;
     try {
       enforce_delay();
