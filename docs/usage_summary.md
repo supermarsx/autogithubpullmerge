@@ -191,6 +191,16 @@ automatically, overriding the protection for dirty branches.
 
 ## Rate Limiting
 
+### New cache flusher and typed errors
+
+- The client now uses typed network errors: `TransientNetworkError` for transport-level failures and `HttpStatusError` for non-2xx HTTP responses (contains integer `status`). Retry behavior is driven by these types; the retry wrapper only retries `TransientNetworkError` and `HttpStatusError` with 5xx status codes.
+
+- Cache persistence: the HTTP response cache is now written by a background flusher thread, which reduces small synchronous disk writes. The flusher interval defaults to 5000ms and can be configured via the environment variable `AGPM_CACHE_FLUSH_MS` (milliseconds) or by calling the public API `GitHubClient::set_cache_flush_interval()` from code.
+
+- Public API: `GitHubClient::flush_cache()` forces an immediate flush of the in-memory cache to disk and is useful for deterministic tests or shutdown sequences.
+
+
+
 Use `--max-request-rate` to throttle GitHub API calls and
 `--max-hourly-requests` to enforce an absolute hourly ceiling. The poller also
 monitors GitHub's `/rate_limit` endpoint at the configured refresh interval and

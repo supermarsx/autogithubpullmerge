@@ -25,6 +25,16 @@ required utilities are present, the notification request is silently ignored.
 
 ## Extending
 
+### Flusher and errors
+
+The GitHub client now includes two runtime features callers should be aware of:
+
+- Cache flusher: the HTTP response cache is persisted by a background flusher thread. The flusher interval defaults to 5000ms and can be overridden with the environment variable `AGPM_CACHE_FLUSH_MS` (milliseconds). For deterministic shutdown or in unit tests, call `GitHubClient::flush_cache()` to force an immediate write.
+
+- Typed errors: HTTP and transport errors are represented by `agpm::HttpStatusError` (carries integer `status`) and `agpm::TransientNetworkError`. If you extend or wrap the `HttpClient` interface, prefer throwing these types so the built-in retry logic behaves correctly. The retry wrapper treats `TransientNetworkError` and `HttpStatusError` with 5xx status as retryable; other exceptions will not be retried.
+
+## Extending
+
 To support additional notification mechanisms, derive from `agpm::Notifier` and
 implement the `notify` method. This allows integrating with alternative desktop
 systems or external services such as email or chat bots.

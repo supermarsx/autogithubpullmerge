@@ -43,3 +43,14 @@ jobs:
           fi
           clang-tidy -p build $files --warnings-as-errors='*'
 
+      - name: Enforce typed HTTP errors
+        run: |
+          # Ensure codebase uses HttpStatusError/TransientNetworkError for HTTP/curl failures
+          set -e
+          bad=$(rg "curl .*failed with HTTP code|throw std::runtime_error.*HTTP code" || true)
+          if [ -n "$bad" ]; then
+            echo "Found legacy HTTP error strings or throws; replace with HttpStatusError/TransientNetworkError:";
+            echo "$bad";
+            exit 1
+          fi
+
